@@ -1,26 +1,406 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-fraunces);
+  --color-ink: var(--ink);
+  --color-ink-light: var(--ink-light);
+  --color-ink-foreground: var(--ink-foreground);
+  /* Safety yellow. Named for the job it does — the hi-vis fill that
+     marks the one action on a screen worth taking — so it can never be
+     mistaken for --warning, which is a state. */
+  --color-hi-vis: var(--hi-vis);
+  --color-hi-vis-foreground: var(--hi-vis-foreground);
+  /* Tinted page ground, replacing a #F6F5F2 literal repeated across
+     five components. */
+  --color-surface-muted: var(--surface-muted);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/*
+ * Light palette — navy and safety yellow.
+ *
+ * Navy (--primary, ~#1B3A73) carries everything that has to be read:
+ * links, eyebrows, icons and standard buttons. It works as text on
+ * white at ~9:1, which safety yellow cannot do at any weight.
+ *
+ * Safety yellow is --hi-vis, a fill only, always under navy text. It is
+ * spent on the single action a screen is asking for — Get a Quote, Get
+ * Started, Add to Cart — so it keeps its meaning. Making every button
+ * yellow would make none of them stand out.
+ *
+ * --warning was moved off yellow to amber for the same reason: with
+ * yellow now a brand colour, a yellow "low stock" chip would read as
+ * decoration. Values stay in oklch to match shadcn's token set and to
+ * interpolate cleanly with the dark palette below.
+ */
+:root {
+  --background: oklch(0.993 0.002 255);
+  --foreground: oklch(0.16 0.018 258);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.16 0.018 258);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.16 0.018 258);
+  --primary: oklch(0.375 0.105 262); /* navy, ~#1B3A73 */
+  --primary-foreground: oklch(0.985 0.002 255);
+  --secondary: oklch(0.968 0.004 255);
+  --secondary-foreground: oklch(0.22 0.025 258);
+  --muted: oklch(0.968 0.004 255);
+  --muted-foreground: oklch(0.525 0.022 258);
+  /* Hover/active tint for menus and list rows: a wash of the primary,
+     not the accent colour itself — a saturated hover would fight every
+     dropdown on the site. */
+  --accent: oklch(0.955 0.018 255);
+  --accent-foreground: oklch(0.335 0.095 262);
+  --destructive: oklch(0.577 0.245 27.325);
+  /* Dark enough to clear AA as text: "In Stock" is rendered as green
+     label text, not just as a dot. */
+  --success: oklch(0.525 0.135 150);
+  --success-foreground: oklch(0.985 0 0);
+  /* Amber, not yellow — a state, clearly distinct from --hi-vis. */
+  --warning: oklch(0.755 0.155 64);
+  --warning-foreground: oklch(0.22 0.03 258);
+  --border: oklch(0.918 0.007 255);
+  --input: oklch(0.918 0.007 255);
+  --ring: oklch(0.375 0.105 262);
+  --chart-1: oklch(0.375 0.105 262);
+  --chart-2: oklch(0.87 0.175 97);
+  --chart-3: oklch(0.55 0.08 250);
+  --chart-4: oklch(0.7 0.1 230);
+  --chart-5: oklch(0.3 0.06 262);
+  --radius: 0.625rem;
+  /* Dark brand surface — hero, footer, sidebar — fixed across themes. */
+  --ink: oklch(0.235 0.062 262); /* deep navy, ~#122650 */
+  --ink-light: oklch(0.295 0.07 262); /* for gradients */
+  --ink-foreground: oklch(0.985 0.003 255);
+  /* Safety yellow, ~#FFD100. Never used for text on a light ground. */
+  --hi-vis: oklch(0.87 0.175 97);
+  --hi-vis-foreground: oklch(0.22 0.045 262);
+  --surface-muted: oklch(0.966 0.005 250);
+  --sidebar: oklch(0.985 0.002 255);
+  --sidebar-foreground: oklch(0.16 0.018 258);
+  --sidebar-primary: oklch(0.375 0.105 262);
+  --sidebar-primary-foreground: oklch(0.985 0.002 255);
+  --sidebar-accent: oklch(0.955 0.018 255);
+  --sidebar-accent-foreground: oklch(0.335 0.095 262);
+  --sidebar-border: oklch(0.918 0.007 255);
+  --sidebar-ring: oklch(0.375 0.105 262);
+}
+
+/*
+ * Dark palette.
+ *
+ * Navy at ~#1B3A73 disappears against a dark ground, so --primary is
+ * lifted to a mid blue that still reads as the same family and clears
+ * contrast on --background. --hi-vis is unchanged: safety yellow is a
+ * brand constant, and it carries navy text on either theme.
+ */
+.dark {
+  --background: oklch(0.16 0.012 258);
+  --foreground: oklch(0.975 0.003 255);
+  --card: oklch(0.214 0.016 258);
+  --card-foreground: oklch(0.975 0.003 255);
+  --popover: oklch(0.214 0.016 258);
+  --popover-foreground: oklch(0.975 0.003 255);
+  --primary: oklch(0.72 0.125 255);
+  --primary-foreground: oklch(0.18 0.035 262);
+  --secondary: oklch(0.275 0.018 258);
+  --secondary-foreground: oklch(0.975 0.003 255);
+  --muted: oklch(0.275 0.018 258);
+  --muted-foreground: oklch(0.715 0.018 258);
+  --accent: oklch(0.32 0.045 258);
+  --accent-foreground: oklch(0.86 0.09 250);
+  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.7 0.17 150);
+  --success-foreground: oklch(0.16 0.012 258);
+  --warning: oklch(0.79 0.15 64);
+  --warning-foreground: oklch(0.18 0.025 258);
+  --border: oklch(1 0 0 / 11%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.72 0.125 255);
+  --chart-1: oklch(0.72 0.125 255);
+  --chart-2: oklch(0.87 0.175 97);
+  --chart-3: oklch(0.6 0.09 250);
+  --chart-4: oklch(0.75 0.1 230);
+  --chart-5: oklch(0.45 0.08 262);
+  --ink: oklch(0.235 0.062 262);
+  --ink-light: oklch(0.295 0.07 262);
+  --ink-foreground: oklch(0.985 0.003 255);
+  --hi-vis: oklch(0.87 0.175 97);
+  --hi-vis-foreground: oklch(0.22 0.045 262);
+  --surface-muted: oklch(0.226 0.018 258);
+  --sidebar: oklch(0.214 0.016 258);
+  --sidebar-foreground: oklch(0.975 0.003 255);
+  --sidebar-primary: oklch(0.72 0.125 255);
+  --sidebar-primary-foreground: oklch(0.16 0.012 258);
+  --sidebar-accent: oklch(0.275 0.018 258);
+  --sidebar-accent-foreground: oklch(0.975 0.003 255);
+  --sidebar-border: oklch(1 0 0 / 11%);
+  --sidebar-ring: oklch(0.72 0.125 255);
+}
+
+/*
+ * Typography scale. Step ratio (~1.25) from a 16px base.
+ *
+ * Body sizes (xs–xl) are fixed — shrinking body copy on a phone hurts
+ * readability. Display sizes (2xl and up) are fluid via clamp(), so a
+ * heading that reads at 49px on a desktop drops to ~32px on a 375px
+ * phone without every page needing its own responsive override. The
+ * max of each clamp is the original desktop value, so large screens
+ * are unchanged. Line heights become unitless ratios so they track the
+ * fluid size instead of staying loose when the text shrinks.
+ */
+:root {
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: clamp(1.375rem, 1.18rem + 0.85vw, 1.563rem);
+  --text-2xl--line-height: 1.3;
+  --text-3xl: clamp(1.5rem, 1.19rem + 1.35vw, 1.953rem);
+  --text-3xl--line-height: 1.25;
+  --text-4xl: clamp(1.75rem, 1.29rem + 2vw, 2.441rem);
+  --text-4xl--line-height: 1.2;
+  --text-5xl: clamp(2rem, 1.42rem + 2.5vw, 3.052rem);
+  --text-5xl--line-height: 1.1;
+  --text-6xl: clamp(2.25rem, 1.5rem + 3.2vw, 3.815rem);
+  --text-6xl--line-height: 1.05;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    /* A stray wide child should scroll inside its own container, never
+     * sideways-shift the whole page — the classic mobile layout bug. */
+    overflow-x: hidden;
+    /* Kills horizontal rubber-banding so swipes feel app-like. Vertical
+     * overscroll is left alone: pull-to-refresh still works. */
+    overscroll-behavior-x: none;
+  }
+  html {
+    @apply font-sans;
+    /* iOS bumps font size in landscape unless this is pinned. */
+    -webkit-text-size-adjust: 100%;
+    /* Anchors/buttons shouldn't flash grey on tap. */
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+  /* Native controls inherit the theme instead of rendering light-on-dark. */
+  input,
+  textarea,
+  select,
+  button {
+    color-scheme: inherit;
+  }
+  /* Any tap target that acts like a control gets the same press feedback. */
+  a,
+  button,
+  [role="button"],
+  summary {
+    touch-action: manipulation;
+  }
+  h1 {
+    @apply font-heading text-5xl font-medium tracking-tight;
+  }
+  h2 {
+    @apply font-heading text-4xl font-medium tracking-tight;
+  }
+  h3 {
+    @apply font-heading text-2xl font-medium tracking-tight;
+  }
+  h4 {
+    @apply font-heading text-xl font-semibold;
+  }
+  h5 {
+    @apply font-heading text-lg font-medium;
+  }
+  small {
+    @apply text-sm text-muted-foreground;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+ * Mobile app-shell utilities.
+ *
+ * Fixed bars sit under the iOS home indicator unless they reserve the
+ * safe-area inset. max() keeps a sensible minimum on devices that
+ * report an inset of 0 (Android, desktop).
+ */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility px-safe {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+@utility mb-safe {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* Height of the mobile tab bar plus its safe-area inset, so scrollable
+ * content can clear it without every page hardcoding a magic number. */
+@utility pb-tabbar {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
+/*
+ * Press feedback. Touch devices have no hover, so a tap needs its own
+ * affordance; the scale is deliberately subtle on large surfaces.
+ */
+/*
+ * `scale` is used as a standalone property rather than transform:
+ * scale(), so it composes with any transform a component already sets
+ * (Button, for one, nudges itself with active:translate-y-px) instead
+ * of replacing it.
+ */
+@utility press {
+  transition-property: scale, transform, box-shadow, background-color,
+    border-color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:active {
+    scale: 0.97;
+  }
+}
+
+@utility press-sm {
+  transition-property: scale, transform, box-shadow, background-color,
+    border-color;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:active {
+    scale: 0.99;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .press,
+  .press-sm {
+    transition: none;
+  }
+  .press:active,
+  .press-sm:active {
+    scale: 1;
+  }
+}
+
+/* Horizontally scrollable rows (category chips, filter pills) that feel
+ * native: snap points, momentum, no visible scrollbar. */
+@utility scroll-row {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  & > * {
+    scroll-snap-align: start;
+    flex: none;
+  }
+}
+
+/*
+ * Scroll reveal — CSS scroll-driven animation, no JavaScript.
+ *
+ * Guarded by @supports so unsupported browsers render content normally
+ * rather than leaving it stuck at opacity 0, and by a motion query so
+ * the effect disappears for anyone who has asked for less movement.
+ */
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal {
+      animation: reveal-in linear both;
+      animation-timeline: view();
+      animation-range: entry 10% cover 28%;
+    }
+
+    /* Stagger for grouped cards — offsets where the animation starts
+       rather than using a delay, since a scroll timeline has no clock. */
+    .reveal-delay-1 { animation-range: entry 14% cover 34%; }
+    .reveal-delay-2 { animation-range: entry 18% cover 40%; }
+    .reveal-delay-3 { animation-range: entry 22% cover 46%; }
+  }
 }

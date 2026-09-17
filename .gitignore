@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Source photography (27MB of originals). The app only ever serves the
+# optimised copies in public/images, and binaries this size can't be
+# removed from git history once pushed. Kept on disk, out of the repo —
+# back these up somewhere else (Drive, Dropbox) rather than here.
+/images/
