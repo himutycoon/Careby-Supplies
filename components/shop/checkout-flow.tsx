@@ -21,7 +21,7 @@ import { StepIndicator } from "@/components/shared/step-indicator";
 import { useCart } from "@/components/shop/cart-provider";
 import { useToast } from "@/components/shared/toast";
 import { OrderSummary } from "@/components/shop/order-summary";
-import { createOrder } from "@/services/orders";
+import { createOrder, calculateOrderTotals } from "@/services/orders";
 import { getProductsByIds } from "@/services/products";
 import { getMyRole } from "@/services/profile";
 import { useAsyncData } from "@/lib/store/hooks";
@@ -77,6 +77,18 @@ export function CheckoutFlow() {
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = React.useState<Order | null>(null);
 
+  /*
+   * Whether Stripe is wired up in this environment.
+   *
+   * Read from the publishable key rather than a separate flag: if the key
+   * is absent the redirect cannot work, so the UI must not promise a card
+   * payment it can't take. Keeps local dev and a key-less deploy honest
+   * instead of dead-ending the shopper at a broken Pay button.
+   */
+  const paymentsLive = Boolean(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  );
+
   const productIds = React.useMemo(
     () => lines.map((l) => l.productId).sort().join(","),
     [lines],
@@ -106,6 +118,18 @@ export function CheckoutFlow() {
           : [];
       }),
     [lines, products, role],
+  );
+
+  /*
+   * The figure shown on the Pay button, from the same rules function
+   * OrderSummary uses — not a second calculation. It is a preview only:
+   * the amount Stripe actually charges comes from orders.total, which the
+   * database computes, so a stale or tampered value here cannot change
+   * what is billed.
+   */
+  const payableTotal = React.useMemo(
+    () => calculateOrderTotals(orderLines, delivery).total,
+    [orderLines, delivery],
   );
 
   if (lines.length === 0 && !placedOrder) {
@@ -174,7 +198,7 @@ export function CheckoutFlow() {
       return;
     }
 
-    // Payment step — create the order.
+    // Payment step — create the order, then hand off to Stripe.
     setSubmitting(true);
     const result = await createOrder({
       // Send cart lines only — the database sets prices from the catalog.
@@ -184,18 +208,70 @@ export function CheckoutFlow() {
       deliveryMethod: delivery,
       contact,
     });
-    setSubmitting(false);
 
     if (!result.ok) {
+      setSubmitting(false);
       setSubmitError(result.error);
       toast(result.error, "error");
       return;
     }
 
+    const order = result.data;
+
+    /*
+     * Order first, payment second.
+     *
+     * The row exists before Stripe is involved, so an abandoned or failed
+     * payment leaves a recoverable order (payment_status 'unpaid') rather
+     * than a lost sale nobody can see. The cart is only cleared once the
+     * order is safely stored.
+     */
     clear();
-    setPlacedOrder(result.data);
-    setStep(3);
-    toast(`Order ${result.data.id} placed`);
+
+    if (!paymentsLive) {
+      setSubmitting(false);
+      setPlacedOrder(order);
+      setStep(3);
+      toast(`Order ${order.id} placed`);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/checkout/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // The reference only. Never a price — the server reads the total
+        // from the order row, which the database computed.
+        body: JSON.stringify({ reference: order.id }),
+      });
+
+      const payload = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "We couldn't start the payment.");
+      }
+
+      // Full navigation, not router.push — this leaves the app for Stripe.
+      window.location.assign(payload.url);
+      return;
+    } catch (error) {
+      setSubmitting(false);
+      /*
+       * The order is already placed, so this is not a dead end: show the
+       * confirmation with its reference and let them pay from the order
+       * page. Losing the reference here would be the real failure.
+       */
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We couldn't start the payment.";
+      setPlacedOrder(order);
+      setStep(3);
+      toast(`Order ${order.id} placed — ${message}`, "error");
+    }
   }
 
   function field(
@@ -308,42 +384,52 @@ export function CheckoutFlow() {
           {step === 2 ? (
             <fieldset className="flex flex-col gap-5">
               <legend className="text-lg font-medium">Payment</legend>
-              <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
-                <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                <span>
-                  <strong className="font-medium text-foreground">
-                    Prototype checkout.
-                  </strong>{" "}
-                  No card is charged and no payment processor is connected.
-                  Placing this order records it so the team can follow up.
-                </span>
-              </p>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2 sm:col-span-2">
-                  <Label htmlFor="co-card">Card number</Label>
-                  <div className="relative">
-                    <CreditCard
-                      className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-                      aria-hidden="true"
-                    />
-                    <Input
-                      id="co-card"
-                      inputMode="numeric"
-                      placeholder="Disabled in prototype"
-                      className="pl-9 md:pl-9"
-                      disabled
-                    />
-                  </div>
+              {paymentsLive ? (
+                <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
+                  <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+                  <span>
+                    You&apos;ll be taken to{" "}
+                    <strong className="font-medium text-foreground">Stripe</strong>{" "}
+                    to pay securely. Your card details never touch our
+                    servers, and the order is placed first so nothing is
+                    lost if you come back.
+                  </span>
+                </p>
+              ) : (
+                <p className="flex items-start gap-2 rounded-lg bg-warning/15 px-3 py-2.5 text-xs text-warning-foreground">
+                  <AlertCircle
+                    className="mt-0.5 size-3.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <strong className="font-medium">
+                      Payments are not configured.
+                    </strong>{" "}
+                    Your order will be recorded and the team will follow up
+                    to arrange payment — no card is charged.
+                  </span>
+                </p>
+              )}
+
+              <div className="flex items-center gap-3 rounded-lg border border-border p-3.5">
+                <CreditCard
+                  className="size-5 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {paymentsLive ? "Card — via Stripe" : "Invoice on follow-up"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {paymentsLive
+                      ? "Visa, Mastercard, Amex, Apple Pay and Google Pay."
+                      : "A member of the team will contact you."}
+                  </p>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="co-exp">Expiry</Label>
-                  <Input id="co-exp" placeholder="MM / YY" disabled />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="co-cvc">CVC</Label>
-                  <Input id="co-cvc" placeholder="123" disabled />
-                </div>
+                <span className="ml-auto shrink-0 text-base font-semibold tabular-nums">
+                  {formatCad(payableTotal)}
+                </span>
               </div>
 
               {submitError ? (
