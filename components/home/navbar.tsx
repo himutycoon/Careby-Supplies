@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -29,6 +29,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/shared/logo";
 import { CartButton } from "@/components/shop/cart-button";
+import { CatalogSearch } from "@/components/shop/catalog-search";
 import { createClient } from "@/lib/supabase/client";
 import { homeForRole } from "@/lib/supabase/profile";
 import { NAV_LINKS } from "@/data/mock";
@@ -36,10 +37,8 @@ import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function Navbar() {
-  const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
-  const [term, setTerm] = React.useState("");
   // null = still checking, so we don't flash "Login" at a signed-in user.
   const [role, setRole] = React.useState<UserRole | null>(null);
   const [signedIn, setSignedIn] = React.useState(false);
@@ -73,18 +72,10 @@ export function Navbar() {
 
   const home = homeForRole(role ?? "homeowner");
 
-  function handleSearch(event: React.FormEvent) {
-    event.preventDefault();
-    const query = term.trim();
-    router.push(
-      query ? `/products?q=${encodeURIComponent(query)}#catalog` : "/products",
-    );
-  }
-
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-md supports-backdrop-filter:bg-background/70">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-6 px-4 sm:h-18 sm:px-6 lg:px-8">
-        <Logo />
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-4 sm:h-18 sm:px-6 lg:gap-6 lg:px-8">
+        <Logo className="shrink-0" />
 
         <nav className="hidden items-center gap-8 lg:flex">
           {NAV_LINKS.map((link) => (
@@ -102,25 +93,7 @@ export function Navbar() {
             a shopper who knows the part shouldn't have to find the shop
             page first. Below xl there isn't room beside the nav links,
             so it collapses to the icon that has always been here. */}
-        <form
-          onSubmit={handleSearch}
-          role="search"
-          className="hidden min-w-0 flex-1 xl:block xl:max-w-xs"
-        >
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              placeholder="Search materials, tools, SKU..."
-              aria-label="Search products"
-              className="h-10 w-full rounded-lg border border-input bg-background pr-3 pl-9 text-sm transition-colors hover:border-foreground/20 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-            />
-          </div>
-        </form>
+        <CatalogSearch className="hidden flex-1 xl:block xl:max-w-xs" />
 
         <div className="hidden items-center gap-1 lg:flex">
           <Button
@@ -193,10 +166,24 @@ export function Navbar() {
           />
         </div>
 
+        {/* Inline with the wordmark rather than on a row of its own:
+            the old second row cost ~50px of every phone screen, and a
+            search field is header chrome — it belongs beside the
+            controls, the way every supply app does it. The placeholder
+            is shortened because the field is only ~140px wide here.
+
+            Still stood down on the catalogue itself, which carries its
+            own search a hundred pixels below this one — two identical
+            fields that close together read as a bug. */}
+        <CatalogSearch
+          className={cn("flex-1 lg:hidden", pathname === "/products" && "hidden")}
+          placeholder="Search"
+        />
+
         {/* Cart lives in the bottom tab bar on phones — top-right is the
             hardest spot on the screen for a thumb, and duplicating it
             here would just crowd the header. */}
-        <div className="flex items-center gap-1 lg:hidden">
+        <div className="flex shrink-0 items-center gap-0.5 lg:hidden">
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
@@ -298,37 +285,6 @@ export function Navbar() {
             </SheetContent>
           </Sheet>
         </div>
-      </div>
-
-      {/*
-        Search gets its own row below the logo on phones, the way every
-        supply app does it. The xl inline field has no room here, and a
-        shopper should not have to open a menu — or scroll past the
-        hero — to search the catalogue.
-
-        Except on the catalogue itself, which carries its own search that
-        filters as you type. Stacking two near-identical fields a
-        hundred pixels apart reads as a bug.
-      */}
-      <div
-        className={cn(
-          "border-t border-border/60 px-4 pb-2.5 sm:px-6 xl:hidden",
-          pathname === "/products" && "hidden",
-        )}
-      >
-        <form onSubmit={handleSearch} role="search" className="relative mt-2.5">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <input
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            placeholder="Search materials, tools, SKU..."
-            aria-label="Search products"
-            className="h-10 w-full rounded-lg border border-input bg-background pr-3 pl-9 text-base transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:text-sm"
-          />
-        </form>
       </div>
     </header>
   );

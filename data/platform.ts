@@ -39,6 +39,12 @@ export interface UserTypeOption {
   id: "contractor" | "homeowner";
   icon: string;
   title: string;
+  /**
+   * The role on its own, for places that supply the "I'm a" themselves
+   * — the hero chooser labels the pair once and cannot afford to repeat
+   * the prefix inside a 140px pill on a 320px phone.
+   */
+  shortLabel: string;
   description: string;
   bullets: string[];
   ctaLabel: string;
@@ -50,6 +56,7 @@ export const USER_TYPES: UserTypeOption[] = [
     id: "contractor",
     icon: "HardHat",
     title: "I'm a Contractor",
+    shortLabel: "Contractor",
     description: "Manage projects, materials, packages and orders.",
     bullets: [
       "Trade pricing on materials",
@@ -63,6 +70,7 @@ export const USER_TYPES: UserTypeOption[] = [
     id: "homeowner",
     icon: "Home",
     title: "I'm a Homeowner",
+    shortLabel: "Homeowner",
     description: "Plan your repair, renovation or new home.",
     bullets: [
       "Guided project planning",

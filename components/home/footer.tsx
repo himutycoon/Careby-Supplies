@@ -7,11 +7,14 @@ import { CONTACT_INFO, FOOTER_COLUMNS } from "@/data/mock";
 export function Footer() {
   return (
     <footer className="border-t border-border bg-muted/30">
-      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-6">
-          <div className="col-span-2 flex flex-col gap-4">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-14 lg:px-8">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:gap-8 md:grid-cols-6">
+          <div className="col-span-2 flex flex-col gap-3 sm:gap-4">
             <Logo />
-            <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
+            {/* Word-for-word the hero subhead. On a phone it is three
+                wasted lines a thumb has to travel past; on desktop it
+                balances the column, so it only stands down below sm. */}
+            <p className="hidden max-w-xs text-sm leading-relaxed text-muted-foreground sm:block">
               Quality products, expert guidance, project planning and
               construction support — all from one platform.
             </p>
@@ -35,7 +38,7 @@ export function Footer() {
           </div>
 
           {FOOTER_COLUMNS.map((column) => (
-            <div key={column.title} className="flex flex-col gap-3">
+            <div key={column.title} className="flex flex-col gap-2.5 sm:gap-3">
               <h3 className="text-sm font-semibold">{column.title}</h3>
               <ul className="flex flex-col gap-2">
                 {column.links.map((link) => (
@@ -53,7 +56,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-3 border-t border-border pt-6 sm:mt-10 sm:flex-row sm:items-center sm:justify-between sm:pt-8">
           <div>
             <h3 className="text-sm font-semibold">Stay in the loop</h3>
             <p className="text-sm text-muted-foreground">
@@ -63,9 +66,16 @@ export function Footer() {
           <NewsletterForm />
         </div>
 
-        <div className="mt-8 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} CareBy Canada. All rights reserved.</p>
-          <p>Serving Mississauga, Ontario.</p>
+        {/* Two stacked lines cost a phone 20px to say what fits on one.
+            The full wording returns from sm up, where there is a spare
+            half-row for it anyway. */}
+        <div className="mt-6 flex flex-col gap-2 border-t border-border pt-5 text-xs text-muted-foreground sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:pt-6">
+          <p>
+            © {new Date().getFullYear()} CareBy Canada.
+            <span className="hidden sm:inline"> All rights reserved.</span>
+            <span className="sm:hidden"> Mississauga, ON.</span>
+          </p>
+          <p className="hidden sm:block">Serving Mississauga, Ontario.</p>
         </div>
       </div>
     </footer>

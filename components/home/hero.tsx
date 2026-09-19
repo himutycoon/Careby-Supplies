@@ -3,7 +3,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlueprintGrid } from "@/components/shared/blueprint-texture";
 import { Icon } from "@/components/shared/icon";
-import { HERO_CARDS } from "@/data/platform";
+import { HERO_CARDS, USER_TYPES } from "@/data/platform";
 import { HeroPanel } from "@/components/shared/hero-panel";
 
 const TRUST_BULLETS = [
@@ -63,6 +63,52 @@ export function Hero() {
               className="press w-full border-white/20 bg-transparent text-ink-foreground hover:bg-white/10 hover:text-ink-foreground sm:w-auto"
               render={<Link href="/products">Shop Products</Link>}
             />
+          </div>
+
+          {/*
+            Role chooser, above the fold.
+
+            Rounded-full and translucent so it reads as a choice rather
+            than a third and fourth call to action — the hi-vis button
+            above stays the single loudest thing on the screen. Both
+            roles get identical weight: this is a fork, not a
+            recommendation, so styling one as primary would be a lie.
+
+            The "I'm a" is said once, by the group. Repeating it inside
+            each pill needed ~148px of content, which wrapped to two
+            rows at 375px and to two lines at 320px; the role on its own
+            fits a 140px pill at every width we support.
+
+            Labels and destinations come from USER_TYPES, the same
+            source the section further down the page uses, so the two
+            can never drift apart.
+          */}
+          <div className="pt-1">
+            <span
+              id="hero-role-label"
+              className="text-xs font-semibold tracking-[0.14em] text-ink-foreground/55 uppercase"
+            >
+              I&apos;m a
+            </span>
+            {/* Grid, not flex-wrap: two flex-1 pills came to 167.5px
+                each inside 343px at 375px, and the rounding tipped the
+                second onto its own row. A 2-column grid cannot. */}
+            <div
+              role="group"
+              aria-labelledby="hero-role-label"
+              className="mt-2 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-2.5"
+            >
+              {USER_TYPES.map((type) => (
+                <Link
+                  key={type.id}
+                  href={type.href}
+                  className="press inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium whitespace-nowrap text-ink-foreground transition-colors hover:border-hi-vis/40 hover:bg-white/10 sm:py-2.5"
+                >
+                  <Icon name={type.icon} className="size-4 text-hi-vis" />
+                  {type.shortLabel}
+                </Link>
+              ))}
+            </div>
           </div>
 
           <ul className="flex flex-wrap gap-x-6 gap-y-2 pt-2">

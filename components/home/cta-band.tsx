@@ -13,22 +13,18 @@ export function CtaBand() {
           Tell us what you&apos;re building and we&apos;ll take it from
           there — with materials, estimates and people who know the work.
         </p>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button
-            variant="hi-vis"
-            size="lg"
-            render={
-              <Link href="/get-started">
-                Get Started <ArrowRight className="size-4" />
-              </Link>
-            }
-          />
-          <Button
-            size="lg"
-            variant="outline"
-            render={<Link href="/contact?about=consultation">Talk to an Expert</Link>}
-          />
-        </div>
+        {/* "Talk to an Expert" used to sit beside this button. It now
+            floats on every page of the site (ExpertFab), so on this
+            band the two were on screen together, a few pixels apart. */}
+        <Button
+          variant="hi-vis"
+          size="lg"
+          render={
+            <Link href="/get-started">
+              Get Started <ArrowRight className="size-4" />
+            </Link>
+          }
+        />
       </div>
     </section>
   );
