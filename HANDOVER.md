@@ -38,8 +38,11 @@ Editor, in order. All are safe to re-run.
 | `schema-05-platform.sql` | catalog, orders, projects, packages, requests, storage |
 | `schema-06-flows.sql` | submission→project link, premium details, realtime |
 | `schema-07-inventory.sql` | derived stock status |
+| `schema-08-fixes.sql` | `contact_messages`, `newsletter_subscribers`, money-math fixes |
+| `schema-09-payments.sql` | order payment columns + client write guard |
 
-All seven are applied to the current project.
+Schemas 01–08 are applied to the current project. **`schema-09-payments.sql`
+has not been run yet** — apply it before enabling Stripe.
 
 ### Authorization
 
@@ -96,8 +99,14 @@ no takeoff engine yet, and the database records that fact.
 3. **Replace the seed catalog.** The 12 products are invented placeholders
    with invented brands. They are not real inventory.
 4. **Delete the demo accounts** (below).
-5. **Payments are not implemented.** Checkout records an order; it does not
-   take money. No Stripe, no payment intent.
+5. **Payments are wired but not switched on.** Stripe Checkout is
+   implemented (`app/api/checkout/session`, `app/api/webhooks/stripe`).
+   Without `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` the
+   checkout says so plainly and records the order without charging. To
+   turn it on: run `schema-09-payments.sql`, set the three Stripe keys,
+   register the webhook endpoint, and rebuild — the publishable key is
+   inlined at build time. **No real payment has been taken end to end
+   yet**; watch one test payment through before trusting it.
 
 ## Accounts
 
@@ -135,7 +144,13 @@ the catalog without touching order history.
 
 ## Known gaps
 
-- Payments (Stripe) — not started.
+- Payments (Stripe) — code complete, unverified against live keys.
+- No return-path after login: a guarded URL sends you to /login and then
+  to your role's home, not back to the page you asked for.
+- Services return `[]` on error, so a database outage is indistinguishable
+  from "no rows" in the admin tables.
+- Stock is not re-checked at checkout, so an item can sell out between
+  adding it to the cart and placing the order.
 - `product_images` table is unused; products carry a single `image_url`.
 - No automated test suite. Verification was done with scripts against the
   live database (RLS paths, price enforcement, stock trigger, realtime).
