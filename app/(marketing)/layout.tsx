@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/home/navbar";
 import { Footer } from "@/components/home/footer";
 import { MobileTabBar } from "@/components/app-shell/mobile-tab-bar";
+import { ExpertFab } from "@/components/shared/expert-fab";
 import { MARKETING_TAB_NAV } from "@/data/navigation";
 
 export default function MarketingLayout({
@@ -21,6 +22,7 @@ export default function MarketingLayout({
         <Footer />
       </div>
       <MobileTabBar items={MARKETING_TAB_NAV} />
+      <ExpertFab />
     </>
   );
 }

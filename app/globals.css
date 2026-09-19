@@ -309,6 +309,51 @@
   padding-bottom: calc(4rem + env(safe-area-inset-bottom));
 }
 
+/* Sits a floating control just clear of the mobile tab bar, reusing the
+ * same 4rem + inset arithmetic as pb-tabbar so the two can never drift.
+ * Desktop overrides this with a plain bottom-* utility. */
+@utility bottom-tabbar {
+  bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
+}
+
+/*
+ * Glow for a floating hi-vis control.
+ *
+ * A box-shadow halo that breathes, not an opacity or colour flash: a
+ * button that blinks reads as an error state, and safety yellow going
+ * translucent over a white page goes muddy. The spread ring expands
+ * from 0 and fades to fully transparent, so the pulse reads as a halo
+ * leaving the button rather than the button itself changing.
+ */
+@keyframes hi-vis-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 8px 24px color-mix(in oklch, var(--hi-vis), transparent 55%),
+      0 0 0 0 color-mix(in oklch, var(--hi-vis), transparent 50%);
+  }
+  50% {
+    box-shadow:
+      0 10px 30px color-mix(in oklch, var(--hi-vis), transparent 35%),
+      0 0 0 9px color-mix(in oklch, var(--hi-vis), transparent 100%);
+  }
+}
+
+@utility glow-hi-vis {
+  box-shadow:
+    0 8px 24px color-mix(in oklch, var(--hi-vis), transparent 55%),
+    0 0 0 0 color-mix(in oklch, var(--hi-vis), transparent 50%);
+  animation: hi-vis-breathe 3s ease-in-out infinite;
+}
+
+/* The halo stays; only the breathing stops. Removing the shadow too
+ * would leave the control flat against the page it floats over. */
+@media (prefers-reduced-motion: reduce) {
+  .glow-hi-vis {
+    animation: none;
+  }
+}
+
 /*
  * Press feedback. Touch devices have no hover, so a tap needs its own
  * affordance; the scale is deliberately subtle on large surfaces.
