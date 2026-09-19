@@ -67,7 +67,7 @@ export function PackagePortal({ packageId }: { packageId: string }) {
       <EmptyState
         icon="Package"
         title="Package not found"
-        description="This package doesn't exist, or it was created in a different browser — prototype packages are stored locally."
+        description="Check the reference on your email or quote — it should look like PKG-XXXXXX. If it still doesn't open, ask your contractor to resend the link."
         action={<Button render={<Link href="/">Back to home</Link>} />}
       />
     );

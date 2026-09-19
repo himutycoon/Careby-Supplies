@@ -14,8 +14,16 @@ const HOMEOWNER_PREFIXES = [
 ];
 const CONTRACTOR_PREFIXES = ["/contractor"];
 const ADMIN_PREFIXES = ["/admin"];
-/** Logged in is enough — every role needs these. */
-const SHARED_PREFIXES = ["/account"];
+/**
+ * Logged in is enough — every role needs these.
+ *
+ * /orders belongs here because an order always has an owner: createOrder
+ * refuses without a session, and RLS only returns rows belonging to the
+ * caller. Left unguarded, a signed-out visitor reached the page, read an
+ * empty list through RLS, and was told their order did not exist — when
+ * the real answer was "sign in". Guarding it turns that into a login.
+ */
+const SHARED_PREFIXES = ["/account", "/orders"];
 const AUTH_PAGES = ["/login", "/signup", "/forgot-password"];
 
 export async function updateSession(request: NextRequest) {

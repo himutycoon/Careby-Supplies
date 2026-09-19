@@ -55,7 +55,7 @@ export function OrderDetail({ orderId }: { orderId: string }) {
       <EmptyState
         icon="Receipt"
         title="Order not found"
-        description="This order doesn't exist, or it was placed in a different browser — prototype orders are stored locally."
+        description="This order doesn't exist, or it was placed on another account. Check the reference on your confirmation email — it should look like ORD-XXXXXX."
         action={<Button render={<Link href="/products">Shop Products</Link>} />}
       />
     );

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/auth/password-input";
 import { createClient } from "@/lib/supabase/client";
+import { getUserRole, homeForRole } from "@/lib/supabase/profile";
 
 export function LoginForm() {
   const router = useRouter();
@@ -25,7 +26,7 @@ export function LoginForm() {
     const password = formData.get("password") as string;
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -36,7 +37,24 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/dashboard");
+    /*
+     * Land on the surface this account actually uses.
+     *
+     * This used to push /dashboard for everyone and rely on middleware to
+     * bounce the rest. That works for a contractor, but not for an admin:
+     * middleware deliberately lets admins sit on any surface ("admins can
+     * inspect every surface"), so the bounce never fires and an admin
+     * logged in to the homeowner dashboard. Resolving the role here sends
+     * everyone straight to the right place and drops a redirect hop for
+     * contractors too.
+     *
+     * Routing only — RLS is what actually protects the data.
+     */
+    const destination = data.user
+      ? homeForRole(await getUserRole(supabase, data.user.id))
+      : "/dashboard";
+
+    router.push(destination);
     router.refresh();
   }
 

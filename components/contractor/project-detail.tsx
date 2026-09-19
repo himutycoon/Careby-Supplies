@@ -58,7 +58,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
       <EmptyState
         icon="FolderKanban"
         title="Project not found"
-        description="This project doesn't exist, or it was created in a different browser — prototype projects are stored locally."
+        description="This project doesn't exist, or it belongs to another account."
         action={
           <Button render={<Link href="/contractor/projects">All projects</Link>} />
         }

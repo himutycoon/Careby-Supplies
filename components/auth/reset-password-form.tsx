@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/auth/password-input";
 import { createClient } from "@/lib/supabase/client";
+import { getUserRole, homeForRole } from "@/lib/supabase/profile";
 
 const MIN_LENGTH = 8;
 
@@ -47,7 +48,7 @@ export function ResetPasswordForm() {
 
     setLoading(true);
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    const { data, error } = await supabase.auth.updateUser({ password });
 
     if (error) {
       setLoading(false);
@@ -55,8 +56,20 @@ export function ResetPasswordForm() {
       return;
     }
 
-    // Middleware routes to the right home for this account's role.
-    router.push("/dashboard");
+    /*
+     * Resolve the role rather than trusting middleware to re-route.
+     *
+     * The old comment here said middleware would send this account to the
+     * right home, which is true for a contractor and false for an admin:
+     * middleware lets admins sit on any surface, so /dashboard is never
+     * bounced and an admin landed on the homeowner dashboard. Same fix as
+     * the login form.
+     */
+    const destination = data.user
+      ? homeForRole(await getUserRole(supabase, data.user.id))
+      : "/dashboard";
+
+    router.push(destination);
     router.refresh();
   }
 
