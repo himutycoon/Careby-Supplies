@@ -74,17 +74,24 @@ create index if not exists orders_payment_status_idx
 -- is running as the service role, which is the webhook and nothing else.
 -- ---------------------------------------------------------------------------
 
+-- SECURITY INVOKER (the default) is load-bearing here. Under SECURITY
+-- DEFINER, current_user returns the function's owner — postgres — rather
+-- than the role PostgREST switched to, so a service_role check could never
+-- match and this would reject the webhook's own write, leaving every order
+-- permanently unpaid.
+--
+-- Stated as a denylist rather than an allowlist for the same reason: the
+-- roles that must be stopped are the two a browser can hold. PostgREST
+-- runs as `anon` for a signed-out caller and `authenticated` for a signed-in
+-- one; the webhook is `service_role` and the SQL editor is `postgres`, and
+-- neither should be locked out of correcting a row.
 create or replace function public.guard_order_payment_columns()
 returns trigger
 language plpgsql
-security definer
 set search_path = public
 as $$
 begin
-  -- service_role bypasses RLS and is what the Stripe webhook authenticates
-  -- as. Every other caller is a browser session.
-  if current_setting('request.jwt.claim.role', true) = 'service_role'
-     or current_user = 'service_role' then
+  if current_user not in ('anon', 'authenticated') then
     return new;
   end if;
 
