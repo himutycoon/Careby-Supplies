@@ -148,17 +148,10 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* Recommended products */}
+      {/* Suggested products. The heading lives in the component because it
+          changes with the data: it only claims "for your project" when
+          there were real signals to work from. */}
       <section className="mt-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg">Recommended for you</h2>
-          <Link
-            href="/products"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Shop all
-          </Link>
-        </div>
         <RecommendedProducts count={3} />
       </section>
 
