@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, MessageCircle } from "lucide-react";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card } from "@/components/ui/card";
 import { ContactForm } from "@/components/contact/contact-form";
-import { CONTACT_INFO } from "@/data/mock";
+import { CONTACT_INFO, WHATSAPP_URL } from "@/data/mock";
 
 export const metadata: Metadata = { title: "Contact — CareBy Canada" };
 
@@ -35,10 +35,12 @@ export default function ContactPage() {
               <Mail className="size-4" /> {CONTACT_INFO.email}
             </a>
             <a
-              href={`tel:${CONTACT_INFO.phone}`}
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              <Phone className="size-4" /> {CONTACT_INFO.phone}
+              <MessageCircle className="size-4" /> WhatsApp {CONTACT_INFO.phone}
             </a>
             <span className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="size-4" /> {CONTACT_INFO.address}

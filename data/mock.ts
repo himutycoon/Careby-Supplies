@@ -488,10 +488,15 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
 ];
 
 export const CONTACT_INFO = {
-  email: "hello@careby.ca",
-  phone: "(905) 555-0142",
+  email: "carebysupplies@gmail.com",
+  /** Display form. `whatsappNumber` is the digits wa.me needs. */
+  phone: "+1 437 522 4606",
+  whatsappNumber: "14375224606",
   address: "Mississauga, ON, Canada",
 };
+
+/** Click-to-chat link, built from the number so the two cannot drift. */
+export const WHATSAPP_URL = `https://wa.me/${CONTACT_INFO.whatsappNumber}`;
 
 export const TRUST_LINE =
   "Built for Mississauga homeowners planning their first renovation.";

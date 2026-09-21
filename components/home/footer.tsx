@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Mail, MapPin, Phone } from "lucide-react";
+import { Mail, MapPin, MessageCircle } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { NewsletterForm } from "@/components/home/newsletter-form";
-import { CONTACT_INFO, FOOTER_COLUMNS } from "@/data/mock";
+import { CONTACT_INFO, FOOTER_COLUMNS, WHATSAPP_URL } from "@/data/mock";
 
 export function Footer() {
   return (
@@ -25,11 +25,16 @@ export function Footer() {
               >
                 <Mail className="size-4" /> {CONTACT_INFO.email}
               </a>
+              {/* WhatsApp, not tel: — this is the number we actually
+                  answer, and a tap should open the chat rather than
+                  dial a line nobody picks up. */}
               <a
-                href={`tel:${CONTACT_INFO.phone}`}
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="flex items-center gap-2 hover:text-foreground"
               >
-                <Phone className="size-4" /> {CONTACT_INFO.phone}
+                <MessageCircle className="size-4" /> {CONTACT_INFO.phone}
               </a>
               <span className="flex items-center gap-2">
                 <MapPin className="size-4" /> {CONTACT_INFO.address}
