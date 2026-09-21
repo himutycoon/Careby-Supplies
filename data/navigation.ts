@@ -53,6 +53,25 @@ export const HOMEOWNER_NAV: AppNavItem[] = [
 ];
 
 /**
+ * Desktop sidebar for the homeowner area.
+ *
+ * Separate from HOMEOWNER_NAV because the two answer different questions.
+ * The phone tab bar holds the four flows a homeowner starts; the sidebar,
+ * with room to spare, also holds the places they come back to — their
+ * projects and their orders. "My projects" is an anchor because projects
+ * and submissions are only listed on the dashboard; there is no separate
+ * homeowner projects screen to link to.
+ */
+export const HOMEOWNER_SIDEBAR_NAV: AppNavItem[] = [
+  { label: "Home", href: "/dashboard", icon: "Home" },
+  { label: "New estimate", href: "/new", icon: "PencilRuler" },
+  { label: "My projects", href: "/dashboard#projects", icon: "FolderKanban" },
+  { label: "Orders", href: "/orders", icon: "Receipt" },
+  { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
+  { label: "Premium Package", href: "/premium-request", icon: "Crown" },
+];
+
+/**
  * Grouped so twelve destinations read as four short lists. Order matters:
  * the sidebar prints a heading whenever the group changes, so items in
  * the same group must stay adjacent.

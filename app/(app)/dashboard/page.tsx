@@ -1,24 +1,33 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SubmissionCard } from "@/components/dashboard/submission-card";
-import { OrdersList } from "@/components/shop/orders-list";
-import { EmptyState } from "@/components/shared/empty-state";
-import { EditorialImage } from "@/components/shared/editorial-image";
-import { Icon } from "@/components/shared/icon";
+import { ClipboardList, FolderKanban, ShoppingCart } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import {
   countProjectsForCurrentUser,
   getRealSubmissionsForCurrentUser,
 } from "@/lib/supabase/queries";
-import { HOMEOWNER_NAV } from "@/data/navigation";
-import { RecommendedProducts } from "@/components/dashboard/recommended-products";
+import { DashboardHero } from "@/components/dashboard/dashboard-hero";
+import { ServiceTiles } from "@/components/dashboard/service-tiles";
+import { HelpRail } from "@/components/dashboard/help-rail";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
+import { ActiveProjects } from "@/components/dashboard/active-projects";
 import { RequestsList } from "@/components/dashboard/requests-list";
-import { HomeownerProjects } from "@/components/dashboard/homeowner-projects";
+import { OrdersList } from "@/components/shop/orders-list";
+import { RecommendedProducts } from "@/components/dashboard/recommended-products";
 
 export const metadata: Metadata = { title: "Home — CareBy Canada" };
 
+/**
+ * Homeowner dashboard.
+ *
+ * Three bands: a greeting with the one action most people came for, the
+ * five ways to start something, and then everything already in motion —
+ * projects, requests, orders and suggestions — side by side rather than
+ * stacked, so a returning homeowner sees their state without scrolling.
+ *
+ * A single grid carries all of it so the phone order can differ from the
+ * desktop layout: on a phone the help rail drops below the user's own
+ * projects and orders, because those are what they came back to check.
+ */
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -30,152 +39,62 @@ export default async function DashboardPage() {
     user?.email?.split("@")[0] ??
     "there";
 
-  const submissions = await getRealSubmissionsForCurrentUser();
-  const projectCount = await countProjectsForCurrentUser();
-  const actions = HOMEOWNER_NAV.filter((item) => item.href !== "/dashboard");
+  const [submissions, projectCount] = await Promise.all([
+    getRealSubmissionsForCurrentUser(),
+    countProjectsForCurrentUser(),
+  ]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl">
-          Hi, <span className="capitalize">{name}</span> 👋
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          What can we help you with?
-        </p>
-      </div>
+    <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
+      <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-6">
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+          <DashboardHero name={name} />
+          <ServiceTiles />
+        </div>
 
-      {/* Primary paths — large, warm, visual. */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {actions.map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="group flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        <div className="order-last xl:order-none">
+          <HelpRail />
+        </div>
+
+        {/* items-start: each panel is as tall as its content. Stretched to
+            the tallest column, a one-project panel was mostly empty card. */}
+        <div className="grid min-w-0 items-start gap-4 sm:gap-5 md:grid-cols-2 xl:col-span-2 xl:grid-cols-3">
+          <DashboardPanel
+            id="projects"
+            icon={FolderKanban}
+            title="Active projects"
+            href="/new"
+            hrefLabel="New estimate"
           >
-            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-              <Icon name={action.icon} className="size-6" />
-            </span>
-            <span className="min-w-0 flex-1 font-semibold">
-              {action.label}
-            </span>
-            <ArrowRight
-              className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-              aria-hidden="true"
+            <ActiveProjects
+              submissions={submissions}
+              projectCount={projectCount}
             />
-          </Link>
-        ))}
+          </DashboardPanel>
+
+          <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+            <DashboardPanel
+              id="requests"
+              icon={ClipboardList}
+              title="Your requests"
+            >
+              <RequestsList limit={3} compact />
+            </DashboardPanel>
+
+            <DashboardPanel
+              icon={ShoppingCart}
+              title="Recent orders"
+              href="/orders"
+            >
+              <OrdersList limit={2} compact />
+            </DashboardPanel>
+          </div>
+
+          <div className="min-w-0 md:col-span-2 xl:col-span-1">
+            <RecommendedProducts count={3} variant="list" />
+          </div>
+        </div>
       </div>
-
-      {/* Renovation submissions and projects (Supabase-backed) */}
-      <section className="mt-10">
-        <h2 className="mb-4 text-lg">Your projects</h2>
-        {submissions.length === 0 && projectCount === 0 ? (
-          <EmptyState
-            icon="Ruler"
-            title="No projects yet"
-            description="Start with a renovation estimate — upload a few photos and we'll take it from there."
-            action={
-              <Button
-                render={
-                  <Link href="/new">
-                    Start a project <ArrowRight className="size-4" />
-                  </Link>
-                }
-              />
-            }
-          />
-        ) : (
-          <div className="flex flex-col gap-4">
-            {submissions.map((submission) => (
-              <SubmissionCard key={submission.id} submission={submission} />
-            ))}
-          </div>
-        )}
-
-        {/* New Construction writes a project row rather than a submission,
-            so the wizard's own output was invisible here. */}
-        <HomeownerProjects className={submissions.length > 0 ? "mt-4" : ""} />
-      </section>
-
-      {/* Repair / project requests */}
-      <section className="mt-10">
-        <h2 className="mb-4 text-lg">Your requests</h2>
-        <RequestsList limit={4} />
-      </section>
-
-      {/* Material orders */}
-      <section className="mt-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg">Recent orders</h2>
-          <Link
-            href="/orders"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            View all
-          </Link>
-        </div>
-        <OrdersList limit={3} />
-      </section>
-
-      {/* Premium banner */}
-      <section className="mt-10">
-        <div className="relative overflow-hidden rounded-2xl bg-ink p-8 text-ink-foreground sm:p-10">
-          <div className="relative z-10 max-w-lg">
-            <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-              Premium Package
-            </span>
-            <h2 className="mt-3 text-balance text-ink-foreground">
-              Your dream home starts here
-            </h2>
-            <p className="mt-3 text-ink-foreground/70">
-              Expert advice, architect support, permits and material
-              selection — managed end to end.
-            </p>
-            <Button
-              className="mt-5"
-              render={
-                <Link href="/premium">
-                  Explore Premium <ArrowRight className="size-4" />
-                </Link>
-              }
-            />
-          </div>
-          <div
-            className="pointer-events-none absolute -right-20 -bottom-24 size-80 rounded-full bg-primary/15 blur-3xl"
-            aria-hidden="true"
-          />
-        </div>
-      </section>
-
-      {/* Suggested products. The heading lives in the component because it
-          changes with the data: it only claims "for your project" when
-          there were real signals to work from. */}
-      <section className="mt-10">
-        <RecommendedProducts count={3} />
-      </section>
-
-      {/* Expert support */}
-      <section className="mt-10">
-        <div className="flex flex-col items-start gap-4 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-center">
-          <EditorialImage
-            tone="forest"
-            alt="Talk to an expert"
-            className="h-24 w-full shrink-0 sm:size-24"
-          />
-          <div className="flex-1">
-            <h3 className="text-lg">Not sure where to start?</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Talk to an advisor who knows local codes, pricing and what
-              your project actually needs.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            render={<Link href="/contact?about=consultation">Talk to an Expert</Link>}
-          />
-        </div>
-      </section>
     </div>
   );
 }

@@ -91,7 +91,7 @@ export function PackagesList({ limit }: { limit?: number }) {
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="size-3" aria-hidden="true" />
                 {formatDate(pkg.createdAt)} · {pkg.customer.name} ·{" "}
-                {pkg.lines.length} items
+                {pkg.lines.length} {pkg.lines.length === 1 ? "item" : "items"}
               </p>
             </div>
             <span className="font-semibold tabular-nums">

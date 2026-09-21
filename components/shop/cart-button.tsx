@@ -14,7 +14,9 @@ export function CartButton() {
       size="icon"
       className="relative"
       aria-label={
-        itemCount > 0 ? `Cart, ${itemCount} items` : "Cart, empty"
+        itemCount > 0
+          ? `Cart, ${itemCount} ${itemCount === 1 ? "item" : "items"}`
+          : "Cart, empty"
       }
       render={
         <Link href="/cart">

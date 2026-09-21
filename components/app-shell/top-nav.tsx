@@ -7,12 +7,10 @@ import {
   LayoutDashboard,
   LogOut,
   Plus,
-  Search,
   User,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CartButton } from "@/components/shop/cart-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -26,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/shared/logo";
+import { CatalogSearch } from "@/components/shop/catalog-search";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -82,17 +81,14 @@ export function AppTopNav({
         <Logo />
 
         {showSearch ? (
-          <div className="relative hidden max-w-md flex-1 sm:block">
-            <Search
-              className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              placeholder="Search products, orders…"
-              aria-label="Search"
-              className="pl-9 md:pl-9"
-            />
-          </div>
+          /* Was a bare <Input> with no form and no handler: typing and
+             pressing Enter did nothing, on every contractor screen. It
+             also promised to search orders, which nothing ever did. Now
+             the same working catalogue search as the public header. */
+          <CatalogSearch
+            className="hidden max-w-md flex-1 sm:block"
+            placeholder="Search materials, tools, SKU..."
+          />
         ) : (
           <nav className="hidden items-center gap-1 sm:flex">
             {links.map((link) => {

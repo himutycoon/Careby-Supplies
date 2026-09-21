@@ -64,7 +64,7 @@ export function MobileTabBar({ items }: { items: AppNavItem[] }) {
                 aria-current={active ? "page" : undefined}
                 aria-label={
                   item.badge === "cart" && itemCount > 0
-                    ? `${item.label}, ${itemCount} items`
+                    ? `${item.label}, ${itemCount} ${itemCount === 1 ? "item" : "items"}`
                     : undefined
                 }
               >

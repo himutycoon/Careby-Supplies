@@ -10,7 +10,19 @@ import { useAsyncData } from "@/lib/store/hooks";
 import { getOrders } from "@/services/orders";
 import { formatCad, formatDate } from "@/lib/format";
 
-export function OrdersList({ limit }: { limit?: number }) {
+/** "1 item", "3 items" — this read "1 items" on every single-line order. */
+function itemCountLabel(count: number): string {
+  return `${count} ${count === 1 ? "item" : "items"}`;
+}
+
+export function OrdersList({
+  limit,
+  compact = false,
+}: {
+  limit?: number;
+  /** Shorter empty state, for a dashboard panel rather than a page. */
+  compact?: boolean;
+}) {
   const { data, loading, error, reload } = useAsyncData(getOrders);
 
   if (loading) {
@@ -43,6 +55,7 @@ export function OrdersList({ limit }: { limit?: number }) {
         icon="Receipt"
         title="No orders yet"
         description="Materials you order will show up here with their delivery status."
+        className={compact ? "gap-2 px-4 py-6" : undefined}
         action={
           <Button render={<Link href="/products">Browse materials</Link>} />
         }
@@ -63,7 +76,9 @@ export function OrdersList({ limit }: { limit?: number }) {
               <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="size-3" aria-hidden="true" />
                 {formatDate(order.createdAt)} ·{" "}
-                {order.lines.reduce((sum, l) => sum + l.quantity, 0)} items
+                {itemCountLabel(
+                  order.lines.reduce((sum, l) => sum + l.quantity, 0),
+                )}
               </p>
             </div>
             <OrderStatusBadge status={order.status} />

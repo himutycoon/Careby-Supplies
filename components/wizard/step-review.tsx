@@ -106,7 +106,7 @@ export function StepReview({ state, update }: WizardStepProps) {
             <dt className="text-muted-foreground">Wish-list</dt>
             <dd className="font-medium">
               {state.wishlist.length > 0
-                ? `${state.wishlist.length} items selected`
+                ? `${state.wishlist.length} ${state.wishlist.length === 1 ? "item" : "items"} selected`
                 : "None selected"}
             </dd>
           </div>

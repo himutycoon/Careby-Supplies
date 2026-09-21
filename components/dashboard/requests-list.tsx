@@ -14,7 +14,14 @@ import { formatDate } from "@/lib/format";
  * forms were write-only; premium requests stayed invisible even after
  * this list appeared, because they live in their own table.
  */
-export function RequestsList({ limit }: { limit?: number }) {
+export function RequestsList({
+  limit,
+  compact = false,
+}: {
+  limit?: number;
+  /** Shorter empty state, for a dashboard panel rather than a page. */
+  compact?: boolean;
+}) {
   const { data, loading, error, reload } = useAsyncData(getAllMyRequests);
 
   if (loading) {
@@ -47,6 +54,7 @@ export function RequestsList({ limit }: { limit?: number }) {
         icon="ClipboardList"
         title="No requests yet"
         description="Repair and project requests you send us appear here."
+        className={compact ? "gap-2 px-4 py-6" : undefined}
       />
     );
   }
