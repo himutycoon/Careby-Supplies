@@ -10,6 +10,11 @@
 -- data/packages/selection-items.ts points at, at two or three price points
 -- each so Basic / Medium / Luxury allowances all have something to land on.
 --
+-- ON CONFLICT DO NOTHING carries no target on purpose: products has a
+-- unique slug as well as a primary key, and naming only (id) aborted the
+-- whole insert on a slug clash with the original seed rather than
+-- skipping the one row.
+--
 -- Placeholder inventory, like the original seed: invented house-brand
 -- products, no photographs, and deliberately rating 0 with no reviews —
 -- a seeded review count would make "Top rated" rank on fiction. Replace
@@ -25,7 +30,7 @@ insert into public.product_categories (id, name, slug, icon, sort_order) values
   ('smart-home', 'Smart Home', 'smart-home', 'ShieldCheck', 15),
   ('outdoor', 'Decking & Outdoor', 'decking-outdoor', 'Building2', 16),
   ('window-coverings', 'Window Coverings', 'window-coverings', 'Home', 17)
-on conflict (id) do nothing;
+on conflict do nothing;
 
 insert into public.products
   (id, name, slug, description, category_id, brand, price, homeowner_price,
@@ -448,8 +453,8 @@ values
    'Stain-blocking interior primer.', 'paint', 'CareBy Select',
    48, 48, 42.24, 'gallon', 'in-stock', 50, 0, 0,
    'Lead time confirmed at order', 'slate', '[]'::jsonb),
-  ('pnt-drywall-board', 'Drywall Sheet 4x8', 'drywall-sheet-4x8',
-   '½ in regular drywall sheet.', 'paint', 'CareBy Select',
+  ('pnt-drywall-board', 'Drywall Board 4x8 — ½ in', 'drywall-board-4x8',
+   '½ in regular drywall sheet, for wall and ceiling finishes.', 'paint', 'CareBy Select',
    21, 21, 18.48, 'sheet', 'in-stock', 50, 0, 0,
    'Lead time confirmed at order', 'slate', '[]'::jsonb),
   ('pnt-panel-moulding', 'Wall Panel Moulding Kit', 'wall-panel-moulding-kit',
@@ -620,4 +625,4 @@ values
    'Battery motorised roller shade.', 'window-coverings', 'CareBy Select',
    620, 620, 545.6, 'each', 'in-stock', 50, 0, 0,
    'Lead time confirmed at order', 'slate', '[]'::jsonb)
-on conflict (id) do nothing;
+on conflict do nothing;
