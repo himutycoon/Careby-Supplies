@@ -174,3 +174,33 @@ export function selectionItem(id: string): SelectionItem | undefined {
 export function allowanceFor(item: SelectionItem, tier: BudgetTier): number {
   return Math.round(item.allowanceCad * TIER_MULTIPLIER[tier]);
 }
+
+/**
+ * Global finish palette.
+ *
+ * Package Rules: "Let customer choose finishes such as black/brushed
+ * nickel once and apply across compatible products." Only categories
+ * where a finish is a real choice are affected — nobody picks the finish
+ * of their underlayment.
+ */
+export const FINISH_OPTIONS = [
+  "Chrome",
+  "Brushed nickel",
+  "Matte black",
+  "Brushed gold",
+  "Stainless",
+] as const;
+
+export type FinishOption = (typeof FINISH_OPTIONS)[number];
+
+export const FINISH_CATEGORIES = new Set([
+  "plumbing",
+  "hardware",
+  "electrical",
+  "doors-windows",
+]);
+
+/** Whether a finish choice is meaningful for this requirement. */
+export function finishApplies(categoryId: string): boolean {
+  return FINISH_CATEGORIES.has(categoryId);
+}

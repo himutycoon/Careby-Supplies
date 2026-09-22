@@ -82,8 +82,11 @@ export function PackagesList({ limit }: { limit?: number }) {
         >
           {/* The status control can't live inside the Link — nesting an
               interactive control in an anchor breaks keyboard use. */}
+          {/* The contractor's own review screen, not the customer portal:
+              approving, sending a line back and the procurement list all
+              live there. The customer link is on that page to copy. */}
           <Link
-            href={`/customer/package/${pkg.id}`}
+            href={`/contractor/packages/${pkg.id}`}
             className="press-sm flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
           >
             <div className="min-w-0 flex-1">

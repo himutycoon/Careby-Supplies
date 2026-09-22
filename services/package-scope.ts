@@ -6,7 +6,7 @@ import {
   type GeneratedScope,
   type SelectionRequirement,
 } from "@/lib/rules/package-scope";
-import type { BudgetTier } from "@/data/packages/selection-items";
+import { finishApplies, type BudgetTier } from "@/data/packages/selection-items";
 import type { Product } from "@/lib/types";
 
 /**
@@ -176,6 +176,8 @@ export async function getPackageSelections(
 export async function productsForRequirement(
   requirement: Pick<SelectionRequirement, "categoryId" | "keywords">,
   limit = 12,
+  /** The package finish palette, if one is set and applies here. */
+  finish = "",
 ): Promise<Product[]> {
   const page = await getProducts({
     categoryId: requirement.categoryId,
@@ -183,15 +185,26 @@ export async function productsForRequirement(
   });
 
   const keywords = requirement.keywords.map((k) => k.toLowerCase());
-  if (keywords.length === 0) return page.items.slice(0, limit);
+  const finishTerm =
+    finish && finishApplies(requirement.categoryId)
+      ? finish.toLowerCase()
+      : "";
+
+  if (keywords.length === 0 && !finishTerm) return page.items.slice(0, limit);
 
   const scored = page.items
     .map((product) => {
       const haystack = `${product.name} ${product.description}`.toLowerCase();
-      const score = keywords.reduce(
+      let score = keywords.reduce(
         (sum, keyword) => (haystack.includes(keyword) ? sum + 1 : sum),
         0,
       );
+      /*
+       * A matching finish lifts a product but never hides the rest: the
+       * catalogue does not record finish on every item, so filtering by
+       * it would empty the list rather than order it.
+       */
+      if (finishTerm && haystack.includes(finishTerm)) score += 2;
       return { product, score };
     })
     .sort((a, b) => b.score - a.score);
