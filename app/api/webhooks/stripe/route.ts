@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { getStripe, toCents } from "@/lib/stripe/server";
+import { CONSULTATION_FEE_CAD } from "@/lib/rules/consultation";
 
 // Signature verification needs Node crypto and the raw body.
 export const runtime = "nodejs";
@@ -81,8 +82,15 @@ export async function POST(request: NextRequest) {
             ? charge.payment_intent
             : charge.payment_intent?.id;
         if (intentId) {
-          await createAdminClient()
+          const admin = createAdminClient();
+          // The intent belongs to one of the two; updating both by
+          // intent id is a no-op on whichever it is not.
+          await admin
             .from("orders")
+            .update({ payment_status: "refunded" })
+            .eq("stripe_payment_intent_id", intentId);
+          await admin
+            .from("premium_requests")
             .update({ payment_status: "refunded" })
             .eq("stripe_payment_intent_id", intentId);
         }
@@ -108,7 +116,29 @@ function orderIdOf(session: Stripe.Checkout.Session): string | null {
   return session.metadata?.order_id ?? null;
 }
 
+/**
+ * One endpoint now receives two kinds of payment.
+ *
+ * Sessions carry metadata.kind; anything without it predates the
+ * consultation flow and is an order, so old sessions still in flight
+ * when this deployed keep working.
+ */
+function kindOf(session: Stripe.Checkout.Session): "order" | "consultation" {
+  return session.metadata?.kind === "consultation" ? "consultation" : "order";
+}
+
+function intentIdOf(session: Stripe.Checkout.Session): string | null {
+  return typeof session.payment_intent === "string"
+    ? session.payment_intent
+    : (session.payment_intent?.id ?? null);
+}
+
 async function markPaid(session: Stripe.Checkout.Session) {
+  if (kindOf(session) === "consultation") {
+    await markConsultationPaid(session);
+    return;
+  }
+
   const orderId = orderIdOf(session);
   if (!orderId) {
     console.error("[stripe:webhook] session has no order_id metadata", session.id);
@@ -167,6 +197,19 @@ async function setStatus(
   session: Stripe.Checkout.Session,
   status: "unpaid" | "failed",
 ) {
+  if (kindOf(session) === "consultation") {
+    const consultId = session.metadata?.premium_request_id;
+    if (!consultId) return;
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("premium_requests")
+      .update({ payment_status: status })
+      .eq("id", consultId)
+      .neq("payment_status", "paid");
+    if (error) throw error;
+    return;
+  }
+
   const orderId = orderIdOf(session);
   if (!orderId) return;
 
@@ -177,6 +220,60 @@ async function setStatus(
     .eq("id", orderId)
     // Never walk an already-paid order backwards.
     .neq("payment_status", "paid");
+
+  if (error) throw error;
+}
+
+/**
+ * A paid consultation.
+ *
+ * Deliberately parallel to the order path: idempotent on a repeat
+ * delivery, and an amount mismatch is logged rather than rejected —
+ * the money has already moved, so the discrepancy needs to be visible,
+ * not hidden behind a failed webhook.
+ */
+async function markConsultationPaid(session: Stripe.Checkout.Session) {
+  const consultId = session.metadata?.premium_request_id;
+  if (!consultId) {
+    console.error(
+      "[stripe:webhook] consultation session has no premium_request_id",
+      session.id,
+    );
+    return;
+  }
+
+  const admin = createAdminClient();
+
+  const { data: consult } = await admin
+    .from("premium_requests")
+    .select("id, fee_cad, payment_status")
+    .eq("id", consultId)
+    .maybeSingle();
+
+  if (!consult) {
+    console.error("[stripe:webhook] no premium_request for id", consultId);
+    return;
+  }
+
+  if (consult.payment_status === "paid") return;
+
+  const amountPaid = session.amount_total ?? 0;
+  const expected = toCents(Number(consult.fee_cad || CONSULTATION_FEE_CAD));
+  if (amountPaid !== expected) {
+    console.error(
+      `[stripe:webhook] consultation amount mismatch on ${consultId}: paid ${amountPaid}, expected ${expected}`,
+    );
+  }
+
+  const { error } = await admin
+    .from("premium_requests")
+    .update({
+      payment_status: "paid",
+      stripe_payment_intent_id: intentIdOf(session),
+      amount_paid_cents: amountPaid,
+      paid_at: new Date().toISOString(),
+    })
+    .eq("id", consultId);
 
   if (error) throw error;
 }

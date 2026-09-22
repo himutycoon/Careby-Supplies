@@ -20,6 +20,11 @@ import {
   PREMIUM_TIMES,
 } from "@/data/guided-flows";
 import { PREMIUM_INCLUSIONS } from "@/data/platform";
+import {
+  CONSULTATION_FEE_CAD,
+  isPaidConsultationTier,
+} from "@/lib/rules/consultation";
+import { formatCad } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const BUDGET_RANGES = [
@@ -126,6 +131,14 @@ export function PremiumRequestWizard() {
   const [reference, setReference] = React.useState<string | null>(null);
 
   const [tier, setTier] = React.useState("");
+  /*
+   * Whether Stripe is wired up here. Read from the publishable key: with
+   * no key the redirect cannot work, so the wizard must not promise a
+   * card payment it can't take.
+   */
+  const paymentsLive = Boolean(
+    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+  );
   const [selected, setSelected] = React.useState<string[]>([]);
   const [projectType, setProjectType] = React.useState("");
   const [timeline, setTimeline] = React.useState("");
@@ -218,8 +231,53 @@ export function PremiumRequestWizard() {
       return;
     }
 
-    setReference(result.data.reference);
-    toast("Premium request submitted");
+    /*
+     * Request first, payment second — the same order the materials
+     * checkout uses. The row exists before Stripe is involved, so an
+     * abandoned payment leaves a recoverable request rather than a lost
+     * enquiry, and the advisor can still follow up.
+     */
+    if (!isPaidConsultationTier(tier)) {
+      setReference(result.data.reference);
+      toast("Premium request submitted");
+      return;
+    }
+
+    if (!paymentsLive) {
+      setReference(result.data.reference);
+      toast("Request submitted — we'll arrange payment with you");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/checkout/consultation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // The reference only. The fee comes from the rules layer on the
+        // server, never from this page.
+        body: JSON.stringify({ reference: result.data.reference }),
+      });
+      const payload = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error ?? "We couldn't start the payment.");
+      }
+      window.location.assign(payload.url);
+      return;
+    } catch (paymentError) {
+      setSubmitting(false);
+      // The request is stored, so this is not a dead end: show the
+      // reference and let them pay when they come back.
+      const message =
+        paymentError instanceof Error
+          ? paymentError.message
+          : "We couldn't start the payment.";
+      setReference(result.data.reference);
+      toast(`Request ${result.data.reference} saved — ${message}`, "error");
+    }
   }
 
   if (reference) {
@@ -257,7 +315,14 @@ export function PremiumRequestWizard() {
                 selected={tier === option.id}
                 title={option.name}
                 description={option.tagline}
-                meta={option.bestFor}
+                /* The paid tier says its price here. The others are
+                   scoped on a call, so quoting a number would invent
+                   one. */
+                meta={
+                  isPaidConsultationTier(option.id)
+                    ? `${formatCad(CONSULTATION_FEE_CAD)} one-time · ${option.bestFor}`
+                    : option.bestFor
+                }
                 onClick={() => setTier(option.id)}
               />
             ))}
@@ -438,7 +503,12 @@ export function PremiumRequestWizard() {
           <h2 className="text-lg font-medium">Review your request</h2>
           <dl className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-2">
             {[
-              ["Engagement", tierName],
+              [
+                "Engagement",
+                isPaidConsultationTier(tier)
+                  ? `${tierName} — ${formatCad(CONSULTATION_FEE_CAD)}`
+                  : tierName,
+              ],
               ["Services", selected.join(", ")],
               ["Project type", projectType],
               ["Timeline", timeline],
@@ -461,10 +531,21 @@ export function PremiumRequestWizard() {
               <p className="mt-1 whitespace-pre-wrap">{notes}</p>
             </div>
           ) : null}
-          <p className="text-xs text-muted-foreground">
-            Submitting this doesn&apos;t commit you to anything — an advisor
-            reviews it and comes back with scope and pricing.
-          </p>
+          {isPaidConsultationTier(tier) ? (
+            <p className="rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {formatCad(CONSULTATION_FEE_CAD)} today.
+              </span>{" "}
+              {paymentsLive
+                ? "You'll be taken to Stripe to pay securely, then we'll book your session. Your card details never touch our servers."
+                : "Card payments aren't switched on yet — we'll arrange payment with you directly."}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Submitting this doesn&apos;t commit you to anything — an advisor
+              reviews it and comes back with scope and pricing.
+            </p>
+          )}
         </div>
       ) : null}
 
@@ -500,6 +581,8 @@ export function PremiumRequestWizard() {
           >
             {submitting ? (
               <Loader2 className="size-4 animate-spin" />
+            ) : isPaidConsultationTier(tier) && paymentsLive ? (
+              `Pay ${formatCad(CONSULTATION_FEE_CAD)} and book`
             ) : (
               "Submit request"
             )}
