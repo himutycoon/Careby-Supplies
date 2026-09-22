@@ -1,31 +1,29 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { ArrowRight, Plus, ShoppingCart } from "lucide-react";
-import { QuickActionGrid } from "@/components/dashboard/quick-action-grid";
+import { Boxes, FolderKanban, Phone, Receipt } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { ContractorHero } from "@/components/contractor/contractor-hero";
+import { ContractorTiles } from "@/components/contractor/contractor-tiles";
+import { ContractorRail } from "@/components/contractor/contractor-rail";
+import { DashboardPanel } from "@/components/dashboard/dashboard-panel";
 import { OrdersList } from "@/components/shop/orders-list";
 import { ProjectsList } from "@/components/contractor/projects-list";
 import { PackagesList } from "@/components/contractor/packages-list";
 import { AppointmentsList } from "@/components/contractor/appointments-list";
-import { createClient } from "@/lib/supabase/server";
-import { CONTRACTOR_NAV } from "@/data/navigation";
 
 export const metadata: Metadata = { title: "Dashboard — CareBy Contractor" };
 
-function greeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
-
-const QUICK_ACTION_HREFS = [
-  "/contractor/shop",
-  "/contractor/call-order",
-  "/contractor/packages/new",
-  "/contractor/category-order",
-  "/contractor/drawings",
-];
-
+/**
+ * Contractor dashboard, built like the homeowner one.
+ *
+ * Three bands: greeting with the action a trade account opens the site
+ * for, the five things they start here, then everything already running
+ * — projects, packages, orders and booked calls — side by side rather
+ * than stacked down a single column.
+ *
+ * One grid carries all of it so the phone order can differ from the
+ * desktop layout: on a phone the help rail drops below the work in
+ * progress, which is what a contractor opens this page to check.
+ */
 export default async function ContractorDashboardPage() {
   const supabase = await createClient();
   const {
@@ -37,124 +35,70 @@ export default async function ContractorDashboardPage() {
     user?.email?.split("@")[0] ??
     "there";
 
-  const quickActions = CONTRACTOR_NAV.filter((item) =>
-    QUICK_ACTION_HREFS.includes(item.href),
-  );
-
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl">
-          {greeting()}, <span className="capitalize">{name}</span>
-        </h1>
-        <p className="mt-1 text-muted-foreground">
-          What are you working on today?
-        </p>
-      </div>
+    <div className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 lg:py-8">
+      <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-6">
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+          <ContractorHero name={name} />
+          <ContractorTiles />
+        </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Link
-          href="/contractor/shop"
-          className="group flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-            <ShoppingCart className="size-6" aria-hidden="true" />
-          </span>
-          <span className="flex flex-col">
-            <span className="font-semibold">Shop Products</span>
-            <span className="text-sm text-muted-foreground">
-              Browse materials at trade pricing
-            </span>
-          </span>
-          <ArrowRight
-            className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-            aria-hidden="true"
-          />
-        </Link>
+        <div className="order-last xl:order-none">
+          <ContractorRail />
+        </div>
 
-        <Link
-          href="/contractor/category-order"
-          className="group flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-        >
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-            <Plus className="size-6" aria-hidden="true" />
-          </span>
-          <span className="flex flex-col">
-            <span className="font-semibold">Start a Project</span>
-            <span className="text-sm text-muted-foreground">
-              Repair, renovation or new construction
-            </span>
-          </span>
-          <ArrowRight
-            className="ml-auto size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-            aria-hidden="true"
-          />
-        </Link>
-      </div>
+        {/* items-start so a short panel is not stretched to match the
+            tallest column beside it. */}
+        <div className="grid min-w-0 items-start gap-4 sm:gap-5 md:grid-cols-2 xl:col-span-2 xl:grid-cols-3">
+          <DashboardPanel
+            id="projects"
+            icon={FolderKanban}
+            title="Projects"
+            href="/contractor/projects"
+          >
+            <ProjectsList limit={3} />
+          </DashboardPanel>
 
-      <section className="mt-10">
-        <h2 className="mb-4 text-lg">Quick actions</h2>
-        <QuickActionGrid items={quickActions} />
-      </section>
-
-      <div className="mt-10 grid gap-8 lg:grid-cols-2">
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg">Recent orders</h2>
-            <Link
+          <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+            <DashboardPanel
+              icon={Receipt}
+              title="Recent orders"
               href="/contractor/orders"
-              className="text-sm font-medium text-primary hover:underline"
             >
-              View all
-            </Link>
-          </div>
-          <OrdersList limit={3} />
-        </section>
+              <OrdersList limit={2} compact />
+            </DashboardPanel>
 
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg">Recent projects</h2>
-            <Link
-              href="/contractor/projects"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          <ProjectsList limit={3} />
-        </section>
-
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg">Saved packages</h2>
-            <Link
-              href="/contractor/packages"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          <PackagesList limit={3} />
-        </section>
-
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg">Scheduled calls</h2>
-            <Link
+            <DashboardPanel
+              icon={Phone}
+              title="Scheduled calls"
               href="/contractor/call-order"
-              className="text-sm font-medium text-primary hover:underline"
+              hrefLabel="Schedule"
             >
-              Schedule
-            </Link>
+              <AppointmentsList limit={2} />
+            </DashboardPanel>
           </div>
-          <AppointmentsList limit={3} />
-        </section>
+
+          <div className="min-w-0 md:col-span-2 xl:col-span-1">
+            <DashboardPanel
+              icon={Boxes}
+              title="Customer packages"
+              subtitle="Selection lists you have sent out."
+              href="/contractor/packages"
+            >
+              <PackagesList limit={3} />
+            </DashboardPanel>
+          </div>
+        </div>
       </div>
 
-      <p className="mt-10 text-xs text-muted-foreground">
+      {/*
+        Payment used to read "Payment is not taken online". Stripe
+        checkout exists now, so that sentence had become untrue — the
+        remaining caveat is about figures, not about how you pay.
+      */}
+      <p className="mt-6 text-xs text-muted-foreground">
         Figures shown anywhere in the platform are indicative planning
-        guidance, not a construction contract. Payment is not taken
-        online — an advisor confirms every order before it is invoiced.
+        guidance, not a construction contract.
       </p>
     </div>
   );
