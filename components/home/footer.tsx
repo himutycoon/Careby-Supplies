@@ -10,7 +10,7 @@ export function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-14 lg:px-8">
         <div className="grid grid-cols-2 gap-x-6 gap-y-7 sm:gap-8 md:grid-cols-6">
           <div className="col-span-2 flex flex-col gap-3 sm:gap-4">
-            <Logo />
+            <Logo size="h-10" />
             {/* Word-for-word the hero subhead. On a phone it is three
                 wasted lines a thumb has to travel past; on desktop it
                 balances the column, so it only stands down below sm. */}
