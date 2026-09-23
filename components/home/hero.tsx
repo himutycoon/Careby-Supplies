@@ -23,7 +23,7 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:gap-14 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-28">
+      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 sm:gap-14 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-28">
         <div className="flex flex-col gap-5 sm:gap-7">
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-ink-foreground/80">
             <span className="size-1.5 rounded-full bg-hi-vis" />
@@ -39,7 +39,7 @@ export function Hero() {
             <span className="text-hi-vis">Everything in One Place.</span>
           </h1>
 
-          <p className="max-w-xl text-pretty text-lg leading-relaxed text-ink-foreground/75">
+          <p className="max-w-xl text-pretty leading-relaxed text-ink-foreground/75 sm:text-lg">
             Quality products, expert guidance, project planning and
             construction support — all from one platform.
           </p>
@@ -47,21 +47,40 @@ export function Hero() {
           {/* Full-width CTAs on phones — a thumb reaches an edge-to-edge
               button far more reliably than a centred pill. */}
           <div className="flex flex-col gap-3 sm:flex-row">
+            {/* Two lines each: the label is the action, the line under
+                it says what the action gets you. On a phone that is the
+                difference between two buttons and two guesses. */}
             <Button
               variant="hi-vis"
               size="lg"
-              className="press w-full sm:w-auto"
+              className="press h-auto w-full rounded-full py-2.5 sm:w-auto"
               render={
                 <Link href="/get-started">
-                  Get Started <ArrowRight className="size-4" />
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      Plan My Project <ArrowRight className="size-4" />
+                    </span>
+                    <span className="text-[11px] font-normal opacity-75">
+                      Get expert help
+                    </span>
+                  </span>
                 </Link>
               }
             />
             <Button
               size="lg"
               variant="outline"
-              className="press w-full border-white/20 bg-transparent text-ink-foreground hover:bg-white/10 hover:text-ink-foreground sm:w-auto"
-              render={<Link href="/products">Shop Products</Link>}
+              className="press h-auto w-full rounded-full border-white/20 bg-transparent py-2.5 text-ink-foreground hover:bg-white/10 hover:text-ink-foreground sm:w-auto"
+              render={
+                <Link href="/products">
+                  <span className="flex flex-col items-center leading-tight">
+                    <span className="font-semibold">Shop Products</span>
+                    <span className="text-[11px] font-normal opacity-75">
+                      Browse materials
+                    </span>
+                  </span>
+                </Link>
+              }
             />
           </div>
 
@@ -83,7 +102,9 @@ export function Hero() {
             source the section further down the page uses, so the two
             can never drift apart.
           */}
-          <div className="pt-1">
+          {/* Phones get RoleChooserCard directly below the hero, so
+              these pills would be the same choice twice. */}
+          <div className="hidden pt-1 lg:block">
             <span
               id="hero-role-label"
               className="text-xs font-semibold tracking-[0.14em] text-ink-foreground/55 uppercase"
@@ -111,7 +132,7 @@ export function Hero() {
             </div>
           </div>
 
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 pt-2">
+          <ul className="hidden flex-wrap gap-x-6 gap-y-2 pt-2 sm:flex">
             {TRUST_BULLETS.map((bullet) => (
               <li
                 key={bullet}
@@ -133,10 +154,10 @@ export function Hero() {
             slideshowSlot="homeHero"
             imageSlot="homeHero"
             tone="slate"
-            className="aspect-4/3 w-full shadow-2xl ring-1 ring-white/10"
+            className="aspect-[16/10] w-full shadow-2xl ring-1 ring-white/10 sm:aspect-4/3"
           />
 
-          <div className="mt-4 grid gap-3 sm:absolute sm:-bottom-8 sm:-left-8 sm:mt-0 sm:w-64 sm:gap-3">
+          <div className="mt-4 hidden gap-3 sm:absolute sm:-bottom-8 sm:-left-8 sm:mt-0 sm:grid sm:w-64 sm:gap-3">
             {HERO_CARDS.slice(0, 2).map((card) => (
               <div
                 key={card.label}

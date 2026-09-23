@@ -1,4 +1,6 @@
 import { Hero } from "@/components/home/hero";
+import { RoleChooserCard } from "@/components/home/role-chooser-card";
+import { ExpertBanner } from "@/components/home/expert-banner";
 import { ShopPromiseStrip } from "@/components/home/shop-promise-strip";
 import { ShopByCategory } from "@/components/home/shop-by-category";
 import { ProductRail } from "@/components/home/product-rail";
@@ -20,6 +22,10 @@ export default function HomePage() {
           first thing a visitor came to read. */}
       <Hero />
 
+      {/* Phone only. The fork belongs above the fold on a small screen;
+          desktop already has the hero pills and the section below. */}
+      <RoleChooserCard />
+
       {/*
         Storefront first, story second.
 
@@ -29,7 +35,9 @@ export default function HomePage() {
         under the hero; the planning and services sections that explain
         the rest of the business follow them.
       */}
-      <ShopPromiseStrip />
+      <div className="hidden lg:block">
+        <ShopPromiseStrip />
+      </div>
 
       {[
         <ShopByCategory key="departments" />,
@@ -40,7 +48,12 @@ export default function HomePage() {
           query={{ sort: "popular" }}
           viewAllLabel="Shop all products"
         />,
-        <UserTypeSection key="user-type" />,
+        <ExpertBanner key="expert" />,
+        // Phones have RoleChooserCard above; this is the fuller version
+        // for the screens with room for it.
+        <div key="user-type" className="hidden lg:block">
+          <UserTypeSection />
+        </div>,
         <ServiceShowcase key="showcase" />,
         <ProductRail
           key="top-rated"
