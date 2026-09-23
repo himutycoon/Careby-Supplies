@@ -60,20 +60,20 @@ function CategoryTile({
             )}
           >
             {emphasis ? (
-              <LayoutGrid className="size-8" aria-hidden="true" />
+              <LayoutGrid className="size-6 sm:size-8" aria-hidden="true" />
             ) : (
-              <Icon name={icon} className="size-8" />
+              <Icon name={icon} className="size-6 sm:size-8" />
             )}
           </span>
         )}
       </span>
 
-      <span className="flex items-center gap-1.5 px-3 py-2.5">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+      <span className="flex items-center gap-1 px-2 py-2 sm:gap-1.5 sm:px-3 sm:py-2.5">
+        <span className="min-w-0 flex-1 text-[11px] leading-tight font-medium text-balance sm:truncate sm:text-sm">
           {name}
         </span>
         <ChevronRight
-          className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+          className="hidden size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 sm:block"
           aria-hidden="true"
         />
       </span>
@@ -122,9 +122,9 @@ export function ShopByCategory() {
           </Link>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5">
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-8 sm:grid-cols-4 sm:gap-4 lg:grid-cols-5">
           {loading && categories.length === 0
-            ? Array.from({ length: 10 }).map((_, index) => (
+            ? Array.from({ length: 9 }).map((_, index) => (
                 <div
                   key={index}
                   className="animate-pulse overflow-hidden rounded-xl border border-border bg-card"
@@ -136,18 +136,13 @@ export function ShopByCategory() {
                   </div>
                 </div>
               ))
-            : categories.map((category, index) => (
+            : categories.map((category) => (
                 <CategoryTile
                   key={category.id}
                   href={`/products?category=${category.id}#catalog`}
                   name={category.name}
                   icon={categoryIcon(category.id, category.icon)}
                   imageUrl={categoryImage(category.id, category.imageUrl)}
-                  /* Seventeen departments two-across is nine rows of
-                     scrolling before the first product. Phones see six
-                     and the header's View all; every screen with room
-                     shows the lot. */
-                  className={index >= 6 ? "hidden sm:flex" : undefined}
                 />
               ))}
 
@@ -157,7 +152,6 @@ export function ShopByCategory() {
               name="All products"
               icon="Boxes"
               emphasis
-              className="hidden sm:flex"
             />
           ) : null}
         </div>
