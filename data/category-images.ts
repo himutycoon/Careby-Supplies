@@ -14,27 +14,23 @@
  * home page, above the fold on a phone.
  */
 export const CATEGORY_IMAGES: Record<string, string> = {
-  // Photographed already.
   lumber: "/images/category-new-construction-framing.webp",
   plumbing: "/images/category-repair-plumbing.webp",
   flooring: "/images/category-renovation-kitchen.webp",
-
-  // Add a path here as you get each photo, e.g.
-  //   electrical: "/images/category-electrical.webp",
-  electrical: "",
-  "doors-windows": "",
-  roofing: "",
-  hardware: "",
-  paint: "",
-  tools: "",
-  cabinetry: "",
-  countertops: "",
-  tile: "",
-  appliances: "",
-  hvac: "",
-  "smart-home": "",
-  outdoor: "",
-  "window-coverings": "",
+  electrical: "/images/category-electrical.webp",
+  "doors-windows": "/images/category-doors-windows.webp",
+  roofing: "/images/category-roofing.webp",
+  hardware: "/images/category-hardware.webp",
+  paint: "/images/category-paint.webp",
+  tools: "/images/category-tools.webp",
+  cabinetry: "/images/category-cabinetry.webp",
+  countertops: "/images/category-countertops.webp",
+  tile: "/images/category-tile.webp",
+  appliances: "/images/category-appliances.webp",
+  hvac: "/images/category-hvac.webp",
+  "smart-home": "/images/category-smart-home.webp",
+  outdoor: "/images/category-outdoor.webp",
+  "window-coverings": "/images/category-window-coverings.webp",
 };
 
 /** Photo for a category, or "" when it should fall back to its icon. */
@@ -45,11 +41,11 @@ export function categoryImage(id: string, fromDatabase?: string): string {
 /**
  * Icon overrides for departments whose seeded icon reads badly.
  *
- * product_categories.icon is data, and the original seed gave Electrical
- * an AlertTriangle — which in an empty tile looks like a warning about
- * the department rather than a picture of it. Overridden here rather than
- * in a migration so it needs no database change; a photo replaces the
- * icon entirely anyway.
+ * Every department has a photo now, so nothing hits this in practice —
+ * it stays for a category added through the admin panel before anyone
+ * photographs it. The original seed gave Electrical an AlertTriangle,
+ * which in an empty tile reads as a warning about the department rather
+ * than a picture of it.
  */
 const ICON_OVERRIDES: Record<string, string> = {
   electrical: "Package",
