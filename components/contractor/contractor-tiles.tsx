@@ -35,8 +35,8 @@ const PRIMARY: Tile[] = [
     tone: "bg-primary/10 text-primary",
   },
   {
-    title: "Call Order",
-    description: "Book a slot and order with a person.",
+    title: "Order by Phone",
+    description: "Call the desk now, or book a slot.",
     href: "/contractor/call-order",
     image: "/images/services-hero-framing.webp",
     icon: Phone,

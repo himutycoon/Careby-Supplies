@@ -571,7 +571,7 @@ export const ROOM_TYPE_OPTIONS: RoomTypeOption[] = [
   { value: "basement", label: "Basement" },
   { value: "bedroom", label: "Bedroom" },
   { value: "living", label: "Living Room" },
-  { value: "whole-home", label: "Whole Home" },
+  { value: "whole-home", label: "Full Home" },
   { value: "addition", label: "Addition" },
   { value: "deck", label: "Deck" },
 ];
@@ -750,7 +750,7 @@ export const PRICING_TIERS: PricingTier[] = [
     highlighted: true,
   },
   {
-    name: "Whole Home",
+    name: "Full Home",
     priceCad: 399,
     priceNote: "up to 4 rooms",
     description: "For supplying several rooms at once.",

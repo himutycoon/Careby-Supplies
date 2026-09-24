@@ -3,6 +3,11 @@
  * reordered or removed without touching the wizard component (spec §28).
  */
 
+import {
+  CONSTRUCTION_TIER_FEES_CAD,
+  type ConstructionTierId,
+} from "@/lib/rules/construction-packages";
+
 export type QuestionKind = "text" | "choice" | "number";
 
 export interface IntakeQuestion {
@@ -16,13 +21,29 @@ export interface IntakeQuestion {
 }
 
 export interface ConstructionTier {
-  id: "basic" | "paid" | "premium";
+  id: ConstructionTierId;
   name: string;
+  /** Display price. The charged amount comes from the rules layer. */
   price: string;
   tagline: string;
   features: string[];
-  outcome: "estimate" | "consultation";
+  /** `estimate` runs the calculator; `paid-review` takes payment first. */
+  outcome: "estimate" | "paid-review";
 }
+
+/**
+ * What every paid tier buys back.
+ *
+ * Deliberately stated as a promise on the page and nowhere else yet —
+ * there is no promo-code machinery behind it, so the team issues the
+ * code by hand when someone orders. Wire it up when the volume makes
+ * that worth doing.
+ */
+export const PACKAGE_CREDIT_NOTE =
+  "Whatever you pay for a package comes back to you: we issue a discount code for the same amount against your material order.";
+
+export const PACKAGE_REFUND_NOTE =
+  "Not happy with the service? Tell us and we refund the package fee.";
 
 export const CONSTRUCTION_TIERS: ConstructionTier[] = [
   {
@@ -38,28 +59,43 @@ export const CONSTRUCTION_TIERS: ConstructionTier[] = [
     outcome: "estimate",
   },
   {
-    id: "paid",
-    name: "Paid",
-    price: "$499",
-    tagline: "A material list broken down room by room.",
+    id: "plan-check",
+    name: "Plan Check",
+    price: `$${CONSTRUCTION_TIER_FEES_CAD["plan-check"]}`,
+    tagline: "An advisor reads your plan and tells you if it works.",
     features: [
       "Everything in Basic",
-      "Material list by stage of build",
-      "Advisor call within 2 business days",
+      "An advisor reviews your build plan",
+      "Material cost worked out from it, itemised",
+      "A straight answer on whether the plan holds up",
     ],
-    outcome: "consultation",
+    outcome: "paid-review",
   },
   {
-    id: "premium",
-    name: "Premium",
-    price: "$2,400",
-    tagline: "Your whole build supplied, stage by stage.",
+    id: "architect-review",
+    name: "Architect Review",
+    price: `$${CONSTRUCTION_TIER_FEES_CAD["architect-review"]}`,
+    tagline: "A licensed architect reviews your plan.",
     features: [
-      "Everything in Paid",
-      "Takeoff from your drawings",
-      "Deliveries scheduled to your build dates",
+      "Everything in Plan Check",
+      "A licensed architect reviews your drawings",
+      "Hire them directly from there to submit your permits",
+      "Their own fees are paid to them, not to us",
     ],
-    outcome: "consultation",
+    outcome: "paid-review",
+  },
+  {
+    id: "full-team",
+    name: "Full Team",
+    price: `$${CONSTRUCTION_TIER_FEES_CAD["full-team"]}`,
+    tagline: "Architect, designer and advisor on the same build.",
+    features: [
+      "Everything in Architect Review",
+      "A designer on layout and finishes",
+      "An advisor pricing and staging the material",
+      "One thread with all three of them",
+    ],
+    outcome: "paid-review",
   },
 ];
 

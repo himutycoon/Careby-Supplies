@@ -125,7 +125,7 @@ export const PREMIUM_TIERS: PremiumTier[] = [
     id: "concierge",
     name: "Managed Supply",
     tagline: "A named contact who keeps every delivery ahead of the trades.",
-    bestFor: "Best for whole-home projects",
+    bestFor: "Best for full-home projects",
     includes: [
       "A named materials contact",
       "Quantity takeoff from your drawings",

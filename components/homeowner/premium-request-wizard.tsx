@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CircleCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -130,7 +131,19 @@ export function PremiumRequestWizard() {
   const [submitting, setSubmitting] = React.useState(false);
   const [reference, setReference] = React.useState<string | null>(null);
 
-  const [tier, setTier] = React.useState("");
+  /*
+   * The home page links straight to a tier (/premium-request?tier=…), so
+   * someone who has already read what each one includes does not land on
+   * the tier step and have to choose it a second time. An unknown id
+   * falls through to the normal unselected state.
+   */
+  const searchParams = useSearchParams();
+  const requestedTier = searchParams.get("tier") ?? "";
+  const [tier, setTier] = React.useState(
+    PREMIUM_TIERS.some((option) => option.id === requestedTier)
+      ? requestedTier
+      : "",
+  );
   /*
    * Whether Stripe is wired up here. Read from the publishable key: with
    * no key the redirect cannot work, so the wizard must not promise a
@@ -243,7 +256,9 @@ export function PremiumRequestWizard() {
       return;
     }
 
-    if (!paymentsLive) {
+    // Same as the new-build wizard: the fee is priced off the stored
+    // tier, so a row without it can't go to Stripe.
+    if (!paymentsLive || !result.data.detailsSaved) {
       setReference(result.data.reference);
       toast("Request submitted — we'll arrange payment with you");
       return;

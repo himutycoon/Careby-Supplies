@@ -17,15 +17,51 @@ import {
   adjustersForTemplate,
 } from "@/lib/rules/package-scope";
 import {
-  PACKAGE_TEMPLATES,
-  TEMPLATE_GROUPS,
+  EXTENT_OPTIONS,
+  LOCATION_OPTIONS,
+  groupsForPath,
   packageTemplate,
+  templatesForPath,
+  type WorkExtent,
+  type WorkLocation,
 } from "@/data/packages/templates";
 import { TIER_LABELS, type BudgetTier } from "@/data/packages/selection-items";
 import { formatCad } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Template", "Scope", "Checklist", "Customer", "Send"];
+const STEPS = ["Project", "Scope", "Checklist", "Customer", "Send"];
+
+/** One selectable card. Three questions in step 1 all look the same. */
+function ChoiceCard({
+  selected,
+  label,
+  description,
+  onSelect,
+}: {
+  selected: boolean;
+  label: string;
+  description: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "press-sm rounded-xl border p-3.5 text-left transition-colors",
+        selected
+          ? "border-primary bg-accent"
+          : "border-border hover:border-primary/40",
+      )}
+    >
+      <span className="block text-sm font-medium">{label}</span>
+      <span className="mt-0.5 block text-xs text-muted-foreground">
+        {description}
+      </span>
+    </button>
+  );
+}
 
 /**
  * Contractor package builder, following the Customer Flow sheet.
@@ -41,6 +77,10 @@ export function PackageScopeBuilder() {
   const { toast } = useToast();
   const [step, setStep] = React.useState(0);
 
+  // Step 1 narrows before it lists: location, then extent, then the
+  // handful of templates that survive both.
+  const [location, setLocation] = React.useState<WorkLocation | null>(null);
+  const [extent, setExtent] = React.useState<WorkExtent | null>(null);
   const [templateId, setTemplateId] = React.useState<string>("");
   const [tier, setTier] = React.useState<BudgetTier>("medium");
   const [answers, setAnswers] = React.useState<Record<string, string>>({});
@@ -75,6 +115,17 @@ export function PackageScopeBuilder() {
 
   const keptRequired = kept.filter((r) => r.required);
   const keptAllowance = kept.reduce((sum, r) => sum + r.totalAllowanceCad, 0);
+
+  function chooseLocation(next: WorkLocation) {
+    setLocation(next);
+    setExtent(null);
+    setTemplateId("");
+  }
+
+  function chooseExtent(next: WorkExtent) {
+    setExtent(next);
+    setTemplateId("");
+  }
 
   function chooseTemplate(id: string) {
     const next = packageTemplate(id);
@@ -246,39 +297,69 @@ export function PackageScopeBuilder() {
       }
     >
       {step === 0 ? (
-        <fieldset className="flex flex-col gap-5">
-          <legend className="text-lg font-medium">
-            Choose a starting template
-          </legend>
-          {TEMPLATE_GROUPS.map((group) => (
-            <div key={group}>
-              <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                {group}
-              </p>
+        <div className="flex flex-col gap-6">
+          <fieldset className="flex flex-col gap-3">
+            <legend className="text-lg font-medium">
+              Where is the work?
+            </legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {LOCATION_OPTIONS.map((option) => (
+                <ChoiceCard
+                  key={option.value}
+                  selected={location === option.value}
+                  label={option.label}
+                  description={option.description}
+                  onSelect={() => chooseLocation(option.value)}
+                />
+              ))}
+            </div>
+          </fieldset>
+
+          {location ? (
+            <fieldset className="flex flex-col gap-3 border-t border-border pt-6">
+              <legend className="text-lg font-medium">How much of it?</legend>
               <div className="grid gap-2 sm:grid-cols-2">
-                {PACKAGE_TEMPLATES.filter((t) => t.group === group).map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => chooseTemplate(t.id)}
-                    aria-pressed={templateId === t.id}
-                    className={cn(
-                      "press-sm rounded-xl border p-3.5 text-left transition-colors",
-                      templateId === t.id
-                        ? "border-primary bg-accent"
-                        : "border-border hover:border-primary/40",
-                    )}
-                  >
-                    <span className="block text-sm font-medium">{t.name}</span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">
-                      {t.baseScope}
-                    </span>
-                  </button>
+                {EXTENT_OPTIONS[location].map((option) => (
+                  <ChoiceCard
+                    key={option.value}
+                    selected={extent === option.value}
+                    label={option.label}
+                    description={option.description}
+                    onSelect={() => chooseExtent(option.value)}
+                  />
                 ))}
               </div>
-            </div>
-          ))}
-        </fieldset>
+            </fieldset>
+          ) : null}
+
+          {location && extent ? (
+            <fieldset className="flex flex-col gap-5 border-t border-border pt-6">
+              <legend className="text-lg font-medium">
+                Pick the closest package
+              </legend>
+              {groupsForPath(location, extent).map((group) => (
+                <div key={group}>
+                  <p className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                    {group}
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {templatesForPath(location, extent)
+                      .filter((t) => t.group === group)
+                      .map((t) => (
+                        <ChoiceCard
+                          key={t.id}
+                          selected={templateId === t.id}
+                          label={t.name}
+                          description={t.baseScope}
+                          onSelect={() => chooseTemplate(t.id)}
+                        />
+                      ))}
+                  </div>
+                </div>
+              ))}
+            </fieldset>
+          ) : null}
+        </div>
       ) : null}
 
       {step === 1 && template ? (

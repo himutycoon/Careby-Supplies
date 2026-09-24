@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { SuppliesOnlyNotice } from "@/components/shared/supplies-only-notice";
 import {
   AlertTriangle,
   Check,
@@ -159,6 +160,16 @@ export function PackageSelectionPortal({ reference }: { reference: string }) {
           <p className="text-sm text-muted-foreground">{template.baseScope}</p>
         ) : null}
       </header>
+
+      {/* The customer arrives here from their contractor and may never
+          have seen the rest of the site. Say once what this list is. */}
+      <SuppliesOnlyNotice>
+        <span className="font-medium text-foreground">
+          These are the materials for your job.
+        </span>{" "}
+        CareBy Supplies delivers what you choose here. The work itself is
+        done by your contractor, who priced their labour separately.
+      </SuppliesOnlyNotice>
 
       {/* Progress and money, the two things a customer checks repeatedly. */}
       <section className="grid gap-3 sm:grid-cols-3">

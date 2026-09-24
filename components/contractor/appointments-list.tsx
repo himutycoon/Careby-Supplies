@@ -62,7 +62,7 @@ export function AppointmentsList({ limit }: { limit?: number }) {
         description="Book a call when you'd rather place a large order with a person."
         action={
           <Button
-            render={<Link href="/contractor/call-order">Schedule a call</Link>}
+            render={<Link href="/contractor/call-order">Order by phone</Link>}
           />
         }
       />

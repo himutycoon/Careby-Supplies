@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { ConstructionTierId } from "@/lib/rules/construction-packages";
 import { fail, ok, toUserMessage, type ServiceResult } from "@/services/client";
 import type { Project, ProjectStatus } from "@/lib/types";
 
@@ -93,7 +94,9 @@ export interface CreateProjectInput {
     answers?: Record<string, unknown>;
   };
   newConstructionDetails?: {
-    tier: "basic" | "paid" | "premium";
+    /* "paid"/"premium" are the pre-schema-14 names, still accepted by the
+       column's check constraint so old rows stay valid. */
+    tier: ConstructionTierId | "paid" | "premium";
     answers: Record<string, unknown>;
     estimateLow?: number;
     estimateHigh?: number;

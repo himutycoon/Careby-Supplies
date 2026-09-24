@@ -23,7 +23,9 @@ export default function GetStartedPage() {
           How can we help you?
         </h1>
         <p className="mt-2 max-w-xl text-center text-pretty text-sm text-muted-foreground sm:mt-4 sm:text-base">
-          Pick the path that fits. You can change this later from your account.
+          Pick the path that fits. Every one of them ends with a material
+          list you can order from — the work itself stays with your own
+          trades.
         </p>
 
         <div className="mt-5 w-full sm:mt-12">

@@ -6,19 +6,53 @@ import {
   CONSULTATION_FEE_CAD,
   CONSULTATION_PRODUCT_DESCRIPTION,
   CONSULTATION_PRODUCT_NAME,
+  PAID_CONSULTATION_TIER,
 } from "@/lib/rules/consultation";
+import {
+  CONSTRUCTION_PRODUCT_DESCRIPTION,
+  CONSTRUCTION_PRODUCT_NAME,
+  constructionTierFeeCad,
+  isPaidConstructionTier,
+} from "@/lib/rules/construction-packages";
 
 // Stripe's SDK needs Node crypto, not the Edge runtime.
 export const runtime = "nodejs";
 
 /**
- * Checkout for a paid expert consultation.
+ * Checkout for a paid advisory request.
  *
- * The request body carries a reference and nothing else. The fee comes
- * from lib/rules/consultation, not from the caller — the same rule the
- * order route follows, so the page, the wizard and the charge cannot
- * disagree and a tampered request cannot buy a consult for a dollar.
+ * Two flows arrive here: the premium expert session, and the paid tiers
+ * of the new-build ladder. Both are time sold by the hour rather than
+ * material, and both already own a row in premium_requests, so they
+ * share this route rather than duplicating the Stripe plumbing.
+ *
+ * The request body carries a reference and nothing else. Which tier it
+ * is comes from the stored row, and the fee from the rules layer — the
+ * same rule the order route follows, so the page, the wizard and the
+ * charge cannot disagree and a tampered request cannot buy a $150
+ * package for a dollar.
  */
+
+/** Tier → what is being sold and for how much. Never trusts the caller. */
+function priceFor(
+  tierId: string,
+): { feeCad: number; name: string; description: string } | null {
+  if (isPaidConstructionTier(tierId)) {
+    return {
+      feeCad: constructionTierFeeCad(tierId)!,
+      name: CONSTRUCTION_PRODUCT_NAME[tierId],
+      description: CONSTRUCTION_PRODUCT_DESCRIPTION[tierId],
+    };
+  }
+  if (tierId === PAID_CONSULTATION_TIER) {
+    return {
+      feeCad: CONSULTATION_FEE_CAD,
+      name: CONSULTATION_PRODUCT_NAME,
+      description: CONSULTATION_PRODUCT_DESCRIPTION,
+    };
+  }
+  return null;
+}
 export async function POST(request: NextRequest) {
   if (!isStripeConfigured()) {
     return NextResponse.json(
@@ -57,7 +91,7 @@ export async function POST(request: NextRequest) {
   // ownership check below means a future policy change cannot open it up.
   const { data: consult, error } = await supabase
     .from("premium_requests")
-    .select("id, reference, user_id, payment_status")
+    .select("id, reference, user_id, payment_status, details")
     .eq("reference", reference)
     .maybeSingle();
 
@@ -76,7 +110,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const amount = toCents(CONSULTATION_FEE_CAD);
+  /*
+   * The tier was written when the row was created; the browser has no say
+   * in it now. There is deliberately no default: `details` is written by
+   * a second statement after the insert, so a row can exist without it,
+   * and falling back to the consultation fee would have charged $20 for a
+   * $150 package. With four prices on this route, a missing tier has to
+   * fail rather than guess.
+   */
+  const tierId = (consult.details as { tier?: unknown } | null)?.tier;
+  const price = typeof tierId === "string" ? priceFor(tierId) : null;
+
+  if (!price) {
+    console.error(
+      "[checkout:consultation] no payable tier on",
+      consult.reference,
+      tierId,
+    );
+    return NextResponse.json(
+      {
+        error:
+          "We couldn't work out what to charge for this request. We'll be in touch.",
+      },
+      { status: 409 },
+    );
+  }
+
+  // Send them back where they came from if they abandon checkout — the
+  // premium wizard and the new-build wizard are different screens.
+  const cancelPath =
+    (consult.details as { flow?: unknown } | null)?.flow === "new-construction"
+      ? "/new-construction"
+      : "/premium-request";
+
+  const amount = toCents(price.feeCad);
   const origin =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
     request.nextUrl.origin;
@@ -93,8 +160,8 @@ export async function POST(request: NextRequest) {
             currency: "cad",
             unit_amount: amount,
             product_data: {
-              name: CONSULTATION_PRODUCT_NAME,
-              description: CONSULTATION_PRODUCT_DESCRIPTION,
+              name: price.name,
+              description: price.description,
             },
           },
         },
@@ -119,7 +186,7 @@ export async function POST(request: NextRequest) {
         },
       },
       success_url: `${origin}/dashboard?consultation=paid&ref=${consult.reference}`,
-      cancel_url: `${origin}/premium-request?canceled=1&ref=${consult.reference}`,
+      cancel_url: `${origin}${cancelPath}?canceled=1&ref=${consult.reference}`,
     },
     { idempotencyKey: `consultation:${consult.id}` },
   );
@@ -139,7 +206,7 @@ export async function POST(request: NextRequest) {
     .update({
       stripe_checkout_session_id: session.id,
       payment_status: "pending",
-      fee_cad: CONSULTATION_FEE_CAD,
+      fee_cad: price.feeCad,
     })
     .eq("id", consult.id);
 

@@ -19,9 +19,9 @@ const FLOWS = [
   {
     icon: "Phone",
     audience: "Contractors",
-    title: "Schedule a call order",
-    body: "Pick a category, choose a slot, and place a large order with a person instead of a cart.",
-    steps: ["Choose category", "Pick a time", "We call you"],
+    title: "Order by phone",
+    body: "Call the desk and place a large order with a person, or book a slot and we call you.",
+    steps: ["Call now", "Or pick a time", "We price it"],
     href: "/contractor/call-order",
   },
   {

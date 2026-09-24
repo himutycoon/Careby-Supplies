@@ -15,6 +15,7 @@ import { StepPhotos } from "@/components/wizard/step-photos";
 import { StepDimensions } from "@/components/wizard/step-dimensions";
 import { StepWishlist } from "@/components/wizard/step-wishlist";
 import { StepReview } from "@/components/wizard/step-review";
+import { SuppliesOnlyNotice } from "@/components/shared/supplies-only-notice";
 import { INITIAL_WIZARD_STATE, type WizardState } from "@/components/wizard/wizard-types";
 
 const STEPS = [
@@ -110,6 +111,17 @@ export function WizardShell() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Price the materials for your room</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Six questions and a few photos. You get back an itemised list of
+          what the job needs, in the quantities it needs, at our prices.
+        </p>
+      </div>
+
+      {/* Stays on screen for all six steps — see SuppliesOnlyNotice. */}
+      <SuppliesOnlyNotice className="mb-8" />
+
       <ol className="mb-8 flex items-center justify-between">
         {STEPS.map((step, index) => {
           const isComplete = index < stepIndex;

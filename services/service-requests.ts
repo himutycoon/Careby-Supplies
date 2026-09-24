@@ -147,6 +147,12 @@ export interface PremiumRequest {
   budgetRange: string;
   notes: string;
   createdAt: string;
+  /**
+   * Whether the `details` write landed. The tier lives in there, and the
+   * checkout route prices from the tier — so a caller about to send
+   * someone to Stripe needs to know the row can actually be priced.
+   */
+  detailsSaved: boolean;
 }
 
 export interface CreatePremiumRequestInput {
@@ -197,14 +203,24 @@ export async function createPremiumRequest(
     return fail(toUserMessage(error, "We couldn't submit that request."));
   }
 
-  if (input.details && Object.keys(input.details).length > 0) {
+  const hasDetails = Boolean(
+    input.details && Object.keys(input.details).length > 0,
+  );
+  let detailsSaved = !hasDetails;
+
+  if (hasDetails) {
     const { error: detailError } = await supabase
       .from("premium_requests")
       .update({ details: input.details })
       .eq("id", data.id as string);
 
-    // Logged, never surfaced: the advisor still has the enquiry.
-    if (detailError) console.error("[createPremiumRequest:details]", detailError);
+    // Logged, never surfaced: the advisor still has the enquiry. The
+    // caller is told, though, because payment is priced off this column.
+    if (detailError) {
+      console.error("[createPremiumRequest:details]", detailError);
+    } else {
+      detailsSaved = true;
+    }
   }
 
   return ok({
@@ -215,6 +231,7 @@ export async function createPremiumRequest(
     budgetRange: (data.budget_range as string) ?? "",
     notes: (data.notes as string) ?? "",
     createdAt: data.created_at as string,
+    detailsSaved,
   });
 }
 

@@ -14,7 +14,7 @@ export type ProjectGroup =
   | "Bathroom"
   | "Kitchen"
   | "Basement"
-  | "Whole Home"
+  | "Full Home"
   | "New Build"
   | "Outdoor"
   | "Exterior"
@@ -248,8 +248,8 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
   },
   {
     id: "whole-home-basic",
-    name: "Whole-Home Interior — Basic",
-    group: "Whole Home",
+    name: "Full-Home Interior — Basic",
+    group: "Full Home",
     baseScope: "Coordinated finishes without major layout changes.",
     tiers: ["basic", "medium"],
     defaultTier: "basic",
@@ -260,8 +260,8 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
   },
   {
     id: "whole-home-medium",
-    name: "Whole-Home Interior — Medium",
-    group: "Whole Home",
+    name: "Full-Home Interior — Medium",
+    group: "Full Home",
     baseScope: "Multiple rooms plus kitchen and bathroom updates.",
     tiers: ["medium", "luxury"],
     defaultTier: "medium",
@@ -280,8 +280,8 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
   },
   {
     id: "whole-home-luxury",
-    name: "Whole-Home Interior — Luxury",
-    group: "Whole Home",
+    name: "Full-Home Interior — Luxury",
+    group: "Full Home",
     baseScope: "Premium coordinated interior.",
     tiers: ["luxury"],
     defaultTier: "luxury",
@@ -463,7 +463,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
   },
   {
     id: "whole-home-flooring",
-    name: "Whole-Home Flooring",
+    name: "Full-Home Flooring",
     group: "Flooring",
     baseScope: "Flooring by room with coordinated transitions.",
     tiers: ["basic", "medium", "luxury"],
@@ -562,3 +562,115 @@ export function packageTemplate(id: string): PackageTemplate | undefined {
 export const TEMPLATE_GROUPS: ProjectGroup[] = [
   ...new Set(PACKAGE_TEMPLATES.map((t) => t.group)),
 ];
+
+// ---------------------------------------------------------------------------
+// Narrowing the 24 templates down to a shortlist
+//
+// Showing all 24 at once, across 12 headings, made the builder read as a
+// wall of options — the contractor had to scan every group to find the
+// three that could possibly apply. Two questions first ("inside or out",
+// then how much of it) cut the list to between two and thirteen, which
+// is a choice rather than a search.
+// ---------------------------------------------------------------------------
+
+/** First question: where the work is. */
+export type WorkLocation = "indoor" | "outdoor";
+
+/** Second question. Its options depend on the answer to the first. */
+export type WorkExtent =
+  | "room"
+  | "property"
+  | "outdoor-living"
+  | "building-exterior";
+
+const GROUP_PATH: Record<
+  ProjectGroup,
+  { location: WorkLocation; extent: WorkExtent }
+> = {
+  Bathroom: { location: "indoor", extent: "room" },
+  Kitchen: { location: "indoor", extent: "room" },
+  Basement: { location: "indoor", extent: "room" },
+  Utility: { location: "indoor", extent: "room" },
+  Entry: { location: "indoor", extent: "room" },
+  "Home Office": { location: "indoor", extent: "room" },
+  "Bedroom + Ensuite": { location: "indoor", extent: "room" },
+  "Full Home": { location: "indoor", extent: "property" },
+  "New Build": { location: "indoor", extent: "property" },
+  Flooring: { location: "indoor", extent: "property" },
+  Outdoor: { location: "outdoor", extent: "outdoor-living" },
+  Exterior: { location: "outdoor", extent: "building-exterior" },
+};
+
+export const LOCATION_OPTIONS: {
+  value: WorkLocation;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "indoor",
+    label: "Inside the home",
+    description: "Rooms, finishes, a full interior or a new build",
+  },
+  {
+    value: "outdoor",
+    label: "Outside the home",
+    description: "Decks, patios, roofing, siding and windows",
+  },
+];
+
+export const EXTENT_OPTIONS: Record<
+  WorkLocation,
+  { value: WorkExtent; label: string; description: string }[]
+> = {
+  indoor: [
+    {
+      value: "room",
+      label: "One room or area",
+      description: "A bathroom, kitchen, basement, office or entry",
+    },
+    {
+      value: "property",
+      label: "The whole property",
+      description: "A full interior, a new build, or flooring throughout",
+    },
+  ],
+  outdoor: [
+    {
+      value: "outdoor-living",
+      label: "Outdoor living space",
+      description: "Decks and patios",
+    },
+    {
+      value: "building-exterior",
+      label: "The building exterior",
+      description: "Roofing, siding, soffit and windows",
+    },
+  ],
+};
+
+/** The shortlist for a chosen path, in the file's own order. */
+export function templatesForPath(
+  location: WorkLocation,
+  extent: WorkExtent,
+): PackageTemplate[] {
+  return PACKAGE_TEMPLATES.filter((t) => {
+    const path = GROUP_PATH[t.group];
+    return path.location === location && path.extent === extent;
+  });
+}
+
+/** Which headings that shortlist needs, so the order stays the file's. */
+export function groupsForPath(
+  location: WorkLocation,
+  extent: WorkExtent,
+): ProjectGroup[] {
+  return [...new Set(templatesForPath(location, extent).map((t) => t.group))];
+}
+
+/** The path a template sits on — used to reopen the builder on an edit. */
+export function pathForTemplate(template: PackageTemplate): {
+  location: WorkLocation;
+  extent: WorkExtent;
+} {
+  return GROUP_PATH[template.group];
+}

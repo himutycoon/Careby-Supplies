@@ -26,8 +26,23 @@ export function StepReview({ state, update }: WizardStepProps) {
       <div>
         <h2 className="text-lg font-semibold">Contact details</h2>
         <p className="text-sm text-muted-foreground">
-          How we&apos;ll reach you about your plan, within 48 hours.
+          How we&apos;ll reach you about your material list, within 48 hours.
         </p>
+      </div>
+
+      {/* Last screen before submit: say once more what they are getting,
+          so nobody reaches the estimate expecting a contractor. */}
+      <div className="rounded-lg border border-border bg-muted/40 p-4">
+        <h3 className="text-sm font-semibold">What you get back</h3>
+        <ul className="mt-2 flex flex-col gap-1.5 text-sm text-muted-foreground">
+          <li>An itemised list of the materials this room needs.</li>
+          <li>Quantities worked out from your dimensions and photos.</li>
+          <li>Our price per unit, and the delivered total including HST.</li>
+          <li>
+            No labour quote — installation is priced by your own contractor,
+            against these quantities.
+          </li>
+        </ul>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">

@@ -48,6 +48,10 @@ export default function HomePage() {
           query={{ sort: "popular" }}
           viewAllLabel="Shop all products"
         />,
+        // Premium sits here, third, rather than ninth. It is the
+        // highest-value thing a homeowner can buy, and below four
+        // product rails nobody scrolled far enough to find it.
+        <PremiumSection key="premium" />,
         <ExpertBanner key="expert" />,
         // Phones have RoleChooserCard above; this is the fuller version
         // for the screens with room for it.
@@ -65,7 +69,6 @@ export default function HomePage() {
         <ServicesSection key="services" />,
         <HowItWorks key="how" />,
         <ProjectCategories key="categories" />,
-        <PremiumSection key="premium" />,
         <TrustSection key="trust" />,
         <FaqAccordion key="faq" />,
         <CtaBand key="cta" />,

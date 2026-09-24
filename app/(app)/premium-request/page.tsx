@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PremiumRequestWizard } from "@/components/homeowner/premium-request-wizard";
 
 export const metadata: Metadata = {
@@ -14,7 +15,11 @@ export default function PremiumRequestPage() {
           Tell us what you need and an advisor will take it from there.
         </p>
       </div>
-      <PremiumRequestWizard />
+      {/* The wizard reads ?tier= to preselect from the home page, so it
+          needs a boundary on this statically-rendered page. */}
+      <Suspense fallback={<div className="h-96" />}>
+        <PremiumRequestWizard />
+      </Suspense>
     </div>
   );
 }

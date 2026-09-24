@@ -50,7 +50,7 @@ export function ContractorRail() {
             className="press w-full"
             render={
               <Link href="/contractor/call-order">
-                Book a call order <ArrowRight className="size-4" />
+                Order by phone <ArrowRight className="size-4" />
               </Link>
             }
           />

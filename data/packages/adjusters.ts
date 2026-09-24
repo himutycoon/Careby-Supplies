@@ -68,7 +68,7 @@ export const ADJUSTERS: Adjuster[] = [
       { value: "1", label: "1 room" },
       { value: "2", label: "2 rooms", multiplyAll: 1.8 },
       { value: "3+", label: "3 or more", multiplyAll: 2.6 },
-      { value: "whole-home", label: "Whole home", multiplyAll: 3.5 },
+      { value: "whole-home", label: "Full home", multiplyAll: 3.5 },
     ],
   },
   {

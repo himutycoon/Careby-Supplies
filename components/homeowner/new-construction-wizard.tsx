@@ -21,10 +21,12 @@ import { OptionCard } from "@/components/wizard-kit/option-card";
 import { useToast } from "@/components/shared/toast";
 import { calculateEstimate } from "@/services/estimates";
 import { createProject } from "@/services/projects";
-import { createServiceRequest } from "@/services/service-requests";
+import { createPremiumRequest } from "@/services/service-requests";
 import {
   CONSTRUCTION_QUESTIONS,
   CONSTRUCTION_TIERS,
+  PACKAGE_CREDIT_NOTE,
+  PACKAGE_REFUND_NOTE,
   type ConstructionTier,
 } from "@/data/new-construction";
 import type { ConstructionEstimate } from "@/lib/rules/calculate-construction-estimate";
@@ -41,6 +43,13 @@ export function NewConstructionWizard() {
   );
   const [submitted, setSubmitted] = React.useState(false);
   const [calculating, setCalculating] = React.useState(false);
+
+  /*
+   * Whether Stripe is wired up. Read from the publishable key: with no
+   * key the redirect cannot work, so the wizard must not promise a card
+   * payment it can't take. Same check the premium wizard makes.
+   */
+  const paymentsLive = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 
   const total = CONSTRUCTION_QUESTIONS.length;
   const question = CONSTRUCTION_QUESTIONS[index];
@@ -74,7 +83,7 @@ export function NewConstructionWizard() {
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {CONSTRUCTION_TIERS.map((option) => (
             <button
               key={option.id}
@@ -82,7 +91,7 @@ export function NewConstructionWizard() {
               onClick={() => setTier(option)}
               className={cn(
                 "group flex flex-col gap-4 rounded-xl border bg-card p-6 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                option.id === "paid"
+                option.id === "plan-check"
                   ? "border-primary/40 ring-1 ring-primary/20"
                   : "border-border hover:border-primary/40",
               )}
@@ -118,11 +127,16 @@ export function NewConstructionWizard() {
             </button>
           ))}
         </div>
+
+        <div className="rounded-xl border border-border bg-muted/40 p-5 text-sm text-muted-foreground">
+          <p className="text-foreground">{PACKAGE_CREDIT_NOTE}</p>
+          <p className="mt-2">{PACKAGE_REFUND_NOTE}</p>
+        </div>
       </div>
     );
   }
 
-  // BASIC → estimate. PAID/PREMIUM → consultation request.
+  // Basic runs the calculator. The three paid tiers take payment first.
   if (estimate) {
     return (
       <div className="flex flex-col gap-6">
@@ -181,7 +195,7 @@ export function NewConstructionWizard() {
   }
 
   if (submitted) {
-    const immediate = tier.id === "premium";
+    const immediate = tier.id === "full-team";
     return (
       <div className="flex flex-col gap-6">
         <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card px-6 py-14 text-center">
@@ -192,20 +206,17 @@ export function NewConstructionWizard() {
               <Sparkles className="size-7" aria-hidden="true" />
             )}
           </span>
-          <h2 className="text-2xl">
-            {immediate
-              ? "We'll contact you right away"
-              : "This one needs a conversation first"}
-          </h2>
+          <h2 className="text-2xl">Request received</h2>
           <p className="max-w-md text-muted-foreground">
             {immediate
-              ? "A senior advisor will call you today to go through what the build needs and how the deliveries should be staged."
-              : "A build this size needs its drawings looked at before a material figure is worth trusting. An advisor will contact you within two business days."}
+              ? "Your build is saved and the team has it. We'll be in touch to arrange the package fee, then get the architect, designer and advisor onto it."
+              : "Your build is saved and the team has it. We'll be in touch to arrange the package fee and book your review."}
+          </p>
+          <p className="max-w-md text-xs text-muted-foreground">
+            {PACKAGE_CREDIT_NOTE}
           </p>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <Button
-              render={<Link href="/contact?about=consultation">Request Consultation</Link>}
-            />
+            <Button render={<Link href="/dashboard">Go to dashboard</Link>} />
             <Button variant="outline" onClick={reset}>
               Start over
             </Button>
@@ -264,23 +275,83 @@ export function NewConstructionWizard() {
       return;
     }
 
-    // Paid/Premium additionally raise a request for the team to action.
-    if (activeTier.outcome === "consultation") {
-      await createServiceRequest({
-        serviceType: "new_construction",
-        category: activeTier.name,
-        projectId: project.data.id,
-        details: answers,
-      });
+    if (activeTier.outcome === "estimate") {
       setCalculating(false);
-      setSubmitted(true);
-      toast("Consultation requested");
+      setEstimate(result.data);
+      toast("Estimate ready and saved to your projects");
       return;
     }
 
-    setCalculating(false);
-    setEstimate(result.data);
-    toast("Estimate ready and saved to your projects");
+    /*
+     * Paid tiers raise a premium_request rather than a service_request.
+     * That is the table the payment columns live on (schema-09) and the
+     * one /admin/premium reads, so the advisor sees the job and whether
+     * it has been paid for in the same row. The project id rides along in
+     * details so they can find the build it belongs to.
+     */
+    const request = await createPremiumRequest({
+      selectedServices: activeTier.features,
+      budgetRange: answers.budget ?? "",
+      notes: answers.notes ?? "",
+      details: {
+        tier: activeTier.id,
+        tierName: activeTier.name,
+        flow: "new-construction",
+        projectId: project.data.id,
+        ...answers,
+      },
+    });
+
+    if (!request.ok) {
+      setCalculating(false);
+      toast(request.error, "error");
+      return;
+    }
+
+    /*
+     * Request first, payment second — the same order the materials
+     * checkout uses. The row exists before Stripe is involved, so an
+     * abandoned payment leaves a recoverable request rather than a lost
+     * enquiry.
+     */
+    // No tier stored means the checkout route cannot price the request,
+    // so don't send them to a page that will only fail.
+    if (!paymentsLive || !request.data.detailsSaved) {
+      setCalculating(false);
+      setSubmitted(true);
+      toast("Request submitted — we'll arrange payment with you");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/checkout/consultation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // The reference only. Which tier it is, and what it costs, are
+        // read from the stored row by the server.
+        body: JSON.stringify({ reference: request.data.reference }),
+      });
+      const payload = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+
+      if (!response.ok || !payload.url) {
+        setCalculating(false);
+        setSubmitted(true);
+        toast(
+          payload.error ?? "We couldn't open checkout — we'll be in touch.",
+          "error",
+        );
+        return;
+      }
+
+      window.location.href = payload.url;
+    } catch {
+      setCalculating(false);
+      setSubmitted(true);
+      toast("We couldn't open checkout — we'll be in touch.", "error");
+    }
   }
 
   return (
