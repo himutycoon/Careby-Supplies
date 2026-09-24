@@ -4,13 +4,13 @@ import { HowItWorks } from "@/components/home/how-it-works";
 import { FeatureGrid } from "@/components/home/feature-grid";
 import { CtaBand } from "@/components/home/cta-band";
 
-export const metadata: Metadata = { title: "How It Works — CareBy Canada" };
+export const metadata: Metadata = { title: "How It Works — CareBy Supplies" };
 
 export default function HowItWorksPage() {
   return (
     <>
       <PageHeader
-        title="From photos to a plan you can build from"
+        title="From photos to an order you can place"
         subtitle="Three steps, one submission. Here's exactly what happens after you upload."
       />
       <HowItWorks />

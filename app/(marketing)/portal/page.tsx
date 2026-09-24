@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PackageLookup } from "@/components/portal/package-lookup";
 
 export const metadata: Metadata = {
-  title: "Project Portal — CareBy Canada",
+  title: "Project Portal — CareBy Supplies",
 };
 
 /**

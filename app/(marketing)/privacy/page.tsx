@@ -29,8 +29,8 @@ export default function PrivacyPage() {
           {
             heading: "Who we are",
             body: [
-              `CareBy Supplies sells building materials and provides renovation planning and project support in the Greater Toronto Area, from ${CONTACT_INFO.address}. This policy explains how we handle personal information under Canada's Personal Information Protection and Electronic Documents Act (PIPEDA).`,
-              "It applies to this website, the accounts and dashboards on it, and the orders and project requests placed through it.",
+              `CareBy Supplies sells and delivers building materials in the Greater Toronto Area, from ${CONTACT_INFO.address}. We supply material; we do not carry out construction work. This policy explains how we handle personal information under Canada's Personal Information Protection and Electronic Documents Act (PIPEDA).`,
+              "It applies to this website, the accounts and dashboards on it, and the orders and material requests placed through it.",
             ],
           },
           {
@@ -56,8 +56,8 @@ export default function PrivacyPage() {
           {
             heading: "How your photos are handled",
             body: [
-              "Photos you upload are used to prepare your estimate and plan. Where automated analysis is enabled, an image may be sent to our AI provider to identify fixtures, finishes and visible issues. Costs, areas and verdicts are never decided by the AI — those are computed by our own deterministic rules from the measurements you supply.",
-              "Photos are stored so your designer can prepare your plan and so you can reopen your report later. They are not used to train any third party's AI models, and they are not published or shared beyond the people working on your project.",
+              "Photos you upload are used to work out what material your project needs. Where automated analysis is enabled, an image may be sent to our AI provider to identify fixtures, finishes and visible issues. Quantities, prices and verdicts are never decided by the AI — those are computed by our own deterministic rules from the measurements you supply.",
+              "Photos are stored so your advisor can check your material list and so you can reopen your report later. They are not used to train any third party's AI models, and they are not published or shared beyond the people working on your project.",
             ],
           },
           {

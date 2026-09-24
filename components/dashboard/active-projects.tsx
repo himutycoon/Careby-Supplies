@@ -33,7 +33,7 @@ const ROOM_ICONS: Partial<Record<RoomType, LucideIcon>> = {
  */
 const STAGES: Record<SubmissionStatus, { step: number; label: string }> = {
   draft: { step: 0, label: "Not submitted yet" },
-  submitted: { step: 1, label: "Received — waiting for a designer" },
+  submitted: { step: 1, label: "Received — waiting for an advisor" },
   "in-review": { step: 2, label: "Your plan is being prepared" },
   delivered: { step: 3, label: "Plan delivered" },
 };

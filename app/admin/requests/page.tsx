@@ -9,7 +9,7 @@ export default function AdminRequestsPage() {
       <div className="mb-8">
         <h1 className="text-3xl">Service requests</h1>
         <p className="mt-1 text-muted-foreground">
-          Repair, consultation, architect and permit requests.
+          Repair parts, consultation and supply requests.
         </p>
       </div>
       <AdminRecordTable

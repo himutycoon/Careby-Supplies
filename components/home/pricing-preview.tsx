@@ -17,7 +17,7 @@ export function PricingPreview({
         <h2>Simple, upfront pricing</h2>
         <p className="mt-2 text-muted-foreground">
           The instant estimate is always free. Pay only when you want the
-          full hand-designed plan.
+          full material plan, checked by hand.
         </p>
       </div>
 

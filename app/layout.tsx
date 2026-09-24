@@ -15,9 +15,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "CareBy Canada",
+  title: "CareBy Supplies",
   description:
-    "Instant AI estimate. Your full renovation plan, designed by hand, in 48 hours.",
+    "Building materials for trade and homeowners across the GTA. Photograph a room, get the material list and price, delivered to site.",
   // Lets iOS render it full-screen when saved to the home screen.
   appleWebApp: { capable: true, title: "CareBy", statusBarStyle: "default" },
   formatDetection: { telephone: false },

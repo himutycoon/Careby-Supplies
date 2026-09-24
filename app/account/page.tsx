@@ -4,7 +4,7 @@ import { AccountSettings } from "@/components/account/account-settings";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/supabase/profile";
 
-export const metadata: Metadata = { title: "Account — CareBy Canada" };
+export const metadata: Metadata = { title: "Account — CareBy Supplies" };
 
 export default async function AccountPage() {
   const supabase = await createClient();

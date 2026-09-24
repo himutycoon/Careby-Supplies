@@ -6,14 +6,14 @@ import { Card } from "@/components/ui/card";
 import { ContactForm } from "@/components/contact/contact-form";
 import { CONTACT_INFO, WHATSAPP_URL } from "@/data/mock";
 
-export const metadata: Metadata = { title: "Contact — CareBy Canada" };
+export const metadata: Metadata = { title: "Contact — CareBy Supplies" };
 
 export default function ContactPage() {
   return (
     <>
       <PageHeader
         title="Get in touch"
-        subtitle="Questions about pricing, your submission, or whether we serve your area? We're happy to help."
+        subtitle="Questions about a product, a quantity, a price, or whether we deliver to you? We're happy to help."
       />
 
       <section className="mx-auto grid max-w-5xl gap-8 px-4 pb-20 sm:px-6 lg:grid-cols-3">

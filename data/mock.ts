@@ -1,7 +1,7 @@
 import type {
   VisionAnalysis,
   CostEstimate,
-  PermitCheck,
+  SupplyNote,
   RenovationInput,
   EstimateResult,
   Submission,
@@ -142,154 +142,210 @@ export const mockVisionAnalysis: VisionAnalysis = {
 };
 
 // ---------------------------------------------------------------------------
-// Rules layer output — cost and permits
+// Rules layer output — material list and supply notes
 // ---------------------------------------------------------------------------
 
 export const mockCostEstimate: CostEstimate = {
   lineItems: [
     {
-      trade: "Demolition",
-      description: "Full bathroom strip-out to studs and subfloor",
+      category: "Waterproofing",
+      description: "Membrane, seam tape and sealant behind wet walls",
+      quantity: 103,
+      unit: "sq ft",
+      unitCostCad: 3.2,
+      totalCad: 330,
+    },
+    {
+      category: "Drywall & compound",
+      description: "Board, tape, compound and corner bead",
+      quantity: 240,
+      unit: "sq ft",
+      unitCostCad: 0.95,
+      totalCad: 228,
+    },
+    {
+      category: "Flooring",
+      description: "Porcelain floor tile for the finished area",
       quantity: 63,
       unit: "sq ft",
-      unitCostCad: 8,
-      totalCad: 504,
+      unitCostCad: 6.5,
+      totalCad: 410,
     },
     {
-      trade: "General",
-      description: "Debris disposal and dumpster fee",
-      quantity: 1,
-      unit: "flat fee",
-      unitCostCad: 450,
-      totalCad: 450,
-    },
-    {
-      trade: "Plumbing",
-      description: "Rough-in plumbing relocation and supply lines",
-      quantity: 1,
-      unit: "flat fee",
-      unitCostCad: 1800,
-      totalCad: 1800,
-    },
-    {
-      trade: "Electrical",
-      description: "Rough-in electrical: GFCI circuit, fan and light wiring",
-      quantity: 1,
-      unit: "flat fee",
-      unitCostCad: 1200,
-      totalCad: 1200,
-    },
-    {
-      trade: "Carpentry",
-      description: "Subfloor repair at water-damaged area",
-      quantity: 25,
+      category: "Underlay, mortar & grout",
+      description: "Setting materials and transitions under the finished floor",
+      quantity: 63,
       unit: "sq ft",
-      unitCostCad: 14,
+      unitCostCad: 1.15,
+      totalCad: 72,
+    },
+    {
+      category: "Wall tile",
+      description: "Tub surround tile with trim pieces",
+      quantity: 80,
+      unit: "sq ft",
+      unitCostCad: 7.5,
+      totalCad: 600,
+    },
+    {
+      category: "Cabinetry",
+      description: "Stock vanity cabinet, door and hardware",
+      quantity: 5,
+      unit: "lin ft",
+      unitCostCad: 210,
+      totalCad: 1050,
+    },
+    {
+      category: "Countertops",
+      description: "Quartz vanity top cut to the cabinet run",
+      quantity: 5,
+      unit: "lin ft",
+      unitCostCad: 70,
       totalCad: 350,
     },
     {
-      trade: "Waterproofing",
-      description: "Waterproofing membrane at tub/shower surround",
-      quantity: 40,
-      unit: "sq ft",
-      unitCostCad: 9,
-      totalCad: 360,
+      category: "Trim, doors & hardware",
+      description: "Baseboard, casing, interior door and handle",
+      quantity: 32,
+      unit: "lin ft",
+      unitCostCad: 8.5,
+      totalCad: 272,
     },
     {
-      trade: "Tile",
-      description: "Porcelain floor tile, supply and install",
-      quantity: 63,
-      unit: "sq ft",
-      unitCostCad: 14,
-      totalCad: 882,
+      category: "Plumbing supplies",
+      description: "PEX, valves, fittings, drains and supply lines",
+      quantity: 1,
+      unit: "rough-in kit",
+      unitCostCad: 180,
+      totalCad: 180,
     },
     {
-      trade: "Tile",
-      description: "Wall tile, tub surround, supply and install",
-      quantity: 80,
-      unit: "sq ft",
-      unitCostCad: 16,
-      totalCad: 1280,
+      category: "Lighting & electrical devices",
+      description: "Fixtures, switches, receptacles, plates and boxes",
+      quantity: 2,
+      unit: "each",
+      unitCostCad: 95,
+      totalCad: 190,
     },
     {
-      trade: "Plumbing",
-      description: "Vanity and sink, supply and install",
+      category: "Paint & primer",
+      description: "Primer, two finish coats, rollers, tape and drop sheets",
+      quantity: 1,
+      unit: "gal",
+      unitCostCad: 64,
+      totalCad: 64,
+    },
+    {
+      category: "Fixtures & appliances",
+      description:
+        "Sink and faucet — supply only, flagged for replacement in your photos",
       quantity: 1,
       unit: "each",
-      unitCostCad: 1600,
-      totalCad: 1600,
+      unitCostCad: 260,
+      totalCad: 260,
     },
     {
-      trade: "Plumbing",
-      description: "Toilet, supply and install",
+      category: "Fixtures & appliances",
+      description:
+        "Toilet — supply only, flagged for replacement in your photos",
       quantity: 1,
       unit: "each",
-      unitCostCad: 650,
-      totalCad: 650,
+      unitCostCad: 420,
+      totalCad: 420,
     },
     {
-      trade: "Plumbing",
-      description: "Acrylic alcove bathtub, supply and install",
+      category: "Fixtures & appliances",
+      description:
+        "Alcove bathtub — supply only, flagged for replacement in your photos",
       quantity: 1,
       unit: "each",
-      unitCostCad: 900,
-      totalCad: 900,
+      unitCostCad: 720,
+      totalCad: 720,
     },
     {
-      trade: "Plumbing",
-      description: "Tub/shower valve and trim kit",
+      category: "Fixtures & appliances",
+      description:
+        "Exhaust fan — supply only, flagged for replacement in your photos",
       quantity: 1,
       unit: "each",
-      unitCostCad: 550,
-      totalCad: 550,
+      unitCostCad: 220,
+      totalCad: 220,
     },
     {
-      trade: "Electrical",
-      description: "Humidity-sensing exhaust fan replacement",
-      quantity: 1,
-      unit: "each",
-      unitCostCad: 380,
-      totalCad: 380,
+      category: "Repair materials",
+      description:
+        "Patching, board and sealant for the issues found in your photos",
+      quantity: 3,
+      unit: "areas",
+      unitCostCad: 453,
+      totalCad: 1360,
     },
     {
-      trade: "Electrical",
-      description: "Vanity light fixture and mirror install",
+      category: "Fasteners & sundries",
+      description: "Screws, adhesive, caulk, blades, shims and sandpaper",
       quantity: 1,
-      unit: "each",
-      unitCostCad: 320,
-      totalCad: 320,
+      unit: "allowance",
+      unitCostCad: 260,
+      totalCad: 260,
     },
   ],
-  subtotal: 11226,
-  contingencyPct: 0.15,
-  contingency: 1684,
-  permitFees: 350,
-  hst: 1678,
-  totalLow: 14200,
-  totalHigh: 16900,
+  subtotal: 6961,
+  wastePct: 0.15,
+  wasteAllowance: 1044,
+  hst: 1041,
+  totalLow: 8503,
+  totalHigh: 9860,
 };
 
-export const mockPermitChecks: PermitCheck[] = [
+export const mockSupplyNotes: SupplyNote[] = [
   {
-    id: "permit-building",
-    label: "Building Permit",
-    required: true,
-    authority: "City of Mississauga — Building Division",
-    note: "Required because plumbing fixtures (toilet, vanity) are being relocated, not replaced in place.",
+    id: "supply-materials",
+    label: "Every line on this list",
+    included: true,
+    owner: "CareBy Supplies",
+    note: "Priced from our catalogue and held for 30 days. Swap any line for a different brand or grade before you order.",
   },
   {
-    id: "permit-electrical",
-    label: "Electrical Permit (ESA)",
-    required: true,
-    authority: "Electrical Safety Authority (ESA)",
-    note: "Required for the new GFCI circuit and exhaust fan wiring.",
+    id: "supply-delivery",
+    label: "Delivery to site",
+    included: true,
+    owner: "CareBy Supplies",
+    note: "Scheduled to your install date across the GTA, so material is not sitting on the driveway for a fortnight.",
   },
   {
-    id: "permit-mechanical",
-    label: "Mechanical/HVAC Permit",
-    required: false,
-    authority: "City of Mississauga — Building Division",
-    note: "Not required for a like-for-like exhaust fan vent replacement.",
+    id: "supply-takeoff",
+    label: "Quantity check before you order",
+    included: true,
+    owner: "CareBy Supplies",
+    note: "Send us your measurements or drawings and we will confirm these quantities against them.",
+  },
+  {
+    id: "supply-labour",
+    label: "Installation labour",
+    included: false,
+    owner: "Your contractor or trades",
+    note: "We supply material only — we do not install it or provide trades. Quantities here are sized so your installer can price their own labour against them.",
+  },
+  {
+    id: "supply-permits",
+    label: "Permits and inspections",
+    included: false,
+    owner: "You or your contractor",
+    note: "Any permit, drawing or inspection your municipality requires is arranged by whoever is doing the work.",
+  },
+  {
+    id: "supply-measure",
+    label: "Site measurement",
+    included: false,
+    owner: "You or your contractor",
+    note: "These quantities come from the dimensions you entered. Confirm them on site before ordering cut-to-size material.",
+  },
+  {
+    id: "supply-repair",
+    label: "Repair material for the issue in your photos",
+    included: true,
+    owner: "CareBy Supplies",
+    note: "An allowance for patching and replacement board is on the list. Whatever caused the damage still needs looking at before new material goes over it.",
   },
 ];
 
@@ -301,7 +357,7 @@ export const mockEstimate: EstimateResult = {
   verdict: "within-budget",
   vision: mockVisionAnalysis,
   cost: mockCostEstimate,
-  permits: mockPermitChecks,
+  supplyNotes: mockSupplyNotes,
   scopeLevel: "full-gut",
   budgetCad: 18000,
   generatedAt: "2026-08-30T16:42:00.000Z",
@@ -350,30 +406,29 @@ export const mockDeliveredPlan: DeliveredPlan = {
   submissionId: "sub-1003",
   afterImageUrls: ["/mock/after-1.jpg", "/mock/after-2.jpg"],
   planNotes:
-    "Homeowner confirmed openness to a walk-in shower during scope review. Design keeps existing drain locations to control plumbing rough-in cost. Recommend porcelain tile in a large-format plank pattern to visually extend the 9x7 footprint. Added a small electrical allowance for a heated-floor rough-in on-site.",
+    "Homeowner is switching the tub for a corner shower, so the tub line comes off the list and a shower base and door go on. Quantities assume the drain stays where it is — if your installer moves it, tell us and we will re-cut the plumbing supplies. Large-format porcelain is on the list at 6.50/sq ft; there is a 4.20 option in the same finish if the budget gets tight.",
   layoutDescription:
-    "Shift the toilet 4 inches toward the exterior wall to allow for a 34-inch corner shower with a low-profile base, replacing the tub/shower combo. Relocate the vanity to the opposite wall to improve traffic flow between the door and shower entry. Add recessed lighting above the vanity, paired with a humidity-sensing exhaust fan centered over the shower.",
+    "Material list is sized for a 34-inch corner shower in place of the tub/shower combo, with the vanity run moved to the opposite wall. That changes the tile split — less surround, more floor — and adds a shower base, door and one extra trim kit. Recessed lights and a humidity-sensing fan are included in the electrical devices line.",
   adminAdjustedCost: {
     lineItems: [
       ...mockCostEstimate.lineItems,
       {
-        trade: "Electrical",
-        description: "Heated floor mat rough-in (added after site visit)",
+        category: "Heated floor",
+        description: "Heated floor mat and thermostat (added after measure)",
         quantity: 1,
-        unit: "each",
+        unit: "kit",
         unitCostCad: 500,
         totalCad: 500,
       },
     ],
-    subtotal: 11726,
-    contingencyPct: 0.15,
-    contingency: 1759,
-    permitFees: 350,
-    hst: 1753,
-    totalLow: 14700,
-    totalHigh: 17400,
+    subtotal: 7461,
+    wastePct: 0.15,
+    wasteAllowance: 1119,
+    hst: 1115,
+    totalLow: 9113,
+    totalHigh: 10568,
   },
-  deliveredBy: "Jordan Blake — CareBy Design Team",
+  deliveredBy: "Jordan Blake — CareBy materials advisor",
   deliveredAt: "2026-08-27T13:20:00.000Z",
 };
 
@@ -383,15 +438,15 @@ export const mockDeliveredPlan: DeliveredPlan = {
 
 export const mockReportNarrative: ReportNarrative = {
   summary:
-    "Your bathroom is a strong candidate for a full-gut renovation within your $18,000 budget. The largest cost drivers are plumbing relocation and tile, both tied directly to the walk-in shower on your wish-list.",
+    "The materials for your bathroom come to $9,113–$10,568 delivered, well inside your $18,000 budget. That is material only — your contractor prices their labour on top. The biggest lines are the vanity and the tile, both tied to the walk-in shower on your wish-list.",
   conditionOverview:
     "Overall condition is poor, driven by a failing tub surround and early-stage subfloor water damage near the tub base. Every major fixture — toilet, vanity, tub, and exhaust fan — is original to the home and at or past typical replacement age.",
   scopeRationale:
-    "We've scoped this as a full gut because the water damage repair requires opening the floor regardless, and the wiring needs to be brought up to current GFCI requirements. Doing the finishes at the same time avoids paying for access twice.",
+    "The list is sized for a full strip-out, because the damaged subfloor has to come up regardless and the wall behind the tub will be open anyway. Buying the finishes in the same order means one delivery rather than three, and one set of waste allowance rather than three.",
   budgetGuidance:
-    "Your estimated range of $14,200–$16,900 sits comfortably under your $18,000 budget, leaving room for the tile upgrade and heated-floor rough-in your designer added after reviewing your photos.",
+    "At $9,113–$10,568 the materials sit well under your $18,000 budget, which leaves real room for your contractor's labour and for the tile upgrade and heated floor your advisor added after reviewing your photos.",
   nextSteps:
-    "Review the layout and material palette below. When you're ready, reply to your delivery email with any changes, or reach out to schedule a contractor walkthrough.",
+    "Check the quantities against your own measurements and tell us anything you want swapped. Once the list is right we will hold the pricing and book delivery to suit your installer's start date.",
 };
 
 export const mockReport: Report = {
@@ -539,18 +594,18 @@ export interface ScopeLevelOption {
 export const SCOPE_LEVEL_OPTIONS: ScopeLevelOption[] = [
   {
     value: "cosmetic",
-    label: "Cosmetic",
-    description: "Paint, fixtures, and a surface refresh — no layout changes.",
+    label: "Surface refresh",
+    description: "Paint, flooring and fixtures. Nothing comes off the wall.",
   },
   {
     value: "moderate",
-    label: "Moderate",
-    description: "New finishes and fixtures, with some relocation.",
+    label: "Replace finishes",
+    description: "New finishes, cabinetry and fixtures, some board and trim.",
   },
   {
     value: "full-gut",
-    label: "Full Gut",
-    description: "Strip to studs, reconfigure the layout, all-new systems.",
+    label: "Strip to studs",
+    description: "Everything out and everything new — board, insulation and all.",
   },
 ];
 
@@ -590,7 +645,7 @@ export const FEATURES: FeatureItem[] = [
     icon: "Image",
     title: "Before/after plan",
     description:
-      "See a hand-designed concept image of your renovated space alongside your original photos.",
+      "See a concept image of the finished space alongside your original photos, so you can picture what the materials add up to.",
   },
   {
     icon: "AlertTriangle",
@@ -600,15 +655,15 @@ export const FEATURES: FeatureItem[] = [
   },
   {
     icon: "Receipt",
-    title: "Itemised cost breakdown",
+    title: "Itemised material list",
     description:
-      "Every trade, material, and fixture broken out with quantities and unit costs, not just a lump sum.",
+      "Every material and fixture broken out with quantities and unit prices, not just a lump sum.",
   },
   {
     icon: "ShieldCheck",
-    title: "Permits & code check",
+    title: "What we supply, what you arrange",
     description:
-      "A checklist of which permits your project likely needs, and which authority issues them.",
+      "A plain list of what arrives on the truck and what your contractor handles — labour, permits and inspections are theirs, not ours.",
   },
   {
     icon: "Palette",
@@ -618,9 +673,9 @@ export const FEATURES: FeatureItem[] = [
   },
   {
     icon: "UserCheck",
-    title: "Designer review",
+    title: "Checked by an advisor",
     description:
-      "A real person reviews your submission and builds your plan by hand — never fully automated.",
+      "A real person checks the quantities against your photos before the list reaches you — never fully automated.",
   },
 ];
 
@@ -641,13 +696,13 @@ export const HOW_IT_WORKS_STEPS: HowItWorksStep[] = [
     step: 2,
     title: "Instant AI estimate",
     description:
-      "Our AI reads your photos and returns a structured estimate — scope, likely issues, and an itemised cost range — in seconds.",
+      "Our AI reads your photos and returns an itemised material list — quantities, unit prices and a delivered range — in seconds.",
   },
   {
     step: 3,
-    title: "Hand-designed plan in 48 hours",
+    title: "Checked by hand in 48 hours",
     description:
-      "A CareBy designer reviews your submission, builds your renovation plan and a concept image by hand, and emails you the full report.",
+      "A CareBy advisor checks the quantities against your photos, adds a concept image, and emails you the full material plan ready to order from.",
   },
 ];
 
@@ -667,11 +722,11 @@ export const PRICING_TIERS: PricingTier[] = [
     name: "Starter",
     priceCad: 0,
     priceNote: "Free",
-    description: "Instant AI estimate for one room.",
+    description: "Instant material estimate for one room.",
     features: [
       "Instant AI photo analysis",
-      "Itemised cost range",
-      "Permit flags",
+      "Itemised material list",
+      "What we supply, what you arrange",
       "Email summary",
     ],
     ctaLabel: "Get my estimate",
@@ -682,10 +737,10 @@ export const PRICING_TIERS: PricingTier[] = [
     name: "Full Plan",
     priceCad: 149,
     priceNote: "per room",
-    description: "Everything in Starter, plus a hand-designed renovation plan.",
+    description: "Everything in Starter, plus a material plan checked by hand.",
     features: [
       "Everything in Starter",
-      "Hand-designed renovation plan",
+      "Material plan checked by hand",
       "Concept after-image",
       "Material palette",
       "Delivered within 48 hours",
@@ -698,7 +753,7 @@ export const PRICING_TIERS: PricingTier[] = [
     name: "Whole Home",
     priceCad: 399,
     priceNote: "up to 4 rooms",
-    description: "For multi-room renovations across your home.",
+    description: "For supplying several rooms at once.",
     features: [
       "Everything in Full Plan",
       "Up to 4 rooms",
@@ -720,22 +775,22 @@ export const FAQS: FaqItem[] = [
   {
     question: "Is the instant estimate final?",
     answer:
-      "No. It's an indicative, AI-generated starting point based on your photos and inputs. Your full plan is designed by hand and may adjust the numbers.",
+      "No. It's an indicative material list built from your photos and the dimensions you gave us. An advisor checks it by hand, and quantities get confirmed against your own measurements before you order.",
   },
   {
     question: "What do I get within 48 hours?",
     answer:
-      "A hand-designed renovation plan, a concept \"after\" image, and a full itemised cost report, emailed to you and available in your dashboard.",
+      "A material plan checked by hand, a concept \"after\" image, and a full itemised material list, emailed to you and available in your dashboard.",
   },
   {
-    question: "Is this a permit or a construction contract?",
+    question: "Do you do the installation too?",
     answer:
-      "No. CareBy output is indicative planning guidance, not a permit submission or a construction contract.",
+      "No. CareBy Supplies sells and delivers building materials. We don't install them, employ trades or manage the work — that stays with your own contractor.",
   },
   {
-    question: "How accurate is the AI estimate?",
+    question: "How accurate are the quantities?",
     answer:
-      "It's a strong starting point based on what's visible in your photos, but it can't see behind walls or under floors. Your full plan accounts for anything a designer finds on closer review.",
+      "They're a strong starting point from what's visible in your photos and the dimensions you entered, but nothing can see behind a wall. Confirm them on site before ordering anything cut to size — and anything left over comes back within 30 days.",
   },
   {
     question: "Which areas do you serve?",
@@ -743,9 +798,9 @@ export const FAQS: FaqItem[] = [
       "We're currently serving Mississauga, Ontario, with more municipalities coming soon.",
   },
   {
-    question: "Do you handle new builds?",
+    question: "Do you supply new builds?",
     answer:
-      "Not yet — CareBy currently focuses on renovations of existing homes only.",
+      "Yes. Send drawings and we'll price the material stage by stage, from framing through to finishes.",
   },
 ];
 

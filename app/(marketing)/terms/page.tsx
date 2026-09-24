@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 /*
  * The three things this page must get right, because the product makes
  * each of them easy to misread:
- *   1. An instant estimate is a planning figure, not a quote.
- *   2. A report is not a permit and not a construction contract.
+ *   1. An instant estimate is a material figure, not a quote.
+ *   2. We supply material; we do not install it or build anything.
  *   3. Prices are set by our catalogue, never by what the browser sends.
  */
 export default function TermsPage() {
@@ -37,23 +37,23 @@ export default function TermsPage() {
             heading: "What we provide",
             list: [
               "Building materials, tools and supplies for sale, delivered in the Greater Toronto Area or collected from us.",
-              "Instant renovation estimates generated from the measurements and details you enter.",
-              "Hand-prepared renovation plans and reports, where you have requested one.",
-              "Project support services, including material takeoffs from drawings, customer packages and scheduled call orders for contractors.",
+              "Instant material estimates generated from the measurements and details you enter.",
+              "Material lists and reports checked by hand, where you have requested one.",
+              "Supply services, including material takeoffs from drawings, customer packages and scheduled call orders for contractors.",
             ],
           },
           {
-            heading: "An estimate is not a quote",
+            heading: "An estimate is a material figure, not a quote",
             body: [
-              "The instant estimate is a planning figure produced by our rules from the dimensions, scope and selections you enter. It is not a quote, an offer, or a fixed price, and it does not account for anything we cannot see — the condition inside your walls, permit outcomes, site access, or the price of labour on the day.",
-              "Actual project costs commonly differ from an estimate. Do not rely on one as the basis of a binding budget, a mortgage application or a contract with a third party. A firm price comes only from a written quote we have issued for a defined scope.",
+              "The instant estimate prices materials only. It is produced by our rules from the dimensions, scope and selections you enter, and it excludes labour, equipment, permits, disposal and anything else a contractor charges for. It is not a quote, an offer, or a fixed price, and it cannot account for what we cannot see — the condition inside your walls, or how much of the old material can be reused.",
+              "Quantities are indicative and must be confirmed on site before ordering, particularly for cut-to-size material. Do not rely on an estimate as the basis of a binding budget, a mortgage application or a contract with a third party. A firm price comes only from a written quote we have issued for a defined list.",
             ],
           },
           {
-            heading: "Not a permit, inspection or construction contract",
+            heading: "We supply materials — we do not build",
             body: [
-              "Nothing on this site is a building permit, a code compliance review, a professional engineering opinion, or a home inspection. Our reports may note where a permit is commonly required; confirming what your project actually needs is your responsibility, with your municipality.",
-              "Ordering materials or a plan does not engage us to perform construction work. Any construction we carry out would be under a separate written contract.",
+              "CareBy Supplies sells and delivers building materials. We do not install them, employ or provide trades, supervise work, or take on construction or project management of any kind. Anything on this site that describes a project is describing what to buy for it, not an offer to carry it out.",
+              "Nothing on this site is a building permit, a code compliance review, a professional engineering opinion, or a home inspection. Confirming what your project needs, and arranging any permit or inspection, is the responsibility of you and your contractor.",
             ],
           },
           {

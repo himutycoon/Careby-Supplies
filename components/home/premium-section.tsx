@@ -12,16 +12,17 @@ export function PremiumSection() {
         <div className="grid gap-8 sm:gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
           <div className="flex flex-col gap-4 sm:gap-6">
             <span className="w-fit rounded-full border border-hi-vis/30 bg-hi-vis/10 px-3.5 py-1.5 text-xs font-semibold tracking-[0.14em] text-hi-vis uppercase">
-              Premium Package
+              Premium Supply
             </span>
 
             <h2 className="text-balance text-ink-foreground">
-              Your Complete Home Project, Managed With Expert Support
+              Every Material For The Job, On Site When You Need It
             </h2>
 
             <p className="max-w-lg text-pretty leading-relaxed text-ink-foreground/70">
-              One team coordinating design, permits, materials and trades —
-              so you&apos;re never chasing six different people for answers.
+              Send us the drawings or the room. We work out what it takes,
+              price it at trade rates and deliver it to the day — so nobody
+              is standing around waiting on a pallet.
             </p>
 
             <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
@@ -57,7 +58,7 @@ export function PremiumSection() {
           />
         </div>
 
-        {/* Delivery timeline */}
+        {/* Order-to-delivery timeline */}
         <ol className="mt-10 grid grid-cols-2 gap-x-4 gap-y-5 border-t border-white/10 pt-8 sm:mt-16 sm:gap-6 sm:pt-10 lg:grid-cols-6 lg:gap-4">
           {PREMIUM_TIMELINE.map((stage) => (
             <li key={stage.step} className="flex flex-col gap-1.5 sm:gap-2.5">

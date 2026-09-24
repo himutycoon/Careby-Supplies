@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { OrderDetail } from "@/components/shop/order-detail";
 
-export const metadata: Metadata = { title: "Order — CareBy Canada" };
+export const metadata: Metadata = { title: "Order — CareBy Supplies" };
 
 export default async function OrderDetailPage({
   params,

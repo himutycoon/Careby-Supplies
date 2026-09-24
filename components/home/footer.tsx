@@ -15,8 +15,8 @@ export function Footer() {
                 wasted lines a thumb has to travel past; on desktop it
                 balances the column, so it only stands down below sm. */}
             <p className="hidden max-w-xs text-sm leading-relaxed text-muted-foreground sm:block">
-              Quality products, expert guidance, project planning and
-              construction support — all from one platform.
+              Lumber, tile, fixtures and the rest — priced for trade and
+              homeowner alike, with people who know what the job needs.
             </p>
             <div className="flex flex-col gap-2 text-sm text-muted-foreground">
               <a
@@ -76,7 +76,7 @@ export function Footer() {
             half-row for it anyway. */}
         <div className="mt-6 flex flex-col gap-2 border-t border-border pt-5 text-xs text-muted-foreground sm:mt-8 sm:flex-row sm:items-center sm:justify-between sm:pt-6">
           <p>
-            © {new Date().getFullYear()} CareBy Canada.
+            © {new Date().getFullYear()} CareBy Supplies.
             <span className="hidden sm:inline"> All rights reserved.</span>
             <span className="sm:hidden"> Mississauga, ON.</span>
           </p>

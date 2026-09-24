@@ -10,8 +10,8 @@ export function CtaBand() {
           Ready to start your project?
         </h2>
         <p className="max-w-xl text-pretty text-muted-foreground">
-          Tell us what you&apos;re building and we&apos;ll take it from
-          there — with materials, estimates and people who know the work.
+          Tell us what you&apos;re building and we&apos;ll work out what it
+          takes to supply — priced, in stock, and delivered to site.
         </p>
         {/* "Talk to an Expert" used to sit beside this button. It now
             floats on every page of the site (ExpertFab), so on this

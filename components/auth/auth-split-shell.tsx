@@ -5,9 +5,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 
 const PANEL_FEATURES = [
   "Instant AI photo analysis",
-  "Itemised cost breakdown",
-  "Permit & code checks",
-  "Hand-designed plan in 48 hours",
+  "Itemised material list",
+  "Trade pricing on every line",
+  "Delivery across the GTA",
 ];
 
 export function AuthSplitShell({
@@ -28,13 +28,13 @@ export function AuthSplitShell({
 
         <div className="flex flex-col gap-6">
           <h1 className="text-4xl leading-tight text-white">
-            Your renovation,
+            Your material list,
             <br />
-            planned by AI.
+            worked out for you.
           </h1>
           <p className="max-w-sm text-white/80">
-            Upload your photos and budget — we&apos;ll hand you a complete,
-            hand-designed renovation plan within 48 hours.
+            Upload your photos and budget — we&apos;ll hand you the full
+            material list, priced and ready to order, within 48 hours.
           </p>
           <ul className="flex flex-col gap-3">
             {PANEL_FEATURES.map((feature) => (
@@ -52,7 +52,7 @@ export function AuthSplitShell({
         </div>
 
         <p className="text-xs text-white/60">
-          Indicative planning guidance only — not a permit or contract.
+          Indicative material quantities only — confirm on site before ordering.
         </p>
       </div>
 

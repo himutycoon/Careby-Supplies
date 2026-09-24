@@ -6,8 +6,8 @@ export function HowItWorks() {
     <Section>
       <SectionHeading
         eyebrow="How it works"
-        title="Four steps from idea to build"
-        subtitle="However you start — a photo, a drawing, or a question — the path forward is the same."
+        title="Four steps from idea to delivery"
+        subtitle="However you start — a photo, a drawing, or a question — you end up with a material list you can order from."
       />
 
       <ol className="mt-6 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4 lg:gap-6">

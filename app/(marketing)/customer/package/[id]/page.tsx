@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PackageSelectionPortal } from "@/components/portal/package-selection-portal";
 
 export const metadata: Metadata = {
-  title: "Project Portal — CareBy Canada",
+  title: "Project Portal — CareBy Supplies",
 };
 
 export default async function CustomerPackagePage({

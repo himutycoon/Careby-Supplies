@@ -27,21 +27,21 @@ export function Hero() {
         <div className="flex flex-col gap-5 sm:gap-7">
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-ink-foreground/80">
             <span className="size-1.5 rounded-full bg-hi-vis" />
-            Materials, planning and expert support
+            Building materials, delivered across the GTA
           </span>
 
           <h1 className="text-balance text-ink-foreground">
-            Build. Renovate. Repair.{" "}
+            Every Material. One Supplier.{" "}
             {/* Safety yellow, not navy: --primary is the navy that this
                 section is painted in, so the highlight has to come from
                 the other half of the palette to be a highlight at all.
                 The same applies to every accent below. */}
-            <span className="text-hi-vis">Everything in One Place.</span>
+            <span className="text-hi-vis">Delivered to Your Site.</span>
           </h1>
 
           <p className="max-w-xl text-pretty leading-relaxed text-ink-foreground/75 sm:text-lg">
-            Quality products, expert guidance, project planning and
-            construction support — all from one platform.
+            Lumber, tile, fixtures and the rest — priced for trade and
+            homeowner alike, with people who know what the job needs.
           </p>
 
           {/* Full-width CTAs on phones — a thumb reaches an edge-to-edge

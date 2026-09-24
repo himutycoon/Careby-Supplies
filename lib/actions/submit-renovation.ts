@@ -59,13 +59,13 @@ export async function submitRenovation(
   let estimate: EstimateResult;
   try {
     const vision = await analyzePhotos(input.roomType, photos);
-    const { cost, permits, verdict } = calculateCostEstimate(input, vision);
+    const { cost, supplyNotes, verdict } = calculateCostEstimate(input, vision);
 
     estimate = {
       verdict,
       vision,
       cost,
-      permits,
+      supplyNotes,
       scopeLevel: input.scopeLevel,
       budgetCad: input.budgetCad,
       generatedAt: new Date().toISOString(),

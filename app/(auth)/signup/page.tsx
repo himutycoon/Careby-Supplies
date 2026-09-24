@@ -4,7 +4,7 @@ import { AuthSplitShell } from "@/components/auth/auth-split-shell";
 import { SignupForm } from "@/components/auth/signup-form";
 import type { UserRole } from "@/lib/types";
 
-export const metadata: Metadata = { title: "Sign Up — CareBy Canada" };
+export const metadata: Metadata = { title: "Sign Up — CareBy Supplies" };
 
 export default async function SignupPage({
   searchParams,

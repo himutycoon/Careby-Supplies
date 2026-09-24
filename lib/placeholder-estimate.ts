@@ -1,60 +1,31 @@
 /**
- * TEMPORARY placeholder math for the homepage estimate widget.
+ * The homepage widget's live-updating material estimate.
  *
- * This is NOT the rules layer. It exists only so the widget can show a
- * live-updating number before the user uploads anything. Replace with the
- * real deterministic rules engine in M3 (see /lib/types.ts CostEstimate).
+ * This used to carry its own cost model, which meant the number on the
+ * home page and the number on the real estimate were computed two
+ * different ways and drifted apart. It now calls the rules layer with
+ * assumed values for everything the widget does not ask for — an 8 ft
+ * ceiling, no photos — so the figure it shows is the same takeoff the
+ * full estimate runs, just with less known about the room.
  */
-import type { EstimateVerdict, RoomType, ScopeLevel } from "@/lib/types";
-
-const COST_PER_SQFT_BY_SCOPE: Record<ScopeLevel, number> = {
-  cosmetic: 40,
-  moderate: 90,
-  "full-gut": 160,
-};
-
-const ROOM_TYPE_MULTIPLIER: Record<RoomType, number> = {
-  bathroom: 1.3,
-  kitchen: 1.5,
-  basement: 1.0,
-  bedroom: 0.7,
-  living: 0.8,
-  "whole-home": 1.1,
-  addition: 1.4,
-  deck: 0.6,
-};
-
-const TRADE_SHARE_BY_SCOPE: Record<
+import { calculateCostEstimate } from "@/lib/rules/calculate-cost";
+import type {
+  EstimateVerdict,
+  RoomType,
   ScopeLevel,
-  { trade: string; share: number }[]
-> = {
-  cosmetic: [
-    { trade: "Demolition", share: 0.05 },
-    { trade: "Plumbing", share: 0.05 },
-    { trade: "Electrical", share: 0.1 },
-    { trade: "Finishes", share: 0.6 },
-    { trade: "Fixtures", share: 0.2 },
-  ],
-  moderate: [
-    { trade: "Demolition", share: 0.1 },
-    { trade: "Plumbing", share: 0.2 },
-    { trade: "Electrical", share: 0.15 },
-    { trade: "Finishes", share: 0.35 },
-    { trade: "Fixtures", share: 0.2 },
-  ],
-  "full-gut": [
-    { trade: "Demolition", share: 0.15 },
-    { trade: "Plumbing", share: 0.25 },
-    { trade: "Electrical", share: 0.15 },
-    { trade: "Finishes", share: 0.3 },
-    { trade: "Fixtures", share: 0.15 },
-  ],
-};
+  VisionAnalysis,
+} from "@/lib/types";
 
-const PERMIT_COUNT_BY_SCOPE: Record<ScopeLevel, number> = {
-  cosmetic: 0,
-  moderate: 1,
-  "full-gut": 2,
+/** What the widget assumes because it does not ask. */
+const ASSUMED_CEILING_FT = 8;
+
+/** No photos have been uploaded yet, so the vision layer has nothing. */
+const NO_PHOTOS: Omit<VisionAnalysis, "roomType"> = {
+  detectedFixtures: [],
+  detectedFinishes: [],
+  overallCondition: "fair",
+  issues: [],
+  confidence: 0,
 };
 
 const SCOPE_INDEX: Record<ScopeLevel, number> = {
@@ -64,7 +35,7 @@ const SCOPE_INDEX: Record<ScopeLevel, number> = {
 };
 
 export interface PlaceholderWorkItem {
-  trade: string;
+  category: string;
   amountCad: number;
 }
 
@@ -73,7 +44,8 @@ export interface PlaceholderEstimate {
   totalHigh: number;
   verdict: EstimateVerdict;
   workItems: PlaceholderWorkItem[];
-  permitCount: number;
+  /** How many material lines the takeoff produced. */
+  materialLineCount: number;
   similarProjectsCount: number;
 }
 
@@ -88,39 +60,42 @@ export interface PlaceholderEstimateInput {
 export function calculatePlaceholderEstimate(
   input: PlaceholderEstimateInput,
 ): PlaceholderEstimate {
+  const { cost, verdict } = calculateCostEstimate(
+    {
+      roomType: input.roomType,
+      lengthFt: input.lengthFt,
+      widthFt: input.widthFt,
+      ceilingHeightFt: ASSUMED_CEILING_FT,
+      scopeLevel: input.scopeLevel,
+      budgetCad: input.budgetCad,
+      propertyType: "house",
+      isOwner: true,
+      wishlist: [],
+      municipalityId: "",
+      photoUrls: [],
+      notes: "",
+    },
+    { roomType: input.roomType, ...NO_PHOTOS },
+  );
+
+  // The four biggest lines — enough to show where the money goes without
+  // turning a teaser into a spreadsheet.
+  const workItems = [...cost.lineItems]
+    .sort((a, b) => b.totalCad - a.totalCad)
+    .slice(0, 4)
+    .map((item) => ({ category: item.category, amountCad: item.totalCad }));
+
   const area = input.lengthFt * input.widthFt;
-  const midCost =
-    area *
-    COST_PER_SQFT_BY_SCOPE[input.scopeLevel] *
-    ROOM_TYPE_MULTIPLIER[input.roomType];
-
-  const totalLow = Math.round(midCost * 0.85);
-  const totalHigh = Math.round(midCost * 1.2);
-
-  let verdict: EstimateVerdict;
-  if (totalHigh <= input.budgetCad) {
-    verdict = "within-budget";
-  } else if (totalLow <= input.budgetCad) {
-    verdict = "tight";
-  } else {
-    verdict = "over-budget";
-  }
-
-  const workItems = TRADE_SHARE_BY_SCOPE[input.scopeLevel].map((entry) => ({
-    trade: entry.trade,
-    amountCad: Math.round(midCost * entry.share),
-  }));
-
   const similarProjectsCount = Math.round(
     80 + area * 1.8 + SCOPE_INDEX[input.scopeLevel] * 40,
   );
 
   return {
-    totalLow,
-    totalHigh,
+    totalLow: cost.totalLow,
+    totalHigh: cost.totalHigh,
     verdict,
     workItems,
-    permitCount: PERMIT_COUNT_BY_SCOPE[input.scopeLevel],
+    materialLineCount: cost.lineItems.length,
     similarProjectsCount,
   };
 }

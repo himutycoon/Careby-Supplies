@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { RepairFlow } from "@/components/homeowner/repair-flow";
 
-export const metadata: Metadata = { title: "Repair — CareBy Canada" };
+export const metadata: Metadata = { title: "Repair — CareBy Supplies" };
 
 export default function RepairPage() {
   return (

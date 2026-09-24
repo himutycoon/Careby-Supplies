@@ -43,8 +43,8 @@ const FLOWS = [
   {
     icon: "Crown",
     audience: "Homeowners",
-    title: "Premium package",
-    body: "Expert advice, architect support, permits and call ordering — managed end to end.",
+    title: "Premium supply",
+    body: "A takeoff from your drawings, trade pricing and delivery booked around your dates.",
     steps: ["Choose a tier", "Project profile", "We contact you"],
     href: "/premium-request",
   },
@@ -64,8 +64,8 @@ export function ServiceShowcase() {
             More than a catalogue.
           </h2>
           <p className="mt-2.5 text-sm text-pretty text-ink-foreground/75 sm:mt-4 sm:text-lg">
-            Book a call, build a package for your customer, turn a drawing into
-            a material list, or hand the whole project to us.
+            Book a call, build a package for your customer, turn a drawing
+            into a material list, or let us work out the whole order for you.
           </p>
         </div>
 

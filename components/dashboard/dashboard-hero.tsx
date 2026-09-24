@@ -27,10 +27,11 @@ export function DashboardHero({ name }: { name: string }) {
         </h1>
         <div>
           <p className="font-medium text-foreground">
-            Let&apos;s build, repair and improve your space.
+            Let&apos;s work out what your project needs.
           </p>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            From small fixes to big renovations — we&apos;ve got you covered.
+            From a single part to a whole renovation&apos;s worth of material
+            — priced, in stock and delivered.
           </p>
         </div>
         <Button

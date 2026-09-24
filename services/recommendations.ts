@@ -62,7 +62,7 @@ async function gatherSignals(): Promise<RecommendationSignals> {
     signals.scopeLevels.push(...part.scopeLevels);
     signals.wishes.push(...part.wishes);
     signals.issues.push(...part.issues);
-    signals.trades.push(...part.trades);
+    signals.materialCategories.push(...part.materialCategories);
     // The most recent submission's budget is the relevant one.
     if (signals.budgetCad === null) signals.budgetCad = part.budgetCad;
   }

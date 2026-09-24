@@ -15,8 +15,8 @@ const TRUST = [
   },
   {
     Icon: Users,
-    title: "Project support",
-    body: "Talk to someone who knows local codes and pricing.",
+    title: "Materials advice",
+    body: "Talk to someone who knows what each product suits and what it costs.",
   },
   {
     Icon: Hammer,

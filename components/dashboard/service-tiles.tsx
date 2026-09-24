@@ -31,7 +31,7 @@ interface Tile {
 const PRIMARY: Tile[] = [
   {
     title: "Repair",
-    description: "Fix what's broken, fast and hassle-free.",
+    description: "The parts and materials to put it right.",
     href: "/repair",
     image: "/images/category-repair-plumbing.webp",
     icon: Wrench,
@@ -39,7 +39,7 @@ const PRIMARY: Tile[] = [
   },
   {
     title: "New Construction",
-    description: "Build your dream from the ground up.",
+    description: "Material budgets and supply for a build from scratch.",
     href: "/new-construction",
     image: "/images/category-new-construction-framing.webp",
     icon: Building2,
@@ -47,7 +47,7 @@ const PRIMARY: Tile[] = [
   },
   {
     title: "Renovation",
-    description: "Give your space a fresh new look.",
+    description: "Work out what a room needs, priced and delivered.",
     href: "/new",
     image: "/images/category-renovation-kitchen.webp",
     icon: PaintRoller,
@@ -65,8 +65,8 @@ const SECONDARY: Tile[] = [
     tone: "bg-warning/15 text-warning-foreground dark:text-warning",
   },
   {
-    title: "Premium Package",
-    description: "Expert support, permits and materials — managed end to end.",
+    title: "Premium Supply",
+    description: "A takeoff from your drawings, priced and scheduled.",
     href: "/premium-request",
     image: "/images/premium-1-plans.webp",
     icon: Crown,

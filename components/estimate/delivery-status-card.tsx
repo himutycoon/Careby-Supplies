@@ -9,13 +9,13 @@ export function DeliveryStatusCard() {
       </span>
       <div>
         <h3 className="font-semibold">
-          Your full plan arrives within 48 hours
+          Your full material plan arrives within 48 hours
         </h3>
         <p className="text-sm text-muted-foreground">
-          A CareBy designer is reviewing your submission by hand.
-          You&apos;ll get an email with your complete renovation plan and
-          concept image — and it&apos;ll show up right here in your
-          dashboard.
+          A CareBy advisor is checking the quantities against your photos by
+          hand. You&apos;ll get an email with the finished list and a concept
+          image — and it&apos;ll show up right here in your dashboard, ready
+          to order from.
         </p>
       </div>
     </Card>

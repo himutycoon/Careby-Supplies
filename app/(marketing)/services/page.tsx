@@ -13,9 +13,9 @@ import { HowItWorks } from "@/components/home/how-it-works";
 import { CtaBand } from "@/components/home/cta-band";
 
 export const metadata: Metadata = {
-  title: "Services — CareBy Canada",
+  title: "Services — CareBy Supplies",
   description:
-    "Materials, planning, estimates and expert support — for contractors and homeowners alike.",
+    "Materials, takeoffs, estimates and delivery — for contractors and homeowners alike.",
 };
 
 export default function ServicesPage() {
@@ -23,8 +23,8 @@ export default function ServicesPage() {
     <>
       <PageHero
         eyebrow="CareBy Services"
-        title="Services built around the work."
-        subtitle="Materials, planning, estimates and expert support — for contractors and homeowners alike."
+        title="Everything but the labour."
+        subtitle="Materials, takeoffs, estimates and delivery — for contractors and homeowners alike."
         imageSlot="servicesHero"
         actions={
           <>

@@ -16,9 +16,9 @@ export function ProjectCategories() {
   return (
     <Section>
       <SectionHeading
-        eyebrow="Project types"
-        title="Start with what you're building"
-        subtitle="Each path adapts to your scope, budget and timeline."
+        eyebrow="What are you buying for?"
+        title="Start with the job in front of you"
+        subtitle="Each path works out what to order, in what quantity, at what price. The work itself stays with you and your trades."
         align="left"
       />
 

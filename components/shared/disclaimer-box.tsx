@@ -19,10 +19,10 @@ export function DisclaimerBox({
       <p>
         {children ?? (
           <>
-            This is indicative planning guidance only — not a permit
-            submission or a construction contract. Final scope, cost, and
-            code requirements are confirmed by a licensed contractor and
-            your local building authority.
+            CareBy Supplies sells building materials — we don&apos;t install
+            them or provide trades. Quantities here are indicative and come
+            from the dimensions you gave us; confirm them on site before
+            ordering, and leave permits, code and labour to your contractor.
           </>
         )}
       </p>

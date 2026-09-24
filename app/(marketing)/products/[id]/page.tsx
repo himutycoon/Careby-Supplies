@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ProductDetail } from "@/components/shop/product-detail";
 
-export const metadata: Metadata = { title: "Product — CareBy Canada" };
+export const metadata: Metadata = { title: "Product — CareBy Supplies" };
 
 export default async function ProductDetailPage({
   params,

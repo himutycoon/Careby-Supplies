@@ -4,7 +4,7 @@ import { AuthSplitShell } from "@/components/auth/auth-split-shell";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export const metadata: Metadata = {
-  title: "Reset Password — CareBy Canada",
+  title: "Reset Password — CareBy Supplies",
 };
 
 export default function ForgotPasswordPage() {

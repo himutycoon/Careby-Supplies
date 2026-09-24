@@ -20,18 +20,20 @@ export function buildPlaceholderNarrative(
   deliveredPlan: DeliveredPlan,
   cost: CostEstimate,
 ): ReportNarrative {
+  const issueCount = estimate.vision.issues.length;
+
   return {
-    summary: `Your ${estimate.scopeLevel.replace("-", " ")} renovation is estimated at $${cost.totalLow.toLocaleString()}–$${cost.totalHigh.toLocaleString()} CAD, which is ${VERDICT_PHRASE[estimate.verdict]} your $${estimate.budgetCad.toLocaleString()} budget.`,
+    summary: `The materials for your ${estimate.scopeLevel.replace("-", " ")} project come to $${cost.totalLow.toLocaleString()}–$${cost.totalHigh.toLocaleString()} CAD delivered, which is ${VERDICT_PHRASE[estimate.verdict]} your $${estimate.budgetCad.toLocaleString()} budget. That is material only — your contractor prices their own labour on top.`,
     conditionOverview:
       estimate.vision.confidence > 0
-        ? `Your photos showed an overall condition of "${estimate.vision.overallCondition}", with ${estimate.vision.issues.length} issue(s) identified.`
-        : "Detailed photo analysis was reviewed manually by your designer.",
+        ? `Your photos showed an overall condition of "${estimate.vision.overallCondition}", with ${issueCount} issue${issueCount === 1 ? "" : "s"} identified. Anything flagged there is reflected in the quantities and in the repair material on the list.`
+        : "Your photos were reviewed by hand and the quantities set from what they showed.",
     scopeRationale: deliveredPlan.layoutDescription,
     budgetGuidance:
       estimate.verdict === "over-budget"
-        ? "This project's likely cost is above your stated budget — your designer's notes below outline ways to bring it in line, or you may want to phase the work."
-        : "This project fits within your stated budget based on the scope discussed.",
+        ? "The material list is above your stated budget. The notes below point at the lines with room in them — most of the total sits in a handful of finishes, and swapping a grade usually moves it more than trimming quantities."
+        : "The material list fits within your stated budget. If you want a higher grade on any line, tell us which and we will re-price it before you order.",
     nextSteps:
-      "Review the plan notes and cost breakdown below, then reach out with any questions before booking a contractor.",
+      "Check the quantities against your own measurements, then send the list back with anything you want swapped. Once it is right we will hold the pricing and book delivery to suit your install date.",
   };
 }

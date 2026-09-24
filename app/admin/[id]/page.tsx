@@ -6,7 +6,7 @@ import { FixtureCard } from "@/components/estimate/fixture-card";
 import { FinishCard } from "@/components/estimate/finish-card";
 import { IssueList } from "@/components/estimate/issue-list";
 import { CostTable } from "@/components/estimate/cost-table";
-import { PermitChecklist } from "@/components/estimate/permit-checklist";
+import { SupplyNotes } from "@/components/estimate/supply-notes";
 import { ReviewForm } from "@/components/admin/review-form";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { formatCad, formatDate } from "@/lib/format";
@@ -111,13 +111,13 @@ export default async function AdminReviewPage({
         )}
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Cost breakdown</h2>
+          <h2 className="mb-3 text-lg font-semibold">Material list</h2>
           <CostTable cost={estimate.cost} />
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Permit checklist</h2>
-          <PermitChecklist permits={estimate.permits} />
+          <h2 className="mb-3 text-lg font-semibold">What we supply, what you arrange</h2>
+          <SupplyNotes notes={estimate.supplyNotes} />
         </section>
 
         <ReviewForm

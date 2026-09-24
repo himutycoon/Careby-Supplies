@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card } from "@/components/ui/card";
 import { CtaBand } from "@/components/home/cta-band";
 
-export const metadata: Metadata = { title: "About — CareBy Canada" };
+export const metadata: Metadata = { title: "About — CareBy Supplies" };
 
 const APPROACH = [
   {
@@ -17,13 +17,13 @@ const APPROACH = [
     icon: Calculator,
     title: "Rules decide the numbers",
     description:
-      "Every cost, area, and verdict comes from a deterministic pricing engine, not from the AI improvising.",
+      "Every quantity, price and verdict comes from a deterministic takeoff engine, not from the AI improvising.",
   },
   {
     icon: UserCheck,
-    title: "A person designs your plan",
+    title: "A person checks your list",
     description:
-      "A CareBy designer reviews every submission by hand and builds your renovation plan and concept image.",
+      "A CareBy advisor checks every material list by hand against your photos before it reaches you.",
   },
 ];
 
@@ -31,27 +31,32 @@ export default function AboutPage() {
   return (
     <>
       <PageHeader
-        title="Renovation planning shouldn't take weeks to get started"
-        subtitle="CareBy Canada gives homeowners a fast, honest starting point — then a real person takes it from there."
+        title="Working out what to buy shouldn't take three site visits"
+        subtitle="CareBy Supplies sells building materials — and tells you straight what your job needs, in what quantity, at what price."
       />
 
       <section className="mx-auto max-w-3xl px-4 pb-16 sm:px-6">
         <p className="text-muted-foreground">
-          Most homeowners planning a renovation spend weeks going back and
-          forth with contractors just to get a rough number. We built
-          CareBy to shortcut that first step: upload a few photos and
-          your budget, and get an instant, structured estimate in seconds.
+          We are a building-materials supplier. We do not install anything,
+          we do not employ trades, and we do not run your project — your
+          contractor does that. What we do is work out what the job needs,
+          price it honestly, and get it to site on the day it is wanted.
         </p>
         <p className="mt-4 text-muted-foreground">
-          That instant estimate is deliberately just a starting point.
-          Within 48 hours, a CareBy designer reviews your submission by
-          hand and builds your actual renovation plan — layout, materials,
-          and a concept image — so what you receive is something you could
-          hand to a contractor, not just a number.
+          Most people buying material for a renovation are guessing at
+          quantities or waiting on someone else to guess for them. Upload a
+          few photos and the room&apos;s dimensions and you get an itemised
+          material list in seconds — every line something we stock, with the
+          quantity the room implies and the price you would pay.
         </p>
         <p className="mt-4 text-muted-foreground">
-          We&apos;re currently focused on renovations in Mississauga, Ontario,
-          with more municipalities on the way.
+          Within 48 hours a CareBy advisor checks that list by hand against
+          your photos, so what you receive is an order you can place and a
+          set of quantities your installer can price their labour against.
+        </p>
+        <p className="mt-4 text-muted-foreground">
+          We deliver across Mississauga and the surrounding GTA, with more
+          of the region on the way.
         </p>
       </section>
 

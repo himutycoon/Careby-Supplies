@@ -20,9 +20,9 @@ export function SampleReport() {
           </span>
           <h2>A peek at what you receive</h2>
           <p className="text-muted-foreground">
-            Every full plan includes a concept image, an itemised cost
-            breakdown, a permit checklist, and a written walkthrough from
-            your designer — not just a number.
+            Every full plan includes a concept image, an itemised material
+            list, a plain statement of what we supply and what you arrange,
+            and a written walkthrough from your advisor — not just a number.
           </p>
           <Button
             variant="outline"

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { OrdersList } from "@/components/shop/orders-list";
 
-export const metadata: Metadata = { title: "Orders — CareBy Canada" };
+export const metadata: Metadata = { title: "Orders — CareBy Supplies" };
 
 export default function OrdersPage() {
   return (

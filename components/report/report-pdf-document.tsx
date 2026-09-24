@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderBottom: `1px solid ${BORDER}`,
   },
-  colTrade: { width: "25%", fontSize: 9 },
+  colItem: { width: "25%", fontSize: 9 },
   colDesc: { width: "40%", fontSize: 9, color: MUTED },
   colQty: { width: "15%", fontSize: 9, textAlign: "right" },
   colTotal: { width: "20%", fontSize: 9, textAlign: "right", fontWeight: 700 },
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   totalsLabel: { fontSize: 10, color: MUTED },
   totalsValue: { fontSize: 10, fontWeight: 700 },
-  permitRow: {
+  noteRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 5,
@@ -145,12 +145,12 @@ export function ReportPdfDocument({ report }: { report: Report }) {
 
   return (
     <Document
-      title={`CareBy Canada — Renovation Report`}
-      author="CareBy Canada"
+      title={`CareBy Supplies — Material Plan`}
+      author="CareBy Supplies"
     >
       <Page size="A4" style={styles.page}>
-        <Text style={styles.brand}>CareBy Canada</Text>
-        <Text style={styles.title}>Your Renovation Report</Text>
+        <Text style={styles.brand}>CareBy Supplies</Text>
+        <Text style={styles.title}>Your Material Plan</Text>
         <Text style={styles.subtitle}>
           {estimate.vision.roomType} · {estimate.scopeLevel.replace("-", " ")}{" "}
           · Generated {new Date(deliveredPlan.deliveredAt).toLocaleDateString("en-CA")}
@@ -182,26 +182,26 @@ export function ReportPdfDocument({ report }: { report: Report }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Cost breakdown</Text>
+          <Text style={styles.sectionTitle}>Material list</Text>
           <View style={styles.table}>
             <View style={styles.tableHeaderRow}>
-              <Text style={[styles.colTrade, styles.headerCell]}>Trade</Text>
+              <Text style={[styles.colItem, styles.headerCell]}>Material</Text>
               <Text style={[styles.colDesc, styles.headerCell]}>
-                Description
+                What&apos;s included
               </Text>
               <Text style={[styles.colQty, styles.headerCell]}>Qty</Text>
               <Text style={[styles.colTotal, styles.headerCell]}>Total</Text>
             </View>
             {cost.lineItems.map((item, index) => (
               <View
-                key={`${item.trade}-${index}`}
+                key={`${item.category}-${index}`}
                 style={
                   index === cost.lineItems.length - 1
                     ? styles.tableRowLast
                     : styles.tableRow
                 }
               >
-                <Text style={styles.colTrade}>{item.trade}</Text>
+                <Text style={styles.colItem}>{item.category}</Text>
                 <Text style={styles.colDesc}>{item.description}</Text>
                 <Text style={styles.colQty}>
                   {item.quantity} {item.unit}
@@ -215,23 +215,17 @@ export function ReportPdfDocument({ report }: { report: Report }) {
 
           <View style={{ marginTop: 8 }}>
             <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Subtotal</Text>
+              <Text style={styles.totalsLabel}>Materials subtotal</Text>
               <Text style={styles.totalsValue}>
                 {formatCad(cost.subtotal)}
               </Text>
             </View>
             <View style={styles.totalsRow}>
               <Text style={styles.totalsLabel}>
-                Contingency ({Math.round(cost.contingencyPct * 100)}%)
+                Cut waste &amp; overage ({Math.round(cost.wastePct * 100)}%)
               </Text>
               <Text style={styles.totalsValue}>
-                {formatCad(cost.contingency)}
-              </Text>
-            </View>
-            <View style={styles.totalsRow}>
-              <Text style={styles.totalsLabel}>Permit fees</Text>
-              <Text style={styles.totalsValue}>
-                {formatCad(cost.permitFees)}
+                {formatCad(cost.wasteAllowance)}
               </Text>
             </View>
             <View style={styles.totalsRow}>
@@ -240,7 +234,7 @@ export function ReportPdfDocument({ report }: { report: Report }) {
             </View>
             <View style={[styles.totalsRow, { marginTop: 4 }]}>
               <Text style={[styles.totalsLabel, { fontWeight: 700 }]}>
-                Estimated range
+                Estimated material cost
               </Text>
               <Text style={styles.totalsValue}>
                 {formatCad(cost.totalLow)} – {formatCad(cost.totalHigh)}
@@ -250,27 +244,23 @@ export function ReportPdfDocument({ report }: { report: Report }) {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Permit checklist</Text>
-          {estimate.permits.length === 0 ? (
-            <Text style={styles.paragraph}>
-              No permits required for this scope of work.
-            </Text>
-          ) : (
-            estimate.permits.map((permit) => (
-              <View key={permit.id} style={styles.permitRow}>
-                <Text style={{ fontSize: 9 }}>
-                  {permit.label} — {permit.authority}
-                </Text>
-                <Text style={{ fontSize: 9, fontWeight: 700 }}>
-                  {permit.required ? "Required" : "If applicable"}
-                </Text>
-              </View>
-            ))
-          )}
+          <Text style={styles.sectionTitle}>
+            What we supply, what you arrange
+          </Text>
+          {estimate.supplyNotes.map((note) => (
+            <View key={note.id} style={styles.noteRow}>
+              <Text style={{ fontSize: 9 }}>
+                {note.label} — {note.owner}
+              </Text>
+              <Text style={{ fontSize: 9, fontWeight: 700 }}>
+                {note.included ? "We supply" : "You arrange"}
+              </Text>
+            </View>
+          ))}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Designer notes</Text>
+          <Text style={styles.sectionTitle}>Advisor notes</Text>
           <Text style={styles.paragraph}>{deliveredPlan.planNotes}</Text>
           <Text style={[styles.paragraph, { color: MUTED, fontSize: 9 }]}>
             — {deliveredPlan.deliveredBy}
@@ -284,12 +274,13 @@ export function ReportPdfDocument({ report }: { report: Report }) {
         </View>
 
         <Text style={styles.footer}>
-          This report is indicative planning guidance only. It is not a
-          permit submission, a building code determination, or a
-          construction contract. Confirm final scope, pricing, and code
-          compliance with a licensed contractor and your local building
-          authority before any work begins. Instant AI estimate; full plan
-          designed by hand by a CareBy Canada designer.
+          CareBy Supplies sells building materials. We do not install them,
+          provide trades, or take on the work. This is an indicative
+          material list and price, not a quotation for construction, a
+          permit submission or a code determination. Quantities are
+          calculated from the dimensions you gave us — have your contractor
+          confirm them on site before ordering. Quantities generated
+          automatically; the list is checked by a CareBy materials advisor.
         </Text>
       </Page>
     </Document>

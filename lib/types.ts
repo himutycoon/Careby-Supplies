@@ -1,10 +1,10 @@
 /**
- * Single source of truth for CareBy Canada domain types.
+ * Single source of truth for CareBy Supplies domain types.
  *
  * Layering (see project architecture rule):
  * 1. Vision layer  — VisionAnalysis and its parts. Structured JSON only,
  *    produced by Claude reading photos. No costs, no verdicts.
- * 2. Rules layer    — CostEstimate, PermitCheck, EstimateResult.verdict.
+ * 2. Rules layer    — CostEstimate, SupplyNote, EstimateResult.verdict.
  *    Pure TypeScript computation. Owns every number the user sees.
  * 3. Narrative layer — Report. Prose generated from rules-layer output.
  */
@@ -262,11 +262,12 @@ export interface RenovationInput {
 }
 
 // ---------------------------------------------------------------------------
-// Rules layer — deterministic cost, scope, and permit logic
+// Rules layer — deterministic materials pricing and scope logic
 // ---------------------------------------------------------------------------
 
+/** One material on the quote: what it is, how much of it, what it costs. */
 export interface CostLineItem {
-  trade: string;
+  category: string;
   description: string;
   quantity: number;
   unit: string;
@@ -277,19 +278,26 @@ export interface CostLineItem {
 export interface CostEstimate {
   lineItems: CostLineItem[];
   subtotal: number;
-  contingencyPct: number;
-  contingency: number;
-  permitFees: number;
+  /** Cut waste and breakage, as a fraction of the subtotal. */
+  wastePct: number;
+  wasteAllowance: number;
   hst: number;
   totalLow: number;
   totalHigh: number;
 }
 
-export interface PermitCheck {
+/**
+ * A line on the "what we supply, what you arrange" list. CareBy sells
+ * material, not labour, so every quote says plainly which side of that
+ * line each part of the job falls on.
+ */
+export interface SupplyNote {
   id: string;
   label: string;
-  required: boolean;
-  authority: string;
+  /** True when CareBy provides it; false when the customer arranges it. */
+  included: boolean;
+  /** Who it falls to — "CareBy Supplies", "Your contractor", and so on. */
+  owner: string;
   note: string;
 }
 
@@ -303,7 +311,7 @@ export interface EstimateResult {
   verdict: EstimateVerdict;
   vision: VisionAnalysis;
   cost: CostEstimate;
-  permits: PermitCheck[];
+  supplyNotes: SupplyNote[];
   scopeLevel: ScopeLevel;
   budgetCad: number;
   generatedAt: string;

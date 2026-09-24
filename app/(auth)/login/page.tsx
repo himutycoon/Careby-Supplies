@@ -3,7 +3,7 @@ import Link from "next/link";
 import { AuthSplitShell } from "@/components/auth/auth-split-shell";
 import { LoginForm } from "@/components/auth/login-form";
 
-export const metadata: Metadata = { title: "Log In — CareBy Canada" };
+export const metadata: Metadata = { title: "Log In — CareBy Supplies" };
 
 export default function LoginPage() {
   return (

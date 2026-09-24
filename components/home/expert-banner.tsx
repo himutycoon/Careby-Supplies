@@ -21,9 +21,11 @@ export function ExpertBanner() {
           <Headset className="size-5" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold">Talk to a CareBy Expert</span>
+          <span className="block font-semibold">
+            Talk to a materials expert
+          </span>
           <span className="block text-xs text-muted-foreground sm:text-sm">
-            Get help with products, quantities and your project.
+            Get help choosing products, working out quantities and pricing.
           </span>
         </span>
         <ChevronRight

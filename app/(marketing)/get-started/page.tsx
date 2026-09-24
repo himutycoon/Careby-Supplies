@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GuidedFlowRouter } from "@/components/shared/guided-flow-router";
 
-export const metadata: Metadata = { title: "Get Started — CareBy Canada" };
+export const metadata: Metadata = { title: "Get Started — CareBy Supplies" };
 
 export default function GetStartedPage() {
   return (

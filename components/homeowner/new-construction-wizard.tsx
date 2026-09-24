@@ -128,15 +128,17 @@ export function NewConstructionWizard() {
       <div className="flex flex-col gap-6">
         <div className="rounded-xl border border-border bg-card p-8">
           <span className="text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-            Estimated range
+            Estimated material budget
           </span>
           <p className="mt-3 font-heading text-4xl font-medium">
             {formatCad(estimate.totalLow)} – {formatCad(estimate.totalHigh)}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             Based on {formatCad(estimate.ratePerSqFtLow)}–
-            {formatCad(estimate.ratePerSqFtHigh)} per sq ft for your
-            selections.
+            {formatCad(estimate.ratePerSqFtHigh)} per sq ft of material for
+            your selections. Labour, equipment and permits are your
+            builder&apos;s to price — a builder&apos;s all-in rate typically
+            runs two to three times this.
           </p>
 
           <h2 className="mt-6 text-sm font-semibold">Assumptions</h2>
@@ -193,12 +195,12 @@ export function NewConstructionWizard() {
           <h2 className="text-2xl">
             {immediate
               ? "We'll contact you right away"
-              : "Your project requires detailed planning"}
+              : "This one needs a conversation first"}
           </h2>
           <p className="max-w-md text-muted-foreground">
             {immediate
-              ? "A senior advisor will call you today to scope your build and set up architect and permit support."
-              : "Builds at this level need a real conversation before any number is worth trusting. An expert will contact you within two business days."}
+              ? "A senior advisor will call you today to go through what the build needs and how the deliveries should be staged."
+              : "A build this size needs its drawings looked at before a material figure is worth trusting. An advisor will contact you within two business days."}
           </p>
           <div className="mt-2 flex flex-col gap-2 sm:flex-row">
             <Button

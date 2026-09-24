@@ -29,8 +29,8 @@ export interface RecommendationSignals {
   wishes: string[];
   /** Problems the report found, as labels and descriptions. */
   issues: string[];
-  /** Trades the estimate costed, e.g. "Plumbing", "Electrical". */
-  trades: string[];
+  /** Material categories the estimate priced, e.g. "Wall tile", "Flooring". */
+  materialCategories: string[];
   /** Category ids they have already bought from. */
   purchasedCategoryIds: string[];
   /** Product ids already ordered, so we don't re-sell the same item. */
@@ -45,7 +45,7 @@ export function emptySignals(): RecommendationSignals {
     scopeLevels: [],
     wishes: [],
     issues: [],
-    trades: [],
+    materialCategories: [],
     purchasedCategoryIds: [],
     purchasedProductIds: [],
     budgetCad: null,
@@ -58,7 +58,7 @@ export function hasSignal(signals: RecommendationSignals): boolean {
     signals.roomTypes.length > 0 ||
     signals.wishes.length > 0 ||
     signals.issues.length > 0 ||
-    signals.trades.length > 0 ||
+    signals.materialCategories.length > 0 ||
     signals.purchasedCategoryIds.length > 0
   );
 }
@@ -148,21 +148,48 @@ const KEYWORD_CATEGORIES: { match: string[]; category: string; label: string }[]
   ];
 
 /** "Plumbing" from a costed trade → the plumbing aisle. */
-const TRADE_CATEGORIES: Record<string, string> = {
+/*
+ * Material line → the aisle it comes out of.
+ *
+ * Keys are matched as substrings of the line's category, so "Lighting &
+ * electrical devices" hits both "lighting" and "electrical" and lands in
+ * the same aisle either way. The trade words at the bottom are there for
+ * submissions estimated before the takeoff priced materials rather than
+ * trades — those rows still say "Demolition" and must still recommend
+ * something sane.
+ */
+const MATERIAL_CATEGORIES: Record<string, string> = {
   plumbing: "plumbing",
+  lighting: "electrical",
   electrical: "electrical",
   electric: "electrical",
   flooring: "flooring",
-  tiling: "flooring",
-  tile: "flooring",
-  painting: "paint",
-  paint: "paint",
-  carpentry: "lumber",
+  underlay: "tile",
+  waterproofing: "tile",
+  tile: "tile",
+  tiling: "tile",
+  cabinetry: "cabinetry",
+  countertop: "countertops",
+  appliance: "appliances",
+  decking: "lumber",
+  lumber: "lumber",
   framing: "lumber",
-  demolition: "tools",
-  roofing: "roofing",
+  trim: "lumber",
+  door: "doors-windows",
+  railing: "hardware",
+  fastener: "hardware",
+  hardware: "hardware",
+  paint: "paint",
+  primer: "paint",
+  stain: "paint",
   drywall: "paint",
-  hvac: "electrical",
+  insulation: "lumber",
+  roofing: "roofing",
+  // Legacy trade names from estimates produced before the rewrite.
+  painting: "paint",
+  carpentry: "lumber",
+  demolition: "tools",
+  hvac: "hvac",
 };
 
 function normalise(text: string): string {
@@ -203,7 +230,7 @@ export function categoryWeights(
    * Applied unconditionally, "moderate" adds plumbing and flooring to
    * every job — which recommended a bathroom faucet for a deck build,
    * captioned "plumbing for your deck". Scope answers "how deep does
-   * this go", not "which trades are involved", so once a room has
+   * this go", not "which aisles are involved", so once a room has
    * spoken it only adjusts what the room already implied. With no room
    * on file it may still seed, since then it is all we have.
    */
@@ -218,11 +245,11 @@ export function categoryWeights(
     }
   });
 
-  // Trades come out of the rules layer's own cost breakdown, so they are
-  // the most reliable statement of what this job involves.
-  for (const trade of signals.trades) {
-    const key = normalise(trade).trim();
-    for (const [needle, category] of Object.entries(TRADE_CATEGORIES)) {
+  // These come out of the rules layer's own material takeoff, so they
+  // are the most reliable statement of what this job actually needs.
+  for (const material of signals.materialCategories) {
+    const key = normalise(material).trim();
+    for (const [needle, category] of Object.entries(MATERIAL_CATEGORIES)) {
       if (key.includes(needle)) add(category, 4);
     }
   }
@@ -402,12 +429,18 @@ function truncate(text: string, max: number): string {
 export function signalsFromSubmission(
   input: RenovationInput,
   estimate?: {
-    cost?: { lineItems?: { trade?: string }[] };
+    // `trade` is the pre-rewrite field name, still present on older rows.
+    cost?: { lineItems?: { category?: string; trade?: string }[] };
     vision?: { issues?: { label?: string; description?: string }[] };
   } | null,
 ): Pick<
   RecommendationSignals,
-  "roomTypes" | "scopeLevels" | "wishes" | "issues" | "trades" | "budgetCad"
+  | "roomTypes"
+  | "scopeLevels"
+  | "wishes"
+  | "issues"
+  | "materialCategories"
+  | "budgetCad"
 > {
   return {
     roomTypes: input.roomType ? [input.roomType] : [],
@@ -420,8 +453,8 @@ export function signalsFromSubmission(
         [issue.label, issue.description].filter(Boolean).join(" — "),
       )
       .filter((line) => line.trim().length > 0),
-    trades: (estimate?.cost?.lineItems ?? [])
-      .map((item) => item.trade ?? "")
+    materialCategories: (estimate?.cost?.lineItems ?? [])
+      .map((item) => item.category ?? item.trade ?? "")
       .filter(Boolean),
     budgetCad: input.budgetCad ?? null,
   };

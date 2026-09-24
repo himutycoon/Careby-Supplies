@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { CheckoutFlow } from "@/components/shop/checkout-flow";
 
-export const metadata: Metadata = { title: "Checkout — CareBy Canada" };
+export const metadata: Metadata = { title: "Checkout — CareBy Supplies" };
 
 export default function CheckoutPage() {
   return (

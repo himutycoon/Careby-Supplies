@@ -51,7 +51,7 @@ export const GUIDED_FLOWS: Record<
     {
       id: "category-order",
       label: "Order by category",
-      description: "Repair, renovation or new build — ordered by job type.",
+      description: "Repair, renovation or new build — material sorted by job type.",
       steps: ["Choose job type", "Pick materials", "Checkout"],
       icon: "ListOrdered",
       href: "/contractor/category-order",
@@ -69,7 +69,7 @@ export const GUIDED_FLOWS: Record<
     {
       id: "repair",
       label: "Fix something",
-      description: "Find the part you need, or talk to an expert first.",
+      description: "Find the part you need, or ask us first if you're unsure.",
       steps: ["Describe the problem", "Find the part", "Order"],
       icon: "Wrench",
       href: "/repair",
@@ -78,7 +78,7 @@ export const GUIDED_FLOWS: Record<
       id: "renovation",
       label: "Renovate a room",
       description:
-        "Photo-based estimate now, a hand-designed plan within 48 hours.",
+        "Photo-based material estimate now, checked by hand within 48 hours.",
       steps: ["Property details", "Upload photos", "Get your estimate"],
       icon: "Ruler",
       href: "/new",
@@ -101,9 +101,9 @@ export const GUIDED_FLOWS: Record<
     },
     {
       id: "premium-package",
-      label: "Premium package",
+      label: "Premium supply",
       description:
-        "Expert advice, architect support, permits and call ordering — managed end to end.",
+        "Material lists, quantity takeoffs, trade pricing and delivery booked around your schedule.",
       steps: ["Choose a tier", "Project profile", "We contact you"],
       icon: "Crown",
       href: "/premium-request",
@@ -123,29 +123,33 @@ export interface PremiumTier {
 export const PREMIUM_TIERS: PremiumTier[] = [
   {
     id: "concierge",
-    name: "Premium Concierge",
-    tagline: "Expert advice, architect, permits and call ordering.",
-    bestFor: "Best for end-to-end execution",
+    name: "Managed Supply",
+    tagline: "A named contact who keeps every delivery ahead of the trades.",
+    bestFor: "Best for whole-home projects",
     includes: [
-      "Dedicated project advisor",
-      "Architect support",
-      "Permit assistance",
-      "Call ordering",
+      "A named materials contact",
+      "Quantity takeoff from your drawings",
+      "Delivery scheduled to your build dates",
+      "Order by phone or email",
     ],
   },
   {
     id: "design-permits",
-    name: "Design + Permits",
-    tagline: "Architect and permit package on a streamlined timeline.",
+    name: "Takeoff + Pricing",
+    tagline: "Send your drawings, get a priced material list back.",
     bestFor: "Best for major remodels",
-    includes: ["Architect support", "Permit assistance", "Material selection"],
+    includes: [
+      "Quantity takeoff from your drawings",
+      "Priced list with alternates",
+      "Material selection help",
+    ],
   },
   {
     id: "expert-session",
-    name: "Expert Session",
-    tagline: "A one-to-one consult plus a curated materials list.",
+    name: "Materials Consultation",
+    tagline: "A one-to-one session plus a curated materials list.",
     bestFor: "Best for confident DIY",
-    includes: ["1:1 expert consultation", "Curated materials list"],
+    includes: ["1:1 materials consultation", "Curated materials list"],
   },
 ];
 

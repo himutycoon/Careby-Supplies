@@ -14,81 +14,83 @@ interface ShowcaseProject {
   category: string;
   location: string;
   scope: string;
-  budget: number;
+  /** Materials only, delivered, HST excluded. Labour is not ours to price. */
+  materialsCad: number;
   tone: ImageTone;
 }
 
 /**
- * Illustrative project types with representative budgets — not past
- * client work. Replace with real completed projects (and real photos)
- * once the client supplies them.
+ * Illustrative project types with representative MATERIAL budgets — not
+ * past client work, and not what the whole job costs: labour, equipment
+ * and permits are the customer's contractor to price, not ours. Replace
+ * with real supplied projects (and real photos) once the client has them.
  */
 const SHOWCASE: ShowcaseProject[] = [
   {
     title: "Full bathroom renovation",
     category: "Renovation",
     location: "Mississauga, ON",
-    scope: "Strip to studs, relocate fixtures, new tile and vanity",
-    budget: 18000,
+    scope: "Board, membrane, tile, vanity, fixtures and trim",
+    materialsCad: 6500,
     tone: "sand",
   },
   {
     title: "Kitchen refresh",
     category: "Renovation",
     location: "Mississauga, ON",
-    scope: "Cabinet refacing, countertops, backsplash and lighting",
-    budget: 32000,
+    scope: "Cabinets, countertops, backsplash tile and light fixtures",
+    materialsCad: 12000,
     tone: "slate",
   },
   {
     title: "Basement finishing",
     category: "Renovation",
     location: "Mississauga, ON",
-    scope: "Framing, insulation, drywall, flooring and egress",
-    budget: 45000,
+    scope: "Framing lumber, insulation, board, flooring and doors",
+    materialsCad: 16000,
     tone: "forest",
   },
   {
     title: "Rear deck build",
     category: "New Construction",
     location: "Mississauga, ON",
-    scope: "Pressure-treated frame, composite decking, railings",
-    budget: 14500,
+    scope: "Pressure-treated frame, composite boards, railing and hardware",
+    materialsCad: 7200,
     tone: "sand",
   },
   {
     title: "Roof replacement",
     category: "Repair",
     location: "Mississauga, ON",
-    scope: "Tear-off, deck repair, architectural shingles",
-    budget: 12800,
+    scope: "Shingles, underlay, sheathing, flashing and vents",
+    materialsCad: 5400,
     tone: "slate",
   },
   {
     title: "Single family home",
     category: "New Construction",
     location: "Mississauga, ON",
-    scope: "2,400 sq ft, 4 bed / 3 bath, attached garage",
-    budget: 615000,
+    scope: "2,400 sq ft, 4 bed / 3 bath — framing through to finishes",
+    materialsCad: 265000,
     tone: "navy",
   },
 ];
 
-export const metadata: Metadata = { title: "Projects — CareBy Canada" };
+export const metadata: Metadata = { title: "Projects — CareBy Supplies" };
 
 export default function ProjectsPage() {
   return (
     <>
       <PageHeader
-        title="The kinds of projects we support"
-        subtitle="From a leaking roof to a new build — here's the range of work the platform is set up for."
+        title="The kinds of projects we supply"
+        subtitle="From a leaking roof to a new build — here's the range of jobs we stock the material for. The work itself stays with you and your trades."
       />
 
       <Section>
         <SectionHeading
           eyebrow="Project types"
-          title="Representative scopes and budgets"
-          subtitle="Indicative figures for planning only — your estimate depends on your space, scope and finishes."
+          title="Representative scopes and material budgets"
+          subtitle="Materials only, delivered — labour is not included. Indicative figures for planning; your own list depends on your space, scope and finishes."
           align="left"
         />
 
@@ -115,9 +117,11 @@ export default function ProjectsPage() {
                   {project.scope}
                 </p>
                 <p className="mt-auto pt-3 text-sm">
-                  <span className="text-muted-foreground">Typical budget </span>
+                  <span className="text-muted-foreground">
+                    Typical materials{" "}
+                  </span>
                   <span className="font-semibold">
-                    {formatCad(project.budget)}
+                    {formatCad(project.materialsCad)}
                   </span>
                 </p>
               </div>
@@ -130,7 +134,7 @@ export default function ProjectsPage() {
             size="lg"
             render={
               <Link href="/get-started">
-                Plan your project <ArrowRight className="size-4" />
+                Price your materials <ArrowRight className="size-4" />
               </Link>
             }
           />

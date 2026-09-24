@@ -6,24 +6,29 @@ import { CtaBand } from "@/components/home/cta-band";
 import { PREMIUM_TIMELINE } from "@/data/platform";
 
 export const metadata: Metadata = {
-  title: "Premium Package — CareBy Canada",
+  title: "Premium Supply — CareBy Supplies",
 };
 
 const FAQS = [
   {
-    question: "Who is Premium for?",
+    question: "Who is Premium Supply for?",
     answer:
-      "Homeowners taking on a large renovation or a new build who'd rather not coordinate designers, permits, trades and material orders themselves.",
+      "Anyone ordering material for a big job — a whole-home renovation, an addition, a new build — who would rather hand over a set of drawings than build the order line by line.",
   },
   {
-    question: "What does the architect support cover?",
+    question: "Do you do the work as well?",
     answer:
-      "We connect you with a licensed architect or designer appropriate to your scope, and coordinate their drawings with your material and permit needs.",
+      "No. CareBy Supplies sells and delivers building materials. We do not install them, employ trades or manage the build. Our quantities are written so your contractor can price their labour against them.",
   },
   {
-    question: "Do you guarantee permit approval?",
+    question: "What does a takeoff cover?",
     answer:
-      "No. We prepare and coordinate submissions, but approval rests with your municipality. Nothing we produce is a permit or a code determination.",
+      "You send drawings or measurements; we come back with a list of what the job needs, in the quantities it needs, priced from our catalogue with alternates where a cheaper grade would do the same work.",
+  },
+  {
+    question: "What if we order too much?",
+    answer:
+      "Full, undamaged stock comes back within 30 days. Tell us what is left over and we will book the pickup with your next delivery.",
   },
 ];
 
@@ -35,8 +40,8 @@ export default function PremiumPage() {
       <Section>
         <SectionHeading
           eyebrow="What happens"
-          title="How a Premium project runs"
-          subtitle="Six stages, one point of contact throughout."
+          title="From drawings to delivery"
+          subtitle="Six stages, one contact who knows your job throughout."
         />
         <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {PREMIUM_TIMELINE.map((stage) => (

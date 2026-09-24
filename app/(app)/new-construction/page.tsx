@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { NewConstructionWizard } from "@/components/homeowner/new-construction-wizard";
 
 export const metadata: Metadata = {
-  title: "New Construction — CareBy Canada",
+  title: "New Construction — CareBy Supplies",
 };
 
 export default function NewConstructionPage() {

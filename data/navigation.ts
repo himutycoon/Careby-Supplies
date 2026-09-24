@@ -49,7 +49,7 @@ export const HOMEOWNER_NAV: AppNavItem[] = [
   { label: "New Construction", href: "/new-construction", icon: "Building2" },
   { label: "Renovation", href: "/new", icon: "Ruler" },
   { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
-  { label: "Premium Package", href: "/premium-request", icon: "Crown" },
+  { label: "Premium Supply", href: "/premium-request", icon: "Crown" },
 ];
 
 /**
@@ -68,7 +68,7 @@ export const HOMEOWNER_SIDEBAR_NAV: AppNavItem[] = [
   { label: "My projects", href: "/dashboard#projects", icon: "FolderKanban" },
   { label: "Orders", href: "/orders", icon: "Receipt" },
   { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
-  { label: "Premium Package", href: "/premium-request", icon: "Crown" },
+  { label: "Premium Supply", href: "/premium-request", icon: "Crown" },
 ];
 
 /**

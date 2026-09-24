@@ -6,7 +6,7 @@ import { FixtureCard } from "@/components/estimate/fixture-card";
 import { FinishCard } from "@/components/estimate/finish-card";
 import { IssueList } from "@/components/estimate/issue-list";
 import { CostTable } from "@/components/estimate/cost-table";
-import { PermitChecklist } from "@/components/estimate/permit-checklist";
+import { SupplyNotes } from "@/components/estimate/supply-notes";
 import { AfterGallery } from "@/components/report/after-gallery";
 import { MaterialPalette } from "@/components/report/material-palette";
 import { NarrativeSection } from "@/components/report/narrative-section";
@@ -17,7 +17,7 @@ import { formatCad } from "@/lib/format";
 import { MATERIAL_PALETTE, ROOM_TYPE_OPTIONS } from "@/data/mock";
 import { getRealReportById } from "@/lib/supabase/queries";
 
-export const metadata: Metadata = { title: "Your Renovation Report — CareBy Canada" };
+export const metadata: Metadata = { title: "Your Material Plan — CareBy Supplies" };
 
 export default async function ReportPage({
   params,
@@ -72,7 +72,7 @@ export default async function ReportPage({
         </section>
 
         <Card className="gap-2 p-5">
-          <h2 className="text-lg font-semibold">Designer notes</h2>
+          <h2 className="text-lg font-semibold">Advisor notes</h2>
           <p className="text-sm text-muted-foreground">
             {report.deliveredPlan.planNotes}
           </p>
@@ -88,7 +88,7 @@ export default async function ReportPage({
 
         {isPendingAnalysis ? (
           <section className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            Your designer reviewed the before photos directly for this plan;
+            Your advisor reviewed the before photos directly for this list;
             itemised fixture and finish detection wasn&apos;t available for
             this submission.
           </section>
@@ -120,13 +120,13 @@ export default async function ReportPage({
         )}
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Cost breakdown</h2>
+          <h2 className="mb-3 text-lg font-semibold">Material list</h2>
           <CostTable cost={cost} />
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Permit checklist</h2>
-          <PermitChecklist permits={estimate.permits} />
+          <h2 className="mb-3 text-lg font-semibold">What we supply, what you arrange</h2>
+          <SupplyNotes notes={estimate.supplyNotes} />
         </section>
 
         <DisclaimerBox />

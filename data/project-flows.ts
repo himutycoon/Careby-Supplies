@@ -38,14 +38,14 @@ export const PACKAGE_TIERS: PackageTier[] = [
   {
     id: "standard",
     name: "Standard",
-    description: "Everything in Basic, plus a scoped plan and permit guidance.",
+    description: "Everything in Basic, plus a full takeoff and staged deliveries.",
     priceCad: 449,
   },
   {
     id: "premium",
     name: "Premium",
     description:
-      "Everything in Standard, plus design support and site check-ins.",
+      "Everything in Standard, plus material selection help and a named contact.",
     priceCad: 1200,
   },
 ];

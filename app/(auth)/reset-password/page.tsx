@@ -4,7 +4,7 @@ import { AuthSplitShell } from "@/components/auth/auth-split-shell";
 import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 export const metadata: Metadata = {
-  title: "New Password — CareBy Canada",
+  title: "New Password — CareBy Supplies",
 };
 
 /**

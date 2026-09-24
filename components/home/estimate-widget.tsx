@@ -19,9 +19,9 @@ const VERDICT_SUBTEXT: Record<
   ReturnType<typeof calculatePlaceholderEstimate>["verdict"],
   string
 > = {
-  "within-budget": "Your budget comfortably covers this scope.",
-  tight: "This scope is possible, but leaves little room for surprises.",
-  "over-budget": "This scope typically runs above your budget.",
+  "within-budget": "Your budget covers the materials with room to spare.",
+  tight: "The materials fit, but leave little room for a grade upgrade.",
+  "over-budget": "The materials alone run above your budget at this grade.",
 };
 
 export function EstimateWidget() {
@@ -192,17 +192,17 @@ export function EstimateWidget() {
               </p>
             </div>
             <p className="mb-2 text-xs text-muted-foreground">
-              Estimated range vs. your {formatCad(budgetCad)} budget
+              Materials delivered, vs. your {formatCad(budgetCad)} budget
             </p>
             <Progress value={budgetUsedPct} />
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium">Likely work items</p>
+            <p className="mb-2 text-sm font-medium">Where the money goes</p>
             <div className="flex flex-wrap gap-2">
               {estimate.workItems.map((item) => (
-                <Badge key={item.trade} variant="secondary">
-                  {item.trade} · {formatCad(item.amountCad)}
+                <Badge key={item.category} variant="secondary">
+                  {item.category} · {formatCad(item.amountCad)}
                 </Badge>
               ))}
             </div>
@@ -211,8 +211,8 @@ export function EstimateWidget() {
           <div className="flex flex-wrap gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium">
               <ShieldCheck className="size-3.5 text-primary" />
-              {estimate.permitCount} permit
-              {estimate.permitCount === 1 ? "" : "s"} likely needed
+              {estimate.materialLineCount} material
+              {estimate.materialLineCount === 1 ? " line" : " lines"} priced
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium">
               <Users className="size-3.5 text-primary" />
@@ -232,7 +232,8 @@ export function EstimateWidget() {
           />
 
           <p className="text-xs text-muted-foreground">
-            Indicative only. Your full estimate uses your actual photos.
+            Materials only — your contractor prices their own labour.
+            Upload photos and we work from the real room.
           </p>
         </div>
       </Card>

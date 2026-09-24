@@ -5,7 +5,7 @@ import { CatalogBrowser } from "@/components/shop/catalog-browser";
 import { QuoteCta } from "@/components/shop/quote-cta";
 
 export const metadata: Metadata = {
-  title: "Building Materials & Supplies — CareBy Canada",
+  title: "Building Materials & Supplies — CareBy Supplies",
   description:
     "Building materials, tools and supplies — sourced for your project and delivered when you need them.",
 };

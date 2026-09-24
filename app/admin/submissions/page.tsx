@@ -14,7 +14,7 @@ export default async function AdminQueuePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Submission queue</h1>
         <p className="text-muted-foreground">
-          Review submissions and deliver hand-designed plans.
+          Review submissions and deliver checked material plans.
         </p>
       </div>
       <QueueTable submissions={submissions} />

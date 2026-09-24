@@ -23,11 +23,11 @@ interface FieldErrors {
  */
 const SUBJECT_PRESETS: Record<string, string> = {
   estimate: "Question about my estimate",
-  consultation: "Consultation request",
+  consultation: "Materials consultation request",
   repair: "Help with a repair",
   package: "Question about a package",
   support: "Support request",
-  quote: "Project quote request",
+  quote: "Material quote request",
 };
 
 export function ContactForm() {

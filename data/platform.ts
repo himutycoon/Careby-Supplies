@@ -71,13 +71,13 @@ export const USER_TYPES: UserTypeOption[] = [
     icon: "Home",
     title: "I'm a Homeowner",
     shortLabel: "Homeowner",
-    description: "Plan your repair, renovation or new home.",
+    description: "Work out what your project needs, then order it.",
     bullets: [
-      "Guided project planning",
-      "Instant cost estimates",
-      "Expert support when you need it",
+      "Material lists from your photos",
+      "Instant material estimates",
+      "Someone to ask when you are unsure",
     ],
-    ctaLabel: "Start Planning",
+    ctaLabel: "Get Started",
     href: "/signup?role=homeowner",
   },
 ];
@@ -99,23 +99,23 @@ export const SERVICES: ServiceItem[] = [
   },
   {
     icon: "Wrench",
-    title: "Repair Services",
+    title: "Repair Parts",
     description:
-      "Diagnose the problem, get the right parts, or talk to an expert.",
+      "Work out what has failed and get the right part for it, fast.",
     href: "/services",
   },
   {
     icon: "Ruler",
-    title: "Renovation Planning",
+    title: "Renovation Materials",
     description:
-      "Photo-based estimates and a hand-designed plan for your space.",
+      "Photograph the room and get back the material list it needs, priced.",
     href: "/services",
   },
   {
     icon: "Building2",
-    title: "New Construction",
+    title: "New Construction Supply",
     description:
-      "Scope, budget and plan a build from the ground up with guidance.",
+      "Budget the material for a build from the ground up, stage by stage.",
     href: "/services",
   },
   {
@@ -149,21 +149,21 @@ export const PROCESS_STEPS: ProcessStep[] = [
   },
   {
     step: "02",
-    title: "Get products, estimates or guidance",
+    title: "Get the material list and price",
     description:
-      "Receive an itemised estimate, a material list, or a call with an expert.",
+      "An itemised list of what the job needs, in the quantities it needs, priced from our catalogue.",
   },
   {
     step: "03",
-    title: "Build your project plan",
+    title: "Adjust it until it's right",
     description:
-      "Refine scope, materials and budget with support from our team.",
+      "Swap a grade, change a brand, cut a line. We re-price it while you decide.",
   },
   {
     step: "04",
-    title: "Order and get support",
+    title: "Order and take delivery",
     description:
-      "Place your order and stay supported through delivery and build.",
+      "Place the order and we deliver to site on the day you want it, with returns on anything unused.",
   },
 ];
 
@@ -178,34 +178,34 @@ export interface ProjectCategory {
 export const PROJECT_CATEGORIES: ProjectCategory[] = [
   {
     id: "repair",
-    title: "Repair",
-    description: "Fix an existing problem — plumbing, electrical, roofing and more.",
+    title: "Repair Supplies",
+    description: "Parts and materials to put it right — plumbing, electrical, roofing and more.",
     tone: "sand",
     href: "/services",
   },
   {
     id: "renovation",
-    title: "Renovation",
-    description: "Upgrade an existing space with a plan built around your budget.",
+    title: "Renovation Materials",
+    description: "Everything a room needs, in the quantities it needs, priced to your budget.",
     tone: "slate",
     href: "/services",
   },
   {
     id: "new-construction",
-    title: "New Construction",
-    description: "Build from the ground up with estimates and expert planning.",
+    title: "New Build Supply",
+    description: "Material budgets and staged deliveries for a build from the ground up.",
     tone: "forest",
     href: "/services",
   },
 ];
 
 export const PREMIUM_INCLUSIONS: string[] = [
-  "Expert Advice",
-  "Architect Support",
-  "Permit Assistance",
   "Material Selection",
-  "Call Ordering",
-  "Project Planning",
+  "Quantity Takeoffs",
+  "Trade Pricing",
+  "Scheduled Delivery",
+  "Order by Phone",
+  "A Named Contact",
 ];
 
 export interface PremiumStage {
@@ -215,12 +215,12 @@ export interface PremiumStage {
 }
 
 export const PREMIUM_TIMELINE: PremiumStage[] = [
-  { step: "01", title: "Consultation", icon: "MessageSquare" },
-  { step: "02", title: "Project Planning", icon: "ClipboardList" },
-  { step: "03", title: "Architect / Design", icon: "PencilRuler" },
-  { step: "04", title: "Permits", icon: "FileCheck" },
-  { step: "05", title: "Materials", icon: "Truck" },
-  { step: "06", title: "Construction Support", icon: "HardHat" },
+  { step: "01", title: "Tell us the job", icon: "MessageSquare" },
+  { step: "02", title: "Material list", icon: "ClipboardList" },
+  { step: "03", title: "Quantity check", icon: "Ruler" },
+  { step: "04", title: "Priced & approved", icon: "FileCheck" },
+  { step: "05", title: "Delivered to site", icon: "Truck" },
+  { step: "06", title: "Top-ups & returns", icon: "RefreshCw" },
 ];
 
 export interface TrustPoint {
@@ -238,15 +238,15 @@ export const TRUST_POINTS: TrustPoint[] = [
   },
   {
     icon: "Headset",
-    title: "Expert support",
+    title: "Know your materials",
     description:
-      "Talk to someone who understands local codes, pricing and lead times.",
+      "Talk to someone who knows what each product suits, what it costs and how long it takes to arrive.",
   },
   {
     icon: "Receipt",
     title: "Transparent pricing",
     description:
-      "Itemised estimates with contingency, permits and tax shown separately.",
+      "Itemised material lists with waste allowance, delivery and tax shown separately.",
   },
   {
     icon: "Truck",

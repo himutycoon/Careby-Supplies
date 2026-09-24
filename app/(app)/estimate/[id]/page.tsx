@@ -6,14 +6,14 @@ import { FixtureCard } from "@/components/estimate/fixture-card";
 import { FinishCard } from "@/components/estimate/finish-card";
 import { IssueList } from "@/components/estimate/issue-list";
 import { CostTable } from "@/components/estimate/cost-table";
-import { PermitChecklist } from "@/components/estimate/permit-checklist";
+import { SupplyNotes } from "@/components/estimate/supply-notes";
 import { DeliveryStatusCard } from "@/components/estimate/delivery-status-card";
 import { notFound } from "next/navigation";
 import { formatCad } from "@/lib/format";
 import { ROOM_TYPE_OPTIONS } from "@/data/mock";
 import { getRealSubmissionById } from "@/lib/supabase/queries";
 
-export const metadata: Metadata = { title: "Your Estimate — CareBy Canada" };
+export const metadata: Metadata = { title: "Your Estimate — CareBy Supplies" };
 
 export default async function EstimatePage({
   params,
@@ -39,13 +39,13 @@ export default async function EstimatePage({
         <p className="text-sm font-medium text-muted-foreground">
           {roomLabel} · {estimate.scopeLevel.replace("-", " ")}
         </p>
-        <h1 className="text-2xl font-bold">Your instant estimate</h1>
+        <h1 className="text-2xl font-bold">Your instant material estimate</h1>
       </div>
 
       <div className="flex flex-col gap-8">
         <VerdictBanner
           verdict={estimate.verdict}
-          subtext={`${formatCad(estimate.cost.totalLow)} – ${formatCad(estimate.cost.totalHigh)} vs. your ${formatCad(estimate.budgetCad)} budget`}
+          subtext={`${formatCad(estimate.cost.totalLow)} – ${formatCad(estimate.cost.totalHigh)} of materials vs. your ${formatCad(estimate.budgetCad)} budget`}
         />
 
         <section>
@@ -55,9 +55,9 @@ export default async function EstimatePage({
 
         {isPendingAnalysis ? (
           <section className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-sm text-muted-foreground">
-            Detailed fixture, finish, and issue detection from your photos
-            arrives with your full plan within 48 hours. The cost range
-            above is a ballpark based on your room size, scope, and budget.
+            Detailed fixture, finish and issue detection from your photos
+            arrives with your full material plan within 48 hours. The
+            quantities above come from your room size and scope alone.
           </section>
         ) : (
           <>
@@ -87,13 +87,13 @@ export default async function EstimatePage({
         )}
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Cost breakdown</h2>
+          <h2 className="mb-3 text-lg font-semibold">Material list</h2>
           <CostTable cost={estimate.cost} />
         </section>
 
         <section>
-          <h2 className="mb-3 text-lg font-semibold">Permit checklist</h2>
-          <PermitChecklist permits={estimate.permits} />
+          <h2 className="mb-3 text-lg font-semibold">What we supply, what you arrange</h2>
+          <SupplyNotes notes={estimate.supplyNotes} />
         </section>
 
         <DisclaimerBox />

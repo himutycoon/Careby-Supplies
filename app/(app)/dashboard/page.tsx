@@ -14,7 +14,7 @@ import { RequestsList } from "@/components/dashboard/requests-list";
 import { OrdersList } from "@/components/shop/orders-list";
 import { RecommendedProducts } from "@/components/dashboard/recommended-products";
 
-export const metadata: Metadata = { title: "Home — CareBy Canada" };
+export const metadata: Metadata = { title: "Home — CareBy Supplies" };
 
 /**
  * Homeowner dashboard.
