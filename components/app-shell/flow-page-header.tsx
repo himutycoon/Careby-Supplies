@@ -36,30 +36,33 @@ export function FlowPageHeader({
   className?: string;
 }) {
   return (
-    <header className={cn("flex flex-col gap-5", className)}>
+    <header className={cn("flex flex-col gap-4", className)}>
+      {/* Deliberately short. This sits above a six-step form, and a
+          masthead that fills the screen means the first question is
+          below the fold on the page whose whole job is asking it. */}
       <div
         className={cn(
-          "grid gap-6",
-          imageSlot && "lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-10",
+          "grid gap-5",
+          imageSlot && "lg:grid-cols-[1.6fr_1fr] lg:items-center lg:gap-8",
         )}
       >
-        <div className="flex min-w-0 flex-col gap-3">
-          <span className="flex items-center gap-2.5 text-xs font-semibold tracking-[0.14em] text-brand uppercase">
-            <span className="h-px w-6 shrink-0 bg-brand" aria-hidden="true" />
+        <div className="flex min-w-0 flex-col gap-2">
+          <span className="flex items-center gap-2.5 text-xs font-semibold tracking-[0.14em] text-primary uppercase">
+            <span className="h-px w-6 shrink-0 bg-primary/50" aria-hidden="true" />
             {eyebrow}
           </span>
 
-          <h1 className="text-balance">
+          <h1 className="text-3xl text-balance sm:text-4xl">
             {title}
             {accent ? (
               <>
                 {" "}
-                <span className="text-brand">{accent}</span>
+                <span className="text-primary">{accent}</span>
               </>
             ) : null}
           </h1>
 
-          <p className="max-w-xl text-pretty text-muted-foreground">
+          <p className="max-w-xl text-pretty text-sm text-muted-foreground sm:text-base">
             {description}
           </p>
         </div>
@@ -69,7 +72,10 @@ export function FlowPageHeader({
             tone="sand"
             src={siteImage(imageSlot)}
             alt=""
-            className="hidden aspect-[16/10] w-full lg:block"
+            /* Fixed height rather than an aspect ratio: the column is
+               narrow now, and an aspect box would let the picture set
+               the height of the whole row again. */
+            className="hidden h-36 w-full lg:block xl:h-40"
           />
         ) : null}
       </div>
@@ -81,9 +87,9 @@ export function FlowPageHeader({
         {PROMISES.map(({ title: promise, body }) => (
           <li
             key={promise}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-3 text-center sm:flex-row sm:items-start sm:gap-2.5 sm:rounded-none sm:border-0 sm:px-4 sm:text-left"
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-2.5 text-center sm:flex-row sm:items-center sm:gap-2.5 sm:rounded-none sm:border-0 sm:px-4 sm:py-3 sm:text-left"
           >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Check className="size-3.5" aria-hidden="true" />
             </span>
             <span className="min-w-0">
