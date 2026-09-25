@@ -7,7 +7,7 @@ export function CtaBand() {
     <section className="border-y border-border bg-background">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-16 text-center sm:px-6 lg:py-20">
         <h2 className="max-w-2xl text-balance">
-          Ready to start your project?
+          Ready to price your materials?
         </h2>
         <p className="max-w-xl text-pretty text-muted-foreground">
           Tell us what you&apos;re building and we&apos;ll work out what it

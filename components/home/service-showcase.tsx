@@ -58,7 +58,7 @@ export function ServiceShowcase() {
       <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-20 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold tracking-[0.16em] text-hi-vis uppercase">
-            Services that do the work
+            Tools for the people ordering
           </p>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-balance text-ink-foreground sm:mt-3 sm:text-4xl">
             More than a catalogue.

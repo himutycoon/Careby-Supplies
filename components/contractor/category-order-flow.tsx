@@ -93,11 +93,10 @@ export function CategoryOrderFlow() {
     return (
       <div className="flex flex-col gap-8">
         <div className="text-center">
-          <h1 className="text-3xl">
-            What type of project are you working on?
-          </h1>
+          <h1 className="text-3xl">What are you buying material for?</h1>
           <p className="mt-2 text-muted-foreground">
-            We&apos;ll tailor the materials and options to suit.
+            Pick the job and we&apos;ll open the aisles it needs, at your
+            trade pricing.
           </p>
         </div>
 

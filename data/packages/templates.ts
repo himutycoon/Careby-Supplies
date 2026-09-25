@@ -579,6 +579,7 @@ export type WorkLocation = "indoor" | "outdoor";
 /** Second question. Its options depend on the answer to the first. */
 export type WorkExtent =
   | "room"
+  | "level"
   | "property"
   | "outdoor-living"
   | "building-exterior";
@@ -589,11 +590,14 @@ const GROUP_PATH: Record<
 > = {
   Bathroom: { location: "indoor", extent: "room" },
   Kitchen: { location: "indoor", extent: "room" },
-  Basement: { location: "indoor", extent: "room" },
   Utility: { location: "indoor", extent: "room" },
   Entry: { location: "indoor", extent: "room" },
   "Home Office": { location: "indoor", extent: "room" },
   "Bedroom + Ensuite": { location: "indoor", extent: "room" },
+  // A basement is a storey, not a room: finishing one takes framing,
+  // insulation and a floor's worth of everything, which is why it sits
+  // with whole-level work rather than beside a laundry.
+  Basement: { location: "indoor", extent: "level" },
   "Full Home": { location: "indoor", extent: "property" },
   "New Build": { location: "indoor", extent: "property" },
   Flooring: { location: "indoor", extent: "property" },
@@ -625,13 +629,18 @@ export const EXTENT_OPTIONS: Record<
   indoor: [
     {
       value: "room",
-      label: "One room or area",
-      description: "A bathroom, kitchen, basement, office or entry",
+      label: "By room",
+      description: "A bathroom, kitchen, laundry, office or entry",
+    },
+    {
+      value: "level",
+      label: "A floor or the basement",
+      description: "A whole storey finished out, top to bottom",
     },
     {
       value: "property",
-      label: "The whole property",
-      description: "A full interior, a new build, or flooring throughout",
+      label: "The full house",
+      description: "A complete interior, a new build, or flooring throughout",
     },
   ],
   outdoor: [

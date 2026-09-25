@@ -27,29 +27,40 @@ export const MARKETING_TAB_NAV: AppNavItem[] = [
   // cart icon while Cart used "ShoppingBag", which isn't registered at
   // all and was silently falling back to the Boxes glyph.
   { label: "Shop", href: "/products", icon: "Store" },
-  { label: "Services", href: "/services", icon: "Wrench" },
+  // "Services" under a wrench read as a repair company. The page sells
+  // takeoffs, pricing and delivery, so it gets the ruler.
+  { label: "Services", href: "/services", icon: "Ruler" },
   { label: "Cart", href: "/cart", icon: "ShoppingCart", badge: "cart" },
 ];
 
 export const CONTRACTOR_NAV: AppNavItem[] = [
   { label: "Dashboard", href: "/contractor", icon: "LayoutDashboard" },
   { label: "Shop Products", href: "/contractor/shop", icon: "ShoppingCart" },
-  { label: "Call Order", href: "/contractor/call-order", icon: "Phone" },
+  { label: "Phone Order", href: "/contractor/call-order", icon: "Phone" },
   { label: "Create Package", href: "/contractor/packages/new", icon: "Package" },
-  { label: "Category Order", href: "/contractor/category-order", icon: "ListOrdered" },
+  { label: "By Job Type", href: "/contractor/category-order", icon: "ListOrdered" },
   { label: "Upload Drawing", href: "/contractor/drawings", icon: "FileUp" },
   { label: "Orders", href: "/contractor/orders", icon: "Receipt" },
   { label: "Projects", href: "/contractor/projects", icon: "FolderKanban" },
   { label: "Saved Packages", href: "/contractor/packages", icon: "Boxes" },
 ];
 
+/**
+ * The phone tab bar, which takes the first four of these as its tabs and
+ * puts the rest behind "More".
+ *
+ * Labels are one word because they render at 11px in a ~70px cell and
+ * line-clamp — "New Construction" was being cut off mid-word. Shop moved
+ * into the four: this is a storefront, and it was previously buried in
+ * the More sheet behind three intake flows.
+ */
 export const HOMEOWNER_NAV: AppNavItem[] = [
   { label: "Home", href: "/dashboard", icon: "Home" },
-  { label: "Repair", href: "/repair", icon: "Wrench" },
-  { label: "New Construction", href: "/new-construction", icon: "Building2" },
-  { label: "Renovation", href: "/new", icon: "Ruler" },
-  { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
-  { label: "Premium Supply", href: "/premium-request", icon: "Crown" },
+  { label: "Shop", href: "/products", icon: "Store" },
+  { label: "Estimate", href: "/new", icon: "Ruler" },
+  { label: "Parts", href: "/repair", icon: "Wrench" },
+  { label: "New Build", href: "/new-construction", icon: "Building2" },
+  { label: "Premium", href: "/premium-request", icon: "Crown" },
 ];
 
 /**
@@ -64,11 +75,15 @@ export const HOMEOWNER_NAV: AppNavItem[] = [
  */
 export const HOMEOWNER_SIDEBAR_NAV: AppNavItem[] = [
   { label: "Home", href: "/dashboard", icon: "Home" },
-  { label: "New estimate", href: "/new", icon: "PencilRuler" },
+  { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
+  // The three intake flows, named for what they hand you. On the phone
+  // these are one word each; here there is room to say it properly.
+  { label: "Material estimate", href: "/new", icon: "PencilRuler" },
+  { label: "Repair parts", href: "/repair", icon: "Wrench" },
+  { label: "New build materials", href: "/new-construction", icon: "Building2" },
+  { label: "Premium Supply", href: "/premium-request", icon: "Crown" },
   { label: "My projects", href: "/dashboard#projects", icon: "FolderKanban" },
   { label: "Orders", href: "/orders", icon: "Receipt" },
-  { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
-  { label: "Premium Supply", href: "/premium-request", icon: "Crown" },
 ];
 
 /**

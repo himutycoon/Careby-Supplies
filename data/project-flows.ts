@@ -53,10 +53,10 @@ export const PACKAGE_TIERS: PackageTier[] = [
 export const PROJECT_FLOWS: ProjectFlowType[] = [
   {
     id: "repair",
-    title: "Repair",
-    tagline: "Fix an existing problem.",
+    title: "Repair parts",
+    tagline: "Parts and materials to fix one thing.",
     icon: "Wrench",
-    subtypeLabel: "Select Repair Type",
+    subtypeLabel: "What needs fixing?",
     subtypes: [
       { id: "plumbing", label: "Plumbing", icon: "Wrench" },
       { id: "electrical", label: "Electrical", icon: "AlertTriangle" },
@@ -68,26 +68,26 @@ export const PROJECT_FLOWS: ProjectFlowType[] = [
   },
   {
     id: "renovation",
-    title: "Renovation",
-    tagline: "Upgrade an existing space.",
+    title: "Renovation materials",
+    tagline: "Everything a room takes, by room.",
     icon: "Ruler",
-    subtypeLabel: "Select Renovation Type",
+    subtypeLabel: "Which room?",
     subtypes: [
       { id: "kitchen", label: "Kitchen", icon: "Home" },
       { id: "bathroom", label: "Bathroom", icon: "Boxes" },
       { id: "basement", label: "Basement", icon: "Building2" },
       { id: "bedroom", label: "Bedroom", icon: "Home" },
-      { id: "whole-house", label: "Whole House", icon: "Home" },
+      { id: "whole-house", label: "Full House", icon: "Home" },
       { id: "addition", label: "Addition", icon: "Building2" },
       { id: "deck", label: "Deck", icon: "Ruler" },
     ],
   },
   {
     id: "new-construction",
-    title: "New Construction",
-    tagline: "Build from the ground up.",
+    title: "New build materials",
+    tagline: "Supply for a build from the ground up.",
     icon: "Building2",
-    subtypeLabel: "Select Build Type",
+    subtypeLabel: "What are you building?",
     subtypes: [
       { id: "single-family", label: "Single Family Home", icon: "Home" },
       { id: "multi-family", label: "Multi-Family", icon: "Building2" },

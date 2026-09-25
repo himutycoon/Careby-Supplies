@@ -17,8 +17,11 @@ export interface HeroStat {
 export const HERO_CARDS: HeroStat[] = [
   {
     icon: "Receipt",
-    label: "Project Estimate",
-    value: "$124,500",
+    // Material only, and priced like it: the old $124,500 was a whole
+    // project including labour, which is not a number we should ever
+    // put on our own hero.
+    label: "Material Estimate",
+    value: "$38,400",
     caption: "Kitchen + main floor",
   },
   {
@@ -29,9 +32,9 @@ export const HERO_CARDS: HeroStat[] = [
   },
   {
     icon: "Headset",
-    label: "Expert Consultation",
+    label: "Advisor Call",
     value: "Thu, 2:00 PM",
-    caption: "With a project advisor",
+    caption: "With a materials advisor",
   },
 ];
 

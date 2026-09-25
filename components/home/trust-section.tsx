@@ -8,7 +8,7 @@ export function TrustSection() {
       <SectionHeading
         eyebrow="Why CareBy"
         title="Built for people who have to get it right"
-        subtitle="Whether it's your trade or your home, the details matter."
+        subtitle="Whether you order every week or once in your life, the material has to be right."
       />
 
       <div className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">

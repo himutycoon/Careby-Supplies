@@ -14,8 +14,8 @@ const ORDER = ["homeowner", "contractor"] as const;
 const ICONS = { homeowner: Home, contractor: HardHat } as const;
 
 const BLURB: Record<string, string> = {
-  homeowner: "Plan your dream space",
-  contractor: "Get trade pricing & bulk",
+  homeowner: "Price the materials for a room",
+  contractor: "Trade pricing and bulk orders",
 };
 
 /**

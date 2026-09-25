@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { CategoryOrderFlow } from "@/components/contractor/category-order-flow";
 
 export const metadata: Metadata = {
-  title: "Category Order — CareBy Contractor",
+  title: "Order by Job Type — CareBy Contractor",
 };
 
 export default function CategoryOrderPage() {

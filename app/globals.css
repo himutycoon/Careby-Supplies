@@ -449,3 +449,38 @@
     .reveal-delay-3 { animation-range: entry 22% cover 46%; }
   }
 }
+
+/*
+ * Marquee for the promo ticker under the hero.
+ *
+ * The track holds the same list twice and slides exactly half its width,
+ * so the second copy lands where the first started and the loop has no
+ * seam. Width comes from the content, hence w-max on the track.
+ *
+ * Paused on hover so a claim can be read, and stopped entirely for
+ * anyone who has asked for less movement — a permanently moving strip is
+ * exactly the kind of thing that makes a page unusable for them. With
+ * the animation off the first copy simply sits there, readable.
+ */
+@keyframes marquee-track {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility marquee {
+  animation: marquee-track 42s linear infinite;
+}
+
+.marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    animation: none;
+  }
+}

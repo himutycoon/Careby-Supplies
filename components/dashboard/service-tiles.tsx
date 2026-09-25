@@ -30,23 +30,23 @@ interface Tile {
  */
 const PRIMARY: Tile[] = [
   {
-    title: "Repair",
-    description: "The parts and materials to put it right.",
+    title: "Repair Parts",
+    description: "Find what failed and order the part that fixes it.",
     href: "/repair",
     image: "/images/category-repair-plumbing.webp",
     icon: Wrench,
     tone: "bg-primary/10 text-primary",
   },
   {
-    title: "New Construction",
-    description: "Material budgets and supply for a build from scratch.",
+    title: "New Build Materials",
+    description: "Budget the material for a build, stage by stage.",
     href: "/new-construction",
     image: "/images/category-new-construction-framing.webp",
     icon: Building2,
     tone: "bg-success/12 text-success",
   },
   {
-    title: "Renovation",
+    title: "Renovation Materials",
     description: "Work out what a room needs, priced and delivered.",
     href: "/new",
     image: "/images/category-renovation-kitchen.webp",

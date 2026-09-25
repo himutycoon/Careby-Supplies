@@ -318,7 +318,16 @@ export function PackageScopeBuilder() {
           {location ? (
             <fieldset className="flex flex-col gap-3 border-t border-border pt-6">
               <legend className="text-lg font-medium">How much of it?</legend>
-              <div className="grid gap-2 sm:grid-cols-2">
+              {/* Indoor asks three, outdoor asks two — the column count
+                  follows so neither leaves a hole in the row. */}
+              <div
+                className={cn(
+                  "grid gap-2",
+                  EXTENT_OPTIONS[location].length === 3
+                    ? "sm:grid-cols-3"
+                    : "sm:grid-cols-2",
+                )}
+              >
                 {EXTENT_OPTIONS[location].map((option) => (
                   <ChoiceCard
                     key={option.value}

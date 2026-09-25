@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Check, PackageCheck } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlueprintGrid } from "@/components/shared/blueprint-texture";
 import { Icon } from "@/components/shared/icon";
@@ -8,7 +8,7 @@ import { HeroPanel } from "@/components/shared/hero-panel";
 
 const TRUST_BULLETS = [
   "Trade-priced materials",
-  "Expert project support",
+  "Advice on what the job needs",
   "Serving Mississauga, ON",
 ];
 
@@ -58,10 +58,10 @@ export function Hero() {
                 <Link href="/get-started">
                   <span className="flex flex-col items-center leading-tight">
                     <span className="flex items-center gap-1.5 font-semibold">
-                      Plan My Project <ArrowRight className="size-4" />
+                      Price My Materials <ArrowRight className="size-4" />
                     </span>
                     <span className="text-[11px] font-normal opacity-75">
-                      Get expert help
+                      Get a material list
                     </span>
                   </span>
                 </Link>
@@ -83,20 +83,6 @@ export function Hero() {
               }
             />
           </div>
-
-          {/* The one line the client wanted on the front page: what we
-              do, and what we do not. It reads as a promise rather than a
-              disclaimer, which is the only way it survives on a hero. */}
-          <p className="flex items-start gap-2 pt-1 text-sm text-ink-foreground/60">
-            <PackageCheck
-              className="mt-0.5 size-4 shrink-0 text-hi-vis"
-              aria-hidden="true"
-            />
-            <span>
-              We supply and deliver the materials. Installation stays with
-              your own contractor — we don&apos;t sell labour.
-            </span>
-          </p>
 
           {/*
             Role chooser, above the fold.

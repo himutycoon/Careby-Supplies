@@ -68,7 +68,7 @@ export const GUIDED_FLOWS: Record<
   homeowner: [
     {
       id: "repair",
-      label: "Fix something",
+      label: "Parts for a repair",
       description: "Find the part you need, or ask us first if you're unsure.",
       steps: ["Describe the problem", "Find the part", "Order"],
       icon: "Wrench",
@@ -76,7 +76,7 @@ export const GUIDED_FLOWS: Record<
     },
     {
       id: "renovation",
-      label: "Renovate a room",
+      label: "Materials for a room",
       description:
         "Photo-based material estimate now, checked by hand within 48 hours.",
       steps: ["Property details", "Upload photos", "Get your estimate"],
@@ -85,8 +85,8 @@ export const GUIDED_FLOWS: Record<
     },
     {
       id: "new-construction",
-      label: "Build from scratch",
-      description: "Scope and budget a new build with guidance.",
+      label: "Materials for a new build",
+      description: "Budget the material for a build from the ground up.",
       steps: ["Choose a tier", "Project details", "Get your estimate"],
       icon: "Building2",
       href: "/new-construction",

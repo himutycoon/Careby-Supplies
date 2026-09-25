@@ -32,7 +32,7 @@ const PROMISES = [
   {
     icon: PhoneCall,
     title: "Talk to an advisor",
-    caption: "Local codes and pricing",
+    caption: "Product choice and quantities",
     href: "/contact",
   },
 ] as const;

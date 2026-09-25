@@ -8,9 +8,9 @@ export function ServicesSection() {
   return (
     <Section tone="muted">
       <SectionHeading
-        eyebrow="Services"
-        title="Everything your project needs"
-        subtitle="From the first estimate to the last delivery — handled in one place."
+        eyebrow="What we supply"
+        title="Every material your project needs"
+        subtitle="From the first material estimate to the last delivery — one supplier."
       />
 
       <div className="mt-6 grid gap-3 sm:mt-12 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
