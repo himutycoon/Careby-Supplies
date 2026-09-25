@@ -18,6 +18,8 @@
      mistaken for --warning, which is a state. */
   --color-hi-vis: var(--hi-vis);
   --color-hi-vis-foreground: var(--hi-vis-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   /* Tinted page ground, replacing a #F6F5F2 literal repeated across
      five components. */
   --color-surface-muted: var(--surface-muted);
@@ -122,6 +124,15 @@
   /* Safety yellow, ~#FFD100. Never used for text on a light ground. */
   --hi-vis: oklch(0.87 0.175 97);
   --hi-vis-foreground: oklch(0.22 0.045 262);
+
+  /*
+   * The orange from the logo (#EE761D), sampled from the artwork rather
+   * than eyeballed. Safety yellow is the accent on the ink surfaces and
+   * is unreadable as text on white; this is the accent for the light
+   * ones — an eyebrow rule, half a heading, a check mark.
+   */
+  --brand: oklch(0.67 0.165 48);
+  --brand-foreground: oklch(0.985 0.003 255);
   --surface-muted: oklch(0.966 0.005 250);
   --sidebar: oklch(0.985 0.002 255);
   --sidebar-foreground: oklch(0.16 0.018 258);
@@ -174,6 +185,10 @@
   --ink-foreground: oklch(0.985 0.003 255);
   --hi-vis: oklch(0.87 0.175 97);
   --hi-vis-foreground: oklch(0.22 0.045 262);
+
+  /* Lifted so the same logo hue holds up on the dark surfaces. */
+  --brand: oklch(0.75 0.15 52);
+  --brand-foreground: oklch(0.18 0.035 262);
   --surface-muted: oklch(0.226 0.018 258);
   --sidebar: oklch(0.214 0.016 258);
   --sidebar-foreground: oklch(0.975 0.003 255);

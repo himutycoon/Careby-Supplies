@@ -24,10 +24,44 @@ export interface SupplyStep {
 export function SupplySteps({
   steps,
   className,
+  variant = "row",
 }: {
   steps: SupplyStep[];
   className?: string;
+  /**
+   * `rail` stacks them into a titled card for the column beside a form;
+   * `row` spreads them under a page heading.
+   */
+  variant?: "row" | "rail";
 }) {
+  if (variant === "rail") {
+    return (
+      <aside
+        className={cn(
+          "rounded-xl border border-border bg-card p-5",
+          className,
+        )}
+      >
+        <h2 className="text-base font-semibold">Why choose CareBy Supplies?</h2>
+        <ol className="mt-4 flex flex-col gap-4">
+          {steps.map(({ icon: Glyph, title, body }) => (
+            <li key={title} className="flex items-start gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Glyph className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{title}</span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-muted-foreground">
+                  {body}
+                </span>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </aside>
+    );
+  }
+
   return (
     <ol
       className={cn(

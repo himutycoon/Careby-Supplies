@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import { PackageSearch, ShoppingBag, Wrench } from "lucide-react";
 import { RepairFlow } from "@/components/homeowner/repair-flow";
+import { FlowPageHeader } from "@/components/app-shell/flow-page-header";
 import { SupplySteps } from "@/components/shared/supply-steps";
 
 export const metadata: Metadata = { title: "Repair — CareBy Supplies" };
 
 /**
- * The third step is where the old callout's warning used to be. Said as
- * part of how the flow runs, "you or your tradesperson fit it" is a fact
- * about the process rather than a notice telling someone off before they
- * have typed anything.
+ * The third step is where a tinted "we don't do repairs" callout used to
+ * be. Said as part of how the flow runs it is a fact about the process
+ * rather than a notice telling someone off before they have typed
+ * anything.
  */
 const STEPS = [
   {
@@ -31,18 +32,21 @@ const STEPS = [
 
 export default function RepairPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl">Find the parts to fix it</h1>
-        <p className="mt-1 text-muted-foreground">
-          Tell us what&apos;s wrong and we&apos;ll point you at the parts
-          and materials that put it right.
-        </p>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+      <FlowPageHeader
+        eyebrow="Repair parts"
+        title="Find the parts to"
+        accent="fix it"
+        description="Tell us what's wrong and we'll point you at the parts and materials that put it right."
+        imageSlot="categoryRepair"
+      />
 
-        <SupplySteps steps={STEPS} className="mt-6" />
+      {/* Form left, reassurance right — the rail drops under the form on
+          anything narrower than a laptop. */}
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <RepairFlow />
+        <SupplySteps steps={STEPS} variant="rail" />
       </div>
-
-      <RepairFlow />
     </div>
   );
 }

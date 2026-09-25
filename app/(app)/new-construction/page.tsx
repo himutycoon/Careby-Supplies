@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Building2, ClipboardList, Truck } from "lucide-react";
 import { NewConstructionWizard } from "@/components/homeowner/new-construction-wizard";
+import { FlowPageHeader } from "@/components/app-shell/flow-page-header";
 import { SupplySteps } from "@/components/shared/supply-steps";
 
 export const metadata: Metadata = {
@@ -27,18 +28,19 @@ const STEPS = [
 
 export default function NewConstructionPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
-      <div className="mb-8">
-        <h1 className="text-3xl">Budget the material for your build</h1>
-        <p className="mt-1 text-muted-foreground">
-          Answer a few questions and we&apos;ll come back with what the
-          material costs, stage by stage.
-        </p>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+      <FlowPageHeader
+        eyebrow="New build materials"
+        title="Budget the material for"
+        accent="your build"
+        description="Answer a few questions and we'll come back with what the material costs, stage by stage."
+        imageSlot="categoryNewConstruction"
+      />
 
-        <SupplySteps steps={STEPS} className="mt-6" />
+      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <NewConstructionWizard />
+        <SupplySteps steps={STEPS} variant="rail" />
       </div>
-
-      <NewConstructionWizard />
     </div>
   );
 }

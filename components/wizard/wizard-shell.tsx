@@ -15,8 +15,6 @@ import { StepPhotos } from "@/components/wizard/step-photos";
 import { StepDimensions } from "@/components/wizard/step-dimensions";
 import { StepWishlist } from "@/components/wizard/step-wishlist";
 import { StepReview } from "@/components/wizard/step-review";
-import { SupplySteps } from "@/components/shared/supply-steps";
-import { Camera, HardHat, Receipt } from "lucide-react";
 import { INITIAL_WIZARD_STATE, type WizardState } from "@/components/wizard/wizard-types";
 
 const STEPS = [
@@ -30,31 +28,6 @@ const STEPS = [
 
 const MIN_PHOTOS = 3;
 
-/**
- * What this flow does, with the last step naming who installs.
- *
- * It used to be a tinted callout above the stepper, which read as a
- * warning. Someone six screens into a form about their bathroom does
- * need telling that no one is coming to fit it — but as the end of a
- * process, not as an alert before they start.
- */
-const STEPS_EXPLAINER = [
-  {
-    icon: Camera,
-    title: "Photos and dimensions",
-    body: "Six quick questions about the room and a few pictures of it.",
-  },
-  {
-    icon: Receipt,
-    title: "We price the materials",
-    body: "An itemised list in the quantities your room actually needs.",
-  },
-  {
-    icon: HardHat,
-    title: "Your contractor installs",
-    body: "We deliver the material; labour is priced by your own trades.",
-  },
-];
 
 // Single-municipality launch — no picker needed yet (see project scope).
 const MUNICIPALITY_ID = "mississauga-on";
@@ -137,18 +110,10 @@ export function WizardShell() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Price the materials for your room</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Six questions and a few photos. You get back an itemised list of
-          what the job needs, in the quantities it needs, at our prices.
-        </p>
-
-        <SupplySteps steps={STEPS_EXPLAINER} className="mt-6" />
-      </div>
-
-      <ol className="mb-8 flex items-center justify-between">
+    <div className="flex min-w-0 flex-col gap-5">
+      {/* The stepper gets its own card so the six numbers read as
+          progress rather than as the top of the form. */}
+      <ol className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-4 sm:px-6">
         {STEPS.map((step, index) => {
           const isComplete = index < stepIndex;
           const isCurrent = index === stepIndex;
@@ -187,7 +152,7 @@ export function WizardShell() {
         })}
       </ol>
 
-      <Card className="p-6">
+      <Card className="p-5 sm:p-6">
         <form
           onSubmit={(e) => {
             e.preventDefault();
