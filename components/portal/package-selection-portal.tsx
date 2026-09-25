@@ -1,15 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { SuppliesOnlyNotice } from "@/components/shared/supplies-only-notice";
+import { SupplySteps } from "@/components/shared/supply-steps";
 import {
   AlertTriangle,
   Check,
   CheckCircle2,
   ChevronDown,
+  ClipboardList,
   Lock,
   MessageCircle,
   Palette,
+  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +52,29 @@ import type { Product } from "@/lib/types";
  * The customer never sees rough-ins, coordination flags or the reason a
  * line is in scope — those are contractor-facing and stay behind.
  */
+/**
+ * What the portal is, for a customer who has only ever seen their
+ * contractor's link. The third step is the one that used to be a tinted
+ * warning box at the top of the page.
+ */
+const PORTAL_STEPS = [
+  {
+    icon: ClipboardList,
+    title: "Your contractor set the scope",
+    body: "They chose what the job includes and what it leaves out.",
+  },
+  {
+    icon: Palette,
+    title: "You pick the materials",
+    body: "Every decision on this page, against the allowance for each line.",
+  },
+  {
+    icon: Truck,
+    title: "We deliver them",
+    body: "CareBy supplies what you choose; your contractor fits it.",
+  },
+];
+
 export function PackageSelectionPortal({ reference }: { reference: string }) {
   const { toast } = useToast();
   const [pkg, setPkg] = React.useState<ScopedPackage | null>(null);
@@ -161,15 +186,10 @@ export function PackageSelectionPortal({ reference }: { reference: string }) {
         ) : null}
       </header>
 
-      {/* The customer arrives here from their contractor and may never
-          have seen the rest of the site. Say once what this list is. */}
-      <SuppliesOnlyNotice>
-        <span className="font-medium text-foreground">
-          These are the materials for your job.
-        </span>{" "}
-        CareBy Supplies delivers what you choose here. The work itself is
-        done by your contractor, who priced their labour separately.
-      </SuppliesOnlyNotice>
+      {/* The customer arrives from their contractor and may never have
+          seen the rest of the site, so the three steps say what this page
+          is before the decisions start. */}
+      <SupplySteps steps={PORTAL_STEPS} />
 
       {/* Progress and money, the two things a customer checks repeatedly. */}
       <section className="grid gap-3 sm:grid-cols-3">

@@ -68,20 +68,8 @@ export function NewConstructionWizard() {
   if (!tier) {
     return (
       <div className="flex flex-col gap-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr_0.85fr] lg:items-center">
-          <div className="flex flex-col gap-4">
-            <h1 className="text-balance">Let&apos;s plan your new home.</h1>
-            <p className="text-pretty text-muted-foreground">
-              Tell us a few things about your ideal build and we&apos;ll come
-              back with a cost range — or a plan, if you want to go further.
-            </p>
-          </div>
-          <EditorialImage
-            tone="navy"
-            alt="Modern new construction home"
-            className="aspect-4/3 w-full"
-          />
-        </div>
+        {/* No heading of its own: the page above says what this is, and
+            two titles on one screen is one too many. */}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {CONSTRUCTION_TIERS.map((option) => (
