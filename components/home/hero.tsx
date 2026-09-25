@@ -1,16 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BlueprintGrid } from "@/components/shared/blueprint-texture";
 import { Icon } from "@/components/shared/icon";
 import { HERO_CARDS, USER_TYPES } from "@/data/platform";
 import { HeroPanel } from "@/components/shared/hero-panel";
-
-const TRUST_BULLETS = [
-  "Trade-priced materials",
-  "Advice on what the job needs",
-  "Serving Mississauga, ON",
-];
+import { CatalogSearch } from "@/components/shop/catalog-search";
 
 export function Hero() {
   return (
@@ -26,8 +21,11 @@ export function Hero() {
       {/* py trimmed from 20/28: at full height the hero filled a 1080px
           screen on its own and nothing below it was ever seen without
           scrolling, which is what made the page read as an article. */}
-      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 sm:gap-12 sm:px-6 sm:py-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-18">
-        <div className="flex flex-col gap-5 sm:gap-7">
+      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 sm:gap-10 sm:px-6 sm:py-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14 lg:px-8 lg:py-12">
+      {/* min-w-0 on both columns: a grid item defaults to min-width:auto,
+          so the search field's intrinsic width was widening the track past
+          the container and the hero text was being clipped on a phone. */}
+        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-ink-foreground/80">
             <span className="size-1.5 rounded-full bg-hi-vis" />
             Building materials, delivered across the GTA
@@ -46,6 +44,18 @@ export function Hero() {
             Lumber, tile, fixtures and the rest — priced for trade and
             homeowner alike, with people who know what the job needs.
           </p>
+
+          {/* Search before buttons.
+
+              A supplier's hero should let someone type "2x4" and go. The
+              header carries a field too, but at hero size with a labelled
+              button it reads as the main way in rather than a utility
+              tucked beside the logo. */}
+          <CatalogSearch
+            variant="hero"
+            className="max-w-xl"
+            placeholder="Search for products, brands or categories..."
+          />
 
           {/* Full-width CTAs on phones — a thumb reaches an edge-to-edge
               button far more reliably than a centred pill. */}
@@ -134,22 +144,10 @@ export function Hero() {
               ))}
             </div>
           </div>
-
-          <ul className="hidden flex-wrap gap-x-6 gap-y-2 pt-2 sm:flex">
-            {TRUST_BULLETS.map((bullet) => (
-              <li
-                key={bullet}
-                className="flex items-center gap-2 text-sm text-ink-foreground/70"
-              >
-                <Check className="size-4 text-hi-vis" aria-hidden="true" />
-                {bullet}
-              </li>
-            ))}
-          </ul>
         </div>
 
         {/* Hero visual with layered product-UI cards. */}
-        <div className="relative">
+        <div className="relative min-w-0">
           {/* Add entries to SITE_SLIDESHOWS.homeHero for a crossfade;
               falls back to the single homeHero image, then to the
               designed panel. */}
@@ -157,7 +155,7 @@ export function Hero() {
             slideshowSlot="homeHero"
             imageSlot="homeHero"
             tone="slate"
-            className="aspect-[16/10] w-full shadow-2xl ring-1 ring-white/10 sm:aspect-4/3"
+            className="aspect-[16/10] w-full shadow-2xl ring-1 ring-white/10 sm:aspect-[16/11]"
           />
 
           <div className="mt-4 hidden gap-3 sm:absolute sm:-bottom-8 sm:-left-8 sm:mt-0 sm:grid sm:w-64 sm:gap-3">

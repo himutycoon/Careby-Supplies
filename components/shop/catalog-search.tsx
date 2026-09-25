@@ -21,10 +21,17 @@ import { cn } from "@/lib/utils";
 export function CatalogSearch({
   className,
   placeholder = "Search materials, tools, SKU...",
+  variant = "header",
 }: {
   className?: string;
   /** Shortened on narrow layouts, where the full string just clips. */
   placeholder?: string;
+  /**
+   * `hero` is the big one: taller, on a white pill, with a labelled
+   * button instead of a bare magnifier. It is the primary way into the
+   * catalogue on that screen, so it should look like one.
+   */
+  variant?: "header" | "hero";
 }) {
   const router = useRouter();
   const [term, setTerm] = React.useState("");
@@ -34,6 +41,37 @@ export function CatalogSearch({
     const query = term.trim();
     router.push(
       query ? `/products?q=${encodeURIComponent(query)}#catalog` : "/products",
+    );
+  }
+
+  if (variant === "hero") {
+    return (
+      <form
+        onSubmit={handleSubmit}
+        role="search"
+        className={cn(
+          "flex w-full items-center gap-2 rounded-full bg-background p-1.5 pl-4 shadow-lg ring-1 ring-black/5",
+          className,
+        )}
+      >
+        <Search
+          className="size-4 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <input
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          placeholder={placeholder}
+          aria-label="Search products"
+          className="h-10 min-w-0 flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground focus-visible:outline-none sm:text-sm"
+        />
+        <button
+          type="submit"
+          className="press h-10 shrink-0 rounded-full bg-hi-vis px-5 text-sm font-semibold text-hi-vis-foreground transition-opacity hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        >
+          Search
+        </button>
+      </form>
     );
   }
 

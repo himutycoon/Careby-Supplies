@@ -56,11 +56,15 @@ export function ShopPromiseStrip() {
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Glyph className="size-4.5" aria-hidden="true" />
             </span>
+            {/* The strip used to be desktop-only, where every title fit
+                on one line. In a half-width phone column "Delivery across
+                the GTA" truncated to "Delivery ac…", so the title wraps
+                here and the caption — supporting detail — stands down. */}
             <span className="min-w-0">
-              <span className="block truncate text-sm font-medium group-hover:text-primary">
+              <span className="block text-sm leading-snug font-medium group-hover:text-primary">
                 {title}
               </span>
-              <span className="block truncate text-xs text-muted-foreground">
+              <span className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
                 {caption}
               </span>
             </span>

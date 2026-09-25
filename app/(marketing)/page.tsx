@@ -21,13 +21,14 @@ export default function HomePage() {
     <>
       {/* The hero is above the fold — revealing it would just delay the
           first thing a visitor came to read. */}
-      {/* Aisles before argument. The hero is the brand statement, but a
-          supply shop that opens with one reads as a blog, so the
-          departments sit above it and the storefront is the first thing
-          under the navigation. */}
-      <DepartmentBar />
-
       <Hero />
+
+      {/* Aisles immediately under the hero, then the service promises —
+          the order a shopper needs them in. Both sit outside the Reveal
+          list below: they are part of the masthead, and a storefront
+          that fades its own aisles in reads as slow rather than polished. */}
+      <DepartmentBar />
+      <ShopPromiseStrip />
 
       {/* Phone only. The fork belongs above the fold on a small screen;
           desktop already has the hero pills and the section below. */}
@@ -42,10 +43,6 @@ export default function HomePage() {
         under the hero; the planning and services sections that explain
         the rest of the business follow them.
       */}
-      <div className="hidden lg:block">
-        <ShopPromiseStrip />
-      </div>
-
       {[
         <ShopByCategory key="departments" />,
         <ProductRail

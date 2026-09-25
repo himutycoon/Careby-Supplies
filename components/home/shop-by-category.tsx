@@ -107,7 +107,10 @@ export function ShopByCategory() {
             <span className="font-sans text-xs font-semibold tracking-[0.14em] text-primary uppercase">
               Shop the catalog
             </span>
-            <h2 className="mt-2 text-xl sm:text-2xl">Shop by department</h2>
+            {/* The strip under the hero is the quick list of all
+                seventeen; this is the browsable one, so it gets a
+                different name rather than repeating the heading. */}
+            <h2 className="mt-2 text-xl sm:text-2xl">Popular departments</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Lumber to lighting — everything priced for the job, delivered
               across the GTA.
