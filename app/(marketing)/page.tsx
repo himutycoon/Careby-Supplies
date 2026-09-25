@@ -1,5 +1,5 @@
 import { Hero } from "@/components/home/hero";
-import { PromoTicker } from "@/components/home/promo-ticker";
+import { DepartmentBar } from "@/components/home/department-bar";
 import { RoleChooserCard } from "@/components/home/role-chooser-card";
 import { ExpertBanner } from "@/components/home/expert-banner";
 import { ShopPromiseStrip } from "@/components/home/shop-promise-strip";
@@ -21,13 +21,13 @@ export default function HomePage() {
     <>
       {/* The hero is above the fold — revealing it would just delay the
           first thing a visitor came to read. */}
-      <Hero />
+      {/* Aisles before argument. The hero is the brand statement, but a
+          supply shop that opens with one reads as a blog, so the
+          departments sit above it and the storefront is the first thing
+          under the navigation. */}
+      <DepartmentBar />
 
-      {/* Runs straight off the bottom of the hero, which is dark too, so
-          it reads as part of it rather than a banner stuck underneath.
-          Outside the Reveal list below: a strip that animates itself has
-          no business also fading in. */}
-      <PromoTicker />
+      <Hero />
 
       {/* Phone only. The fork belongs above the fold on a small screen;
           desktop already has the hero pills and the section below. */}

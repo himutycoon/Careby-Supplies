@@ -23,7 +23,10 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 sm:gap-14 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-28">
+      {/* py trimmed from 20/28: at full height the hero filled a 1080px
+          screen on its own and nothing below it was ever seen without
+          scrolling, which is what made the page read as an article. */}
+      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 sm:gap-12 sm:px-6 sm:py-14 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:py-18">
         <div className="flex flex-col gap-5 sm:gap-7">
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-ink-foreground/80">
             <span className="size-1.5 rounded-full bg-hi-vis" />

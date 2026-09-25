@@ -24,7 +24,7 @@ export function ProductsHero() {
             className="press w-full border-white/25 bg-transparent text-ink-foreground hover:bg-white/10 hover:text-ink-foreground sm:w-auto"
             render={
               <Link href="/contact?about=quote">
-                Get a Project Quote <ArrowRight className="size-4" />
+                Get a Material Quote <ArrowRight className="size-4" />
               </Link>
             }
           />

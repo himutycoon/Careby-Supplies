@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/home/navbar";
+import { PromoTicker } from "@/components/home/promo-ticker";
 import { Footer } from "@/components/home/footer";
 import { MobileTabBar } from "@/components/app-shell/mobile-tab-bar";
 import { ExpertFab } from "@/components/shared/expert-fab";
@@ -11,6 +12,12 @@ export default function MarketingLayout({
 }) {
   return (
     <>
+      {/* Above the header, like the announcement bar on any shop: it is
+          an ad, and an ad below three sections of page is not an ad.
+          Scrolls away with the page — the sticky header does not carry
+          it, because a permanently pinned moving strip would follow the
+          reader down every page. */}
+      <PromoTicker />
       <Navbar />
       <main className="flex-1">{children}</main>
       {/*
