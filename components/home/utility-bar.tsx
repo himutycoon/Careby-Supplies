@@ -9,11 +9,15 @@ import { FREE_DELIVERY_THRESHOLD } from "@/lib/rules/order-totals";
  * shopping, and the links people arrive looking for rather than browse
  * to — an order they are chasing, or a person to ask.
  *
- * Static on a wide screen, where all six fit. Below lg there is nowhere
- * near the room, so the same three claims scroll instead and the links
- * stand down to the header's own menu. One set of facts either way: the
- * delivery figure is read from the order rules rather than typed, so it
- * cannot drift from what checkout actually charges.
+ * The claims run rather than sit still, at every width. A strip that
+ * moves is read as an advertisement and a strip that does not is read as
+ * furniture, and this one is advertising. The links stay put beside it
+ * on a wide screen — navigation that slides past is not navigation — and
+ * below lg they stand down to the header's own menu, leaving the claims
+ * the full width.
+ *
+ * The delivery figure is read from the order rules rather than typed, so
+ * it cannot drift from what checkout actually charges.
  */
 const CLAIMS = [
   {
@@ -49,29 +53,20 @@ function ClaimList({ hidden }: { hidden?: boolean }) {
 export function UtilityBar() {
   return (
     <div className="bg-ink text-ink-foreground">
-      {/* Phone and tablet: the claims scroll past. */}
-      <div className="overflow-hidden py-2 lg:hidden">
-        <div className="marquee flex w-max">
-          <ClaimList />
-          <ClaimList hidden />
+      <div className="mx-auto flex max-w-7xl items-center lg:px-8">
+        {/* min-w-0 so the running strip takes the space the links do not,
+            rather than pushing them off the end. */}
+        <div className="marquee-fade min-w-0 flex-1 overflow-hidden py-2">
+          <div className="marquee flex w-max">
+            <ClaimList />
+            <ClaimList hidden />
+          </div>
         </div>
-      </div>
 
-      {/* Desktop: everything sits still and the links take the right. */}
-      <div className="mx-auto hidden max-w-7xl items-center justify-between px-8 py-2 lg:flex">
-        <ul className="flex items-center gap-7">
-          {CLAIMS.map(({ icon: Glyph, text }) => (
-            <li key={text} className="flex items-center gap-2">
-              <Glyph
-                className="size-3.5 shrink-0 text-hi-vis"
-                aria-hidden="true"
-              />
-              <span className="text-xs">{text}</span>
-            </li>
-          ))}
-        </ul>
-
-        <nav aria-label="Support">
+        <nav
+          aria-label="Support"
+          className="hidden shrink-0 pl-6 lg:block"
+        >
           <ul className="flex items-center gap-5 text-xs">
             {LINKS.map(({ label, href }) => (
               <li key={href}>

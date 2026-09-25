@@ -484,3 +484,18 @@
     animation: none;
   }
 }
+
+/*
+ * Fade the running strip out before the support links beside it.
+ *
+ * Without this the last claim is guillotined mid-word an inch from
+ * "Track order", which reads as a layout fault rather than a strip that
+ * carries on. Only where the links actually sit alongside — at narrow
+ * widths the strip owns the full width and ending at the edge is what a
+ * ticker does.
+ */
+@utility marquee-fade {
+  @media (width >= 64rem) {
+    mask-image: linear-gradient(to right, #000 calc(100% - 4rem), transparent);
+  }
+}

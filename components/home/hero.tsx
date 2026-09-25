@@ -21,16 +21,14 @@ export function Hero() {
       {/* py trimmed from 20/28: at full height the hero filled a 1080px
           screen on its own and nothing below it was ever seen without
           scrolling, which is what made the page read as an article. */}
-      <div className="relative mx-auto grid max-w-7xl gap-6 px-4 py-7 sm:gap-10 sm:px-6 sm:py-12 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14 lg:px-8 lg:py-12">
+      {/* Half a screen, not all of it. The hero is the brand statement;
+          the aisles under it are the shop, and they have to be visible
+          without scrolling for this to read as a storefront. */}
+      <div className="relative mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:gap-10 sm:px-6 sm:py-10 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-14 lg:px-8 lg:py-8">
       {/* min-w-0 on both columns: a grid item defaults to min-width:auto,
           so the search field's intrinsic width was widening the track past
           the container and the hero text was being clipped on a phone. */}
-        <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
-          <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-medium tracking-wide text-ink-foreground/80">
-            <span className="size-1.5 rounded-full bg-hi-vis" />
-            Building materials, delivered across the GTA
-          </span>
-
+        <div className="flex min-w-0 flex-col gap-3.5 sm:gap-4">
           <h1 className="text-balance text-ink-foreground">
             Every Material. One Supplier.{" "}
             {/* Safety yellow, not navy: --primary is the navy that this
@@ -117,11 +115,11 @@ export function Hero() {
           */}
           {/* Phones get RoleChooserCard directly below the hero, so
               these pills would be the same choice twice. */}
-          <div className="hidden pt-1 lg:block">
-            <span
-              id="hero-role-label"
-              className="text-xs font-semibold tracking-[0.14em] text-ink-foreground/55 uppercase"
-            >
+          <div className="hidden lg:block">
+            {/* Visually hidden rather than deleted: the group still needs
+                naming for a screen reader, but the printed "I'M A" cost a
+                line of hero height to say what the pills already say. */}
+            <span id="hero-role-label" className="sr-only">
               I&apos;m a
             </span>
             {/* Grid, not flex-wrap: two flex-1 pills came to 167.5px
@@ -155,7 +153,7 @@ export function Hero() {
             slideshowSlot="homeHero"
             imageSlot="homeHero"
             tone="slate"
-            className="aspect-[16/10] w-full shadow-2xl ring-1 ring-white/10 sm:aspect-[16/11]"
+            className="aspect-[16/10] w-full shadow-2xl ring-1 ring-white/10 lg:aspect-[16/9]"
           />
 
           <div className="mt-4 hidden gap-3 sm:absolute sm:-bottom-8 sm:-left-8 sm:mt-0 sm:grid sm:w-64 sm:gap-3">
