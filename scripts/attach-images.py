@@ -54,7 +54,10 @@ PAGE_PAUSE = 1.0
 MAX_PAGES = 40
 
 IMAGE_WIDTH = 800
-CHUNK = 900
+# 900 rows came to 455KB, which the SQL editor would not take in one
+# paste — that file had to be split by hand after the fact. Half that is
+# ~110KB per file and pastes cleanly.
+CHUNK = 450
 MIN_DESCRIPTION = 25
 
 
@@ -212,7 +215,9 @@ def main() -> int:
         print(f"     - {name[:60]}")
 
     # One file per statement, for the same reason schema-16 is in four:
-    # a megabyte of SQL is more than the editor wants in one paste.
+    # a megabyte of SQL is more than the editor wants in one paste. The
+    # files now in supabase/ were generated before CHUNK came down, so
+    # part 1 exists as 1a-1d; a re-run replaces the lot.
     parts = [rows[i:i + CHUNK] for i in range(0, len(rows), CHUNK)]
     print()
     for n, part in enumerate(parts, start=1):
