@@ -35,6 +35,7 @@ const STEPS = ["Type", "Details", "Package", "Materials", "Review"];
 const ALL_CATEGORIES = [
   "lumber",
   "flooring",
+  "tile",
   "plumbing",
   "electrical",
   "doors-windows",
@@ -42,6 +43,11 @@ const ALL_CATEGORIES = [
   "hardware",
   "paint",
   "tools",
+  "drywall",
+  "insulation",
+  "adhesives",
+  "concrete",
+  "metal-framing",
 ];
 
 const SUBTYPE_CATEGORIES: Record<string, string[]> = {
@@ -50,13 +56,22 @@ const SUBTYPE_CATEGORIES: Record<string, string[]> = {
   electrical: ["electrical", "hardware"],
   roofing: ["roofing", "lumber"],
   flooring: ["flooring", "hardware"],
-  drywall: ["hardware", "paint"],
+  drywall: ["drywall", "metal-framing", "adhesives", "paint"],
   hvac: ["hardware", "electrical"],
 
   // Renovations span trades.
-  kitchen: ["plumbing", "electrical", "flooring", "paint", "hardware"],
-  bathroom: ["plumbing", "flooring", "paint", "hardware"],
-  basement: ["lumber", "electrical", "flooring", "paint", "hardware"],
+  kitchen: ["plumbing", "electrical", "tile", "flooring", "paint", "hardware"],
+  bathroom: ["plumbing", "bath", "tile", "flooring", "paint", "hardware"],
+  basement: [
+    "lumber",
+    "metal-framing",
+    "drywall",
+    "insulation",
+    "electrical",
+    "flooring",
+    "paint",
+    "hardware",
+  ],
   bedroom: ["flooring", "paint", "electrical", "doors-windows"],
   "whole-house": ALL_CATEGORIES,
   addition: ["lumber", "roofing", "doors-windows", "electrical", "hardware"],

@@ -78,7 +78,15 @@ export interface Recommendation {
  * ids match the live catalogue (schema-05).
  */
 const ROOM_CATEGORIES: Record<RoomType, Record<string, number>> = {
-  bathroom: { plumbing: 5, flooring: 3, paint: 2, hardware: 2, electrical: 1 },
+  bathroom: {
+    plumbing: 5,
+    tile: 4,
+    bath: 3,
+    flooring: 3,
+    paint: 2,
+    hardware: 2,
+    electrical: 1,
+  },
   kitchen: {
     plumbing: 4,
     electrical: 3,
@@ -87,7 +95,15 @@ const ROOM_CATEGORIES: Record<RoomType, Record<string, number>> = {
     paint: 2,
     lumber: 1,
   },
-  basement: { lumber: 4, electrical: 3, flooring: 3, paint: 2 },
+  basement: {
+    lumber: 4,
+    drywall: 4,
+    insulation: 3,
+    electrical: 3,
+    flooring: 3,
+    "metal-framing": 2,
+    paint: 2,
+  },
   addition: {
     lumber: 5,
     roofing: 4,
@@ -182,8 +198,19 @@ const MATERIAL_CATEGORIES: Record<string, string> = {
   paint: "paint",
   primer: "paint",
   stain: "paint",
-  drywall: "paint",
-  insulation: "lumber",
+  // Six departments the catalogue did not have when this map was
+  // written. Drywall used to land in paint and insulation in lumber,
+  // which was the closest aisle that existed rather than the right one.
+  drywall: "drywall",
+  insulation: "insulation",
+  adhesive: "adhesives",
+  sealant: "adhesives",
+  caulk: "adhesives",
+  mortar: "concrete",
+  cement: "concrete",
+  concrete: "concrete",
+  "metal framing": "metal-framing",
+  bath: "bath",
   roofing: "roofing",
   // Legacy trade names from estimates produced before the rewrite.
   painting: "paint",

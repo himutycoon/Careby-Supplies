@@ -31,6 +31,19 @@ export const CATEGORY_IMAGES: Record<string, string> = {
   "smart-home": "/images/category-smart-home.webp",
   outdoor: "/images/category-outdoor.webp",
   "window-coverings": "/images/category-window-coverings.webp",
+
+  /*
+   * Six departments the real catalogue brought with it (schema-15).
+   * No photography for them yet, so they fall through to their icon —
+   * a deliberate empty string rather than a missing key, so it is
+   * obvious what still needs shooting.
+   */
+  drywall: "",
+  insulation: "",
+  adhesives: "",
+  concrete: "",
+  "metal-framing": "",
+  bath: "",
 };
 
 /** Photo for a category, or "" when it should fall back to its icon. */
@@ -41,9 +54,9 @@ export function categoryImage(id: string, fromDatabase?: string): string {
 /**
  * Icon overrides for departments whose seeded icon reads badly.
  *
- * Every department has a photo now, so nothing hits this in practice —
- * it stays for a category added through the admin panel before anyone
- * photographs it. The original seed gave Electrical an AlertTriangle,
+ * The six departments added with the real catalogue have no photos yet,
+ * so they render as icons and this matters again. The original seed gave
+ * Electrical an AlertTriangle,
  * which in an empty tile reads as a warning about the department rather
  * than a picture of it.
  */
