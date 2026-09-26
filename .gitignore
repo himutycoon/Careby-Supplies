@@ -45,3 +45,6 @@ next-env.d.ts
 # removed from git history once pushed. Kept on disk, out of the repo —
 # back these up somewhere else (Drive, Dropbox) rather than here.
 /images/
+
+# Python bytecode from the catalogue scripts.
+__pycache__/

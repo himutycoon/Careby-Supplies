@@ -399,6 +399,9 @@ def main():
 
         products.append({
             "id": pid,
+            # Kept so scripts/attach-images.py can join the Shopify
+            # export back onto the id this import generated.
+            "handle": handle,
             "name": title_case(title),
             "slug": slug,
             "description": describe(title, category, tags, brand, sku,
