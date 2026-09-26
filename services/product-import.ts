@@ -241,7 +241,14 @@ export function planProductImport(
       continue;
     }
 
+    /*
+     * A CSV that gives a count is counting; one that omits the column is
+     * not, and must not be read as "zero of everything". That reading is
+     * what put the whole imported catalogue out of stock, and a re-import
+     * would have done it again through a different door.
+     */
     const stockRaw = parseMoney(cellAt(row, "stockQuantity"));
+    const trackStock = stockRaw !== null;
     const stockQuantity = stockRaw === null ? 0 : Math.floor(stockRaw);
     if (stockQuantity < 0) {
       issues.push({ line, message: `"${name}" — stock can't be negative.` });
@@ -264,6 +271,9 @@ export function planProductImport(
         homeownerPrice,
         contractorPrice,
         unit: cellAt(row, "unit") || "each",
+        trackStock,
+        // Only read when the CSV gave no count.
+        stockStatus: "in-stock",
         stockQuantity,
         lowStockThreshold,
         description: cellAt(row, "description"),
