@@ -338,27 +338,45 @@ export async function setProductStock(
 const ADMIN_PRODUCT_COLUMNS =
   "id, name, brand, category_id, homeowner_price, contractor_price, unit, stock_quantity, stock_status, description, image_url, is_active";
 
+/*
+ * PostgREST caps a single response at 1,000 rows, so one select stopped
+ * returning the whole catalogue the moment the real import landed: admin
+ * was managing 1,000 of 3,449 products and the other 2,449 could not be
+ * found by search or filter, because they were never fetched. Pages
+ * through instead, and stops as soon as a page comes back short.
+ */
+const ADMIN_PAGE_SIZE = 1000;
+const ADMIN_MAX_PAGES = 50;
+
 export async function getAllProductsForAdmin(): Promise<AdminProductRow[]> {
   const supabase = createClient();
 
   // low_stock_threshold arrives in schema-07. Asking for a column that
   // doesn't exist fails the whole select, which would blank the products
   // screen, so fall back to the base columns if it isn't there yet.
-  const withThreshold = await supabase
-    .from("products")
-    .select(`${ADMIN_PRODUCT_COLUMNS}, low_stock_threshold`)
-    .order("name");
+  const columns = `${ADMIN_PRODUCT_COLUMNS}, low_stock_threshold`;
+  const probe = await supabase.from("products").select(columns).limit(1);
+  const selection = probe.error ? ADMIN_PRODUCT_COLUMNS : columns;
 
-  const result = withThreshold.error
-    ? await supabase.from("products").select(ADMIN_PRODUCT_COLUMNS).order("name")
-    : withThreshold;
+  const rows: Record<string, unknown>[] = [];
+  for (let page = 0; page < ADMIN_MAX_PAGES; page += 1) {
+    const from = page * ADMIN_PAGE_SIZE;
+    const result = await supabase
+      .from("products")
+      .select(selection)
+      .order("name")
+      .range(from, from + ADMIN_PAGE_SIZE - 1);
 
-  if (result.error || !result.data) {
-    console.error("[getAllProductsForAdmin]", result.error);
-    return [];
+    if (result.error) {
+      console.error("[getAllProductsForAdmin]", result.error);
+      // Whatever arrived so far still beats an empty screen.
+      break;
+    }
+
+    const batch = (result.data ?? []) as unknown as Record<string, unknown>[];
+    rows.push(...batch);
+    if (batch.length < ADMIN_PAGE_SIZE) break;
   }
-
-  const rows = result.data as unknown as Record<string, unknown>[];
 
   return rows.map((row) => ({
     id: row.id as string,

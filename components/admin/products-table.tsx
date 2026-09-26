@@ -33,7 +33,37 @@ import {
 import { formatCad } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type StockFilter = "all" | "low-stock" | "out-of-stock" | "inactive";
+type StockFilter =
+  | "all"
+  | "in-stock"
+  | "low-stock"
+  | "out-of-stock"
+  | "inactive";
+
+type SortKey =
+  | "name"
+  | "name-desc"
+  | "stock-asc"
+  | "stock-desc"
+  | "price-asc"
+  | "price-desc";
+
+const SORTS: [SortKey, string][] = [
+  ["name", "Name A–Z"],
+  ["name-desc", "Name Z–A"],
+  ["stock-asc", "Stock: lowest first"],
+  ["stock-desc", "Stock: highest first"],
+  ["price-asc", "Price: low to high"],
+  ["price-desc", "Price: high to low"],
+];
+
+/*
+ * The catalogue is 3,449 products. Painting every row locks the tab for
+ * seconds on a mid-range laptop and does nobody any good, since nothing
+ * past the first screenful is being read. Filters and counts still run
+ * over the whole set -- only the rendering is capped.
+ */
+const PAGE = 100;
 
 const STOCK_TONE: Record<string, string> = {
   "in-stock": "bg-success/12 text-success",
@@ -75,6 +105,11 @@ export function ProductsTable() {
   // The dashboard links straight to a filtered view, e.g. ?stock=low-stock.
   const initialFilter = (searchParams.get("stock") ?? "all") as StockFilter;
   const [filter, setFilter] = React.useState<StockFilter>(initialFilter);
+  const [category, setCategory] = React.useState(
+    searchParams.get("category") ?? "all",
+  );
+  const [sort, setSort] = React.useState<SortKey>("name");
+  const [shown, setShown] = React.useState(PAGE);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AdminProductRow | null>(null);
   const [deleting, setDeleting] = React.useState<AdminProductRow | null>(null);
@@ -106,22 +141,48 @@ export function ProductsTable() {
 
   const all = React.useMemo(() => data ?? [], [data]);
 
+  // Counts respect the category, so switching aisle re-labels the chips
+  // instead of promising 3,000 products behind a filter that holds 40.
+  const inCategory = React.useMemo(
+    () => (category === "all" ? all : all.filter((p) => p.categoryId === category)),
+    [all, category],
+  );
+
   const counts = React.useMemo(
     () => ({
-      all: all.filter((p) => p.isActive).length,
-      "low-stock": all.filter((p) => p.isActive && p.stockStatus === "low-stock")
-        .length,
-      "out-of-stock": all.filter(
+      all: inCategory.filter((p) => p.isActive).length,
+      "in-stock": inCategory.filter(
+        (p) => p.isActive && p.stockStatus === "in-stock",
+      ).length,
+      "low-stock": inCategory.filter(
+        (p) => p.isActive && p.stockStatus === "low-stock",
+      ).length,
+      "out-of-stock": inCategory.filter(
         (p) => p.isActive && p.stockStatus === "out-of-stock",
       ).length,
-      inactive: all.filter((p) => !p.isActive).length,
+      inactive: inCategory.filter((p) => !p.isActive).length,
     }),
-    [all],
+    [inCategory],
   );
+
+  // Only the aisles that hold something, with their live count.
+  const categoryOptions = React.useMemo(() => {
+    const tally = new Map<string, number>();
+    for (const product of all) {
+      tally.set(product.categoryId, (tally.get(product.categoryId) ?? 0) + 1);
+    }
+    return [...tally.entries()]
+      .map(([id, count]) => ({
+        id,
+        name: categoryNames.get(id) ?? id ?? "Uncategorised",
+        count,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [all, categoryNames]);
 
   const products = React.useMemo(() => {
     const term = search.trim().toLowerCase();
-    return all.filter((product) => {
+    const matched = inCategory.filter((product) => {
       // "inactive" is its own view; every other filter shows live products.
       if (filter === "inactive") {
         if (product.isActive) return false;
@@ -136,7 +197,36 @@ export function ProductsTable() {
         product.id.toLowerCase().includes(term)
       );
     });
-  }, [all, search, filter]);
+
+    const by: Record<SortKey, (a: AdminProductRow, b: AdminProductRow) => number> = {
+      name: (a, b) => a.name.localeCompare(b.name),
+      "name-desc": (a, b) => b.name.localeCompare(a.name),
+      "stock-asc": (a, b) => a.stockQuantity - b.stockQuantity,
+      "stock-desc": (a, b) => b.stockQuantity - a.stockQuantity,
+      "price-asc": (a, b) => a.homeownerPrice - b.homeownerPrice,
+      "price-desc": (a, b) => b.homeownerPrice - a.homeownerPrice,
+    };
+    // Ties fall back to the name, so re-sorting never shuffles equals.
+    return [...matched].sort(
+      (a, b) => by[sort](a, b) || a.name.localeCompare(b.name),
+    );
+  }, [inCategory, search, filter, sort]);
+
+  /*
+   * A narrower view starts at the top, not 400 rows into the old one.
+   *
+   * Adjusted during render rather than in an effect: an effect would
+   * paint the stale row count first and then immediately replace it,
+   * which is the cascading render React warns about.
+   */
+  const view = `${search}|${filter}|${category}|${sort}`;
+  const [lastView, setLastView] = React.useState(view);
+  if (view !== lastView) {
+    setLastView(view);
+    setShown(PAGE);
+  }
+
+  const visible = React.useMemo(() => products.slice(0, shown), [products, shown]);
 
   async function toggleActive(id: string, next: boolean) {
     setPendingId(id);
@@ -231,6 +321,7 @@ export function ProductsTable() {
         {(
           [
             ["all", "All"],
+            ["in-stock", "In stock"],
             ["low-stock", "Running low"],
             ["out-of-stock", "Out of stock"],
             ["inactive", "Deactivated"],
@@ -266,16 +357,78 @@ export function ProductsTable() {
         })}
       </div>
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Category</span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-label="Filter by category"
+              className="h-10 min-w-40 rounded-lg border border-input bg-background px-3 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:h-8"
+            >
+              <option value="all">All categories ({all.length})</option>
+              {categoryOptions.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name} ({option.count})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Sort</span>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortKey)}
+              aria-label="Sort products"
+              className="h-10 min-w-40 rounded-lg border border-input bg-background px-3 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:h-8"
+            >
+              {SORTS.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <p className="text-sm text-muted-foreground tabular-nums">
+          {products.length === all.length
+            ? `${products.length} products`
+            : `${products.length} of ${all.length} products`}
+        </p>
+      </div>
+
       {products.length === 0 ? (
         <EmptyState
           icon="Boxes"
-          title={search ? "Nothing matches that search" : "No products yet"}
+          title={
+            search || category !== "all" || filter !== "all"
+              ? "Nothing matches"
+              : "No products yet"
+          }
           description={
-            search
-              ? "Try a different term."
+            search || category !== "all" || filter !== "all"
+              ? "Widen the category, the stock filter, or the search term."
               : "Add your first product to start selling."
           }
-          action={search ? undefined : <Button onClick={openNew}>New product</Button>}
+          action={
+            search || category !== "all" || filter !== "all" ? (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("all");
+                  setFilter("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            ) : (
+              <Button onClick={openNew}>New product</Button>
+            )
+          }
         />
       ) : (
         <>
@@ -285,7 +438,7 @@ export function ProductsTable() {
               thing being maintained, so it gets the prominent position
               rather than being one field inside an edit form. */}
           <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border bg-background lg:hidden">
-            {products.map((product) => (
+            {visible.map((product) => (
               <li key={product.id} className="flex flex-col gap-2 px-3 py-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <Thumb src={product.imageUrl} name={product.name} />
@@ -369,7 +522,7 @@ export function ProductsTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {products.map((product) => (
+                {visible.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">
                       <span className="flex items-center gap-2.5">
@@ -451,6 +604,21 @@ export function ProductsTable() {
               longer be ordered — the database rejects them at order time.
             </p>
           </div>
+
+          {products.length > visible.length ? (
+            <div className="flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                className="press"
+                onClick={() => setShown((n) => n + PAGE)}
+              >
+                Show more
+              </Button>
+              <span className="text-sm text-muted-foreground tabular-nums">
+                Showing {visible.length} of {products.length}
+              </span>
+            </div>
+          ) : null}
         </>
       )}
 
