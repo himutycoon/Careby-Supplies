@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Building2,
+  ClipboardList,
   Crown,
   PaintRoller,
   ShoppingCart,
@@ -56,6 +57,14 @@ const PRIMARY: Tile[] = [
 ];
 
 const SECONDARY: Tile[] = [
+  {
+    title: "Material Checklist",
+    description: "Tick the parts of your job; we price the list.",
+    href: "/materials",
+    image: "/images/premium-2-materials.webp",
+    icon: ClipboardList,
+    tone: "bg-chart-2/15 text-chart-2",
+  },
   {
     title: "Shop Products",
     description: "Quality materials and tools for your projects.",
@@ -140,7 +149,7 @@ export function ServiceTiles() {
           <ServiceTile key={tile.href} tile={tile} tall />
         ))}
       </div>
-      <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr] sm:gap-4">
+      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1.4fr] sm:gap-4">
         {SECONDARY.map((tile) => (
           <ServiceTile key={tile.href} tile={tile} />
         ))}
