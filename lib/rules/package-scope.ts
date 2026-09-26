@@ -173,6 +173,16 @@ export function generateScope(request: ScopeRequest): GeneratedScope | null {
     }
   }
 
+  // Keyword narrowing, last: a later adjuster's answer beats an earlier
+  // one, the same precedence the rest of this function uses.
+  const keywordOverrides = new Map<string, string[]>();
+  for (const { choice } of choices) {
+    if (!choice.setKeywords) continue;
+    for (const id of choice.setKeywords.items) {
+      keywordOverrides.set(id, choice.setKeywords.keywords);
+    }
+  }
+
   const requirements: SelectionRequirement[] = [];
 
   for (const [id, meta] of inScope) {
@@ -193,18 +203,36 @@ export function generateScope(request: ScopeRequest): GeneratedScope | null {
       quantity,
       allowanceCad: allowance,
       totalAllowanceCad: allowance * quantity,
-      keywords: item.keywords ?? [],
+      keywords: keywordOverrides.get(item.id) ?? item.keywords ?? [],
       reason: meta.reason,
     });
   }
 
-  // Grouped by room, then required before optional, so the customer
-  // works through one room at a time.
+  /*
+   * Grouped by room, then required before optional, so the customer
+   * works through one room at a time.
+   *
+   * Within a room, scope order — not alphabetical. The templates state
+   * the order the client asked for (cabinets, hardware, countertop,
+   * backsplash, rangehood, appliances, sink, faucet, light), and sorting
+   * by label threw it away: it put the dishwasher between the countertop
+   * and the faucet because D falls between C and K. Array.prototype.sort
+   * is stable, so returning 0 leaves them as scope built them.
+   *
+   * Rooms are ordered by first appearance for the same reason: a
+   * basement's own finishes come before the washroom and kitchen that
+   * were added to it, which is the order the client listed.
+   */
+  const roomOrder = new Map<string, number>();
+  for (const { room } of requirements) {
+    if (!roomOrder.has(room)) roomOrder.set(room, roomOrder.size);
+  }
+
   requirements.sort(
     (a, b) =>
-      a.room.localeCompare(b.room) ||
+      (roomOrder.get(a.room) ?? 0) - (roomOrder.get(b.room) ?? 0) ||
       Number(b.required) - Number(a.required) ||
-      a.label.localeCompare(b.label),
+      0,
   );
 
   const flags = [

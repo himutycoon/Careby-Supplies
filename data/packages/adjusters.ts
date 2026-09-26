@@ -1,5 +1,6 @@
 /**
- * The 16 adjusters from the Adjusters sheet.
+ * The 15 adjusters from the Adjusters sheet, with the shower question
+ * rewritten to the client's 26/09 correction.
  *
  * An adjuster answers "how much of this job is there", and its effects
  * are data, not code: each choice can add items, remove items, or change
@@ -16,6 +17,15 @@ export interface AdjusterChoice {
   removes?: string[];
   /** Multiplies the quantity of these items (e.g. a double vanity). */
   multiply?: { items: string[]; by: number };
+  /**
+   * Narrows which products an item offers.
+   *
+   * "Flooring" as a requirement is useless to a customer who has already
+   * said hardwood: they want to see hardwood, not every floor covering
+   * in the aisle. This replaces the item's own keywords rather than
+   * adding to them, so "hardwood" does not still match carpet.
+   */
+  setKeywords?: { items: string[]; keywords: string[] };
   /** Multiplies quantity of every item in scope (project size, rooms). */
   multiplyAll?: number;
   /**
@@ -95,11 +105,68 @@ export const ADJUSTERS: Adjuster[] = [
     ],
   },
   {
+    /*
+     * Shower type, per the client's 26/09 correction: the three kinds of
+     * shower a customer actually buys, not "replace / new / luxury",
+     * which described the labour rather than the materials.
+     *
+     * What differs between them is the material list, which is why each
+     * choice states its own adds and removes rather than relying on the
+     * template:
+     *
+     *   Pan type   a tiled shower built on site — everything, including
+     *              the drain and the stone.
+     *   Walk-in    curbless with glass — drain, no stone.
+     *   Tray       a prefabricated tray, which arrives with its drain
+     *              fitted — no separate drain, no stone.
+     */
     id: "shower",
-    label: "Shower",
-    effect: "Adds shower base, tile, valve, glass, drain, niche and bench",
-    defaultValue: "replace",
+    label: "Shower type",
+    effect: "Sets base, drain, stone, glass and niche to suit the shower",
+    defaultValue: "pan",
     choices: [
+      {
+        value: "pan",
+        label: "Pan type",
+        adds: [
+          "shower-valve",
+          "showerhead",
+          "shower-base",
+          "shower-drain",
+          "shower-stone",
+          "shower-glass",
+          "shower-niche",
+          "bath-wall-tile",
+        ],
+      },
+      {
+        value: "walk-in",
+        label: "Walk-in",
+        adds: [
+          "shower-valve",
+          "showerhead",
+          "shower-base",
+          "shower-drain",
+          "shower-glass",
+          "shower-niche",
+          "bath-wall-tile",
+        ],
+        removes: ["shower-stone"],
+      },
+      {
+        value: "tray",
+        label: "Shower tray",
+        adds: [
+          "shower-valve",
+          "showerhead",
+          "shower-base",
+          "shower-glass",
+          "shower-niche",
+          "bath-wall-tile",
+        ],
+        // The tray ships with its own drain, and nothing is stone.
+        removes: ["shower-drain", "shower-stone"],
+      },
       {
         value: "no",
         label: "No shower",
@@ -107,38 +174,20 @@ export const ADJUSTERS: Adjuster[] = [
           "shower-valve",
           "showerhead",
           "shower-base",
+          "shower-drain",
+          "shower-stone",
           "shower-glass",
           "shower-niche",
           "shower-bench",
           "bath-wall-tile",
-        ],
-      },
-      { value: "replace", label: "Replace existing" },
-      {
-        value: "new",
-        label: "New shower",
-        adds: ["shower-valve", "showerhead", "shower-base", "bath-wall-tile", "shower-glass", "shower-niche"],
-        flags: ["New shower location needs drain and valve rough-in."],
-      },
-      {
-        value: "luxury",
-        label: "Luxury shower",
-        adds: [
-          "shower-valve",
-          "showerhead",
-          "shower-base",
-          "bath-wall-tile",
-          "shower-glass",
-          "shower-niche",
-          "shower-bench",
         ],
       },
     ],
   },
   {
     id: "tub",
-    label: "Tub",
-    effect: "Adds tub, filler, drain and surround selections",
+    label: "Add a tub",
+    effect: "An add-on on top of the shower, not an alternative to it",
     defaultValue: "no",
     choices: [
       { value: "no", label: "No tub", removes: ["tub", "tub-filler"] },
@@ -150,6 +199,170 @@ export const ADJUSTERS: Adjuster[] = [
         flags: ["Freestanding tub needs floor-mounted filler rough-in."],
       },
       { value: "luxury", label: "Luxury", adds: ["tub", "tub-filler"] },
+    ],
+  },
+  {
+    /*
+     * A finished basement in Canada is usually a secondary suite, so the
+     * washroom and the kitchen are decisions the customer makes rather
+     * than something a tier decides for them. They used to be hard-coded:
+     * Medium always carried a bathroom and a wet bar, Basic could not
+     * have either, and nobody could ask for a full second kitchen.
+     *
+     * Each template keeps its old behaviour through defaultAdjusters, so
+     * this adds the choice without moving what the packages already were.
+     */
+    id: "basementBathroom",
+    label: "Basement washroom",
+    effect: "Adds a powder room or a full washroom to the basement",
+    defaultValue: "none",
+    choices: [
+      { value: "none", label: "No washroom",
+        removes: [
+          "toilet",
+          "vanity",
+          "vanity-top",
+          "bath-sink",
+          "bath-faucet",
+          "mirror",
+          "bath-floor-tile",
+          "grout",
+          "bath-lighting",
+          "bath-accessories",
+          "caulking",
+          "bath-trim",
+          "exhaust-fan",
+          "shower-valve",
+          "showerhead",
+          "shower-base",
+          "shower-drain",
+          "shower-stone",
+          "shower-glass",
+          "shower-niche",
+          "shower-bench",
+          "bath-wall-tile",
+          "tub",
+          "tub-filler",
+        ], },
+      {
+        value: "powder",
+        label: "Powder room (2-piece)",
+        adds: [
+          "toilet",
+          "bath-sink",
+          "bath-faucet",
+          "vanity",
+          "vanity-top",
+          "mirror",
+          "bath-lighting",
+          "exhaust-fan",
+          "bath-floor-tile",
+          "grout",
+          "caulking",
+          "bath-trim",
+        ],
+        removes: [
+          "bath-accessories",
+          "shower-valve",
+          "showerhead",
+          "shower-base",
+          "shower-drain",
+          "shower-stone",
+          "shower-glass",
+          "shower-niche",
+          "shower-bench",
+          "bath-wall-tile",
+          "tub",
+          "tub-filler",
+        ],
+        flags: ["Basement washroom needs drain, vent and supply rough-in."],
+      },
+      {
+        value: "full",
+        label: "Full washroom (3-piece)",
+        adds: [
+          "shower-drain",
+          "toilet",
+          "bath-sink",
+          "bath-faucet",
+          "vanity",
+          "vanity-top",
+          "mirror",
+          "bath-lighting",
+          "exhaust-fan",
+          "bath-floor-tile",
+          "grout",
+          "caulking",
+          "bath-trim",
+          "shower-valve",
+          "showerhead",
+          "shower-base",
+          "shower-glass",
+          "shower-niche",
+          "bath-wall-tile",
+        ],
+        flags: ["Basement washroom needs drain, vent and supply rough-in."],
+      },
+    ],
+  },
+  {
+    id: "basementKitchen",
+    label: "Basement kitchen",
+    effect: "Adds a wet bar or a full second kitchen",
+    defaultValue: "none",
+    choices: [
+      { value: "none", label: "Neither",
+        removes: [
+          "wet-bar",
+          "beverage-fridge",
+          "kitchen-cabinets",
+          "cabinet-hardware",
+          "countertop",
+          "backsplash",
+          "kitchen-sink",
+          "kitchen-faucet",
+          "kitchen-lighting",
+          "refrigerator",
+          "range",
+          "hood",
+          "dishwasher",
+        ], },
+      {
+        value: "wet-bar",
+        label: "Wet bar",
+        adds: ["wet-bar", "beverage-fridge"],
+        removes: [
+          "kitchen-cabinets",
+          "cabinet-hardware",
+          "countertop",
+          "backsplash",
+          "kitchen-sink",
+          "kitchen-faucet",
+          "kitchen-lighting",
+          "refrigerator",
+          "range",
+          "hood",
+        ],
+      },
+      {
+        value: "full",
+        label: "Full kitchen",
+        adds: [
+          "kitchen-cabinets",
+          "cabinet-hardware",
+          "countertop",
+          "backsplash",
+          "kitchen-sink",
+          "kitchen-faucet",
+          "kitchen-lighting",
+          "refrigerator",
+          "range",
+          "hood",
+        ],
+        flags: [
+          "Second kitchen: confirm the suite is permitted, and that venting, gas and panel capacity allow it.",
+        ],
+      },
     ],
   },
   {
@@ -237,22 +450,65 @@ export const ADJUSTERS: Adjuster[] = [
     ],
   },
   {
-    id: "tile",
-    label: "Tile",
-    effect: "Controls tile, grout and trim selections",
-    defaultValue: "partial",
+    /*
+     * What the floor is made of, which the site did not ask. The old
+     * flooring question asks how much floor there is; this asks which
+     * one, and the client lists five (six with engineered) as separate
+     * workflows.
+     *
+     * The answer does two things: it narrows the products offered for
+     * "Flooring" to that material, and it brings in the secondary
+     * materials that material needs -- underlayment, transitions,
+     * levelling, moisture barrier, adhesive, fasteners -- while taking
+     * out the ones it does not. Hardwood is nailed and wants no
+     * adhesive; carpet is stretched over pad and wants neither.
+     */
+    id: "flooringMaterial",
+    label: "Flooring material",
+    effect: "Sets the floor covering and its secondary materials",
+    defaultValue: "laminate",
     choices: [
       {
-        value: "none",
-        label: "None",
-        removes: ["bath-wall-tile", "bath-floor-tile", "backsplash", "grout", "shower-niche"],
+        value: "tile",
+        label: "Tile",
+        setKeywords: { items: ["flooring"], keywords: ["tile", "porcelain", "ceramic"] },
+        adds: ["floor-adhesive", "floor-levelling", "moisture-barrier", "grout"],
+        removes: ["underlayment", "transitions", "floor-fasteners"],
       },
-      { value: "partial", label: "Partial" },
-      { value: "full", label: "Full height", adds: ["bath-wall-tile", "grout"] },
       {
-        value: "feature",
-        label: "Feature tile",
-        adds: ["bath-wall-tile", "grout", "feature-wall"],
+        value: "hardwood",
+        label: "Hardwood",
+        setKeywords: { items: ["flooring"], keywords: ["hardwood", "solid", "oak", "maple"] },
+        adds: ["floor-fasteners", "moisture-barrier", "transitions"],
+        removes: ["underlayment", "floor-levelling", "floor-adhesive"],
+      },
+      {
+        value: "engineered",
+        label: "Engineered hardwood",
+        setKeywords: { items: ["flooring"], keywords: ["engineered", "hardwood"] },
+        adds: ["underlayment", "transitions", "floor-adhesive"],
+        removes: ["floor-levelling", "moisture-barrier", "floor-fasteners"],
+      },
+      {
+        value: "laminate",
+        label: "Laminate",
+        setKeywords: { items: ["flooring"], keywords: ["laminate"] },
+        adds: ["underlayment", "moisture-barrier", "transitions"],
+        removes: ["floor-levelling", "floor-adhesive", "floor-fasteners"],
+      },
+      {
+        value: "vinyl",
+        label: "Vinyl",
+        setKeywords: { items: ["flooring"], keywords: ["vinyl", "lvp", "luxury vinyl", "plank"] },
+        adds: ["underlayment", "floor-levelling", "transitions"],
+        removes: ["moisture-barrier", "floor-adhesive", "floor-fasteners"],
+      },
+      {
+        value: "carpet",
+        label: "Carpet",
+        setKeywords: { items: ["flooring"], keywords: ["carpet", "broadloom"] },
+        adds: ["underlayment", "floor-fasteners", "transitions"],
+        removes: ["floor-levelling", "moisture-barrier", "floor-adhesive"],
       },
     ],
   },

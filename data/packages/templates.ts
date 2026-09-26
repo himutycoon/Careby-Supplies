@@ -54,48 +54,74 @@ export interface PackageTemplate {
   exclusions: string;
 }
 
+/*
+ * Bathroom order, from the client's 26/09 list: shower type first, then
+ * drain, shower system, stone, tile, vanity, countertop, toilet, mirror,
+ * trim, light, exhaust, paint, caulking, grout, niche.
+ *
+ * The wet items lead, because that is the decision the rest of the room
+ * follows from.
+ */
+const BATH_WET = [
+  "shower-base",
+  "shower-drain",
+  "shower-valve",
+  "showerhead",
+  "shower-stone",
+  "bath-wall-tile",
+  "shower-glass",
+  "shower-niche",
+];
+
 const BATH_CORE = [
-  "toilet",
   "vanity",
   "vanity-top",
   "bath-sink",
   "bath-faucet",
+  "toilet",
   "mirror",
+  "bath-trim",
+  "bath-lighting",
+  "exhaust-fan",
   "bath-floor-tile",
   "grout",
-  "bath-lighting",
+  "caulking",
   "paint",
   "bath-accessories",
 ];
 
-const BATH_WET = [
-  "shower-valve",
-  "showerhead",
-  "shower-base",
-  "bath-wall-tile",
-  "shower-glass",
-  "exhaust-fan",
-];
+/*
+ * Kitchen order, from the client's 26/09 list: cabinets and their design
+ * first, then hardware, countertop, backsplash, rangehood, appliances,
+ * sink, faucet, light, flooring, paint, trim.
+ *
+ * It is split in two because the appliances belong in the middle of that
+ * run, not appended to the end of it -- the customer portal lists a
+ * room's decisions in the order they enter scope.
+ */
+const KITCHEN_SURFACES = ["cabinet-hardware", "countertop", "backsplash"];
 
-const KITCHEN_CORE = [
-  "countertop",
-  "kitchen-sink",
-  "kitchen-faucet",
-  "backsplash",
-  "cabinet-hardware",
-  "kitchen-lighting",
-  "paint",
-];
+const KITCHEN_FIXTURES = ["kitchen-sink", "kitchen-faucet", "kitchen-lighting"];
 
-const APPLIANCES = ["refrigerator", "range", "hood", "dishwasher", "microwave"];
+const KITCHEN_CORE = [...KITCHEN_SURFACES, ...KITCHEN_FIXTURES, "paint"];
 
+// Rangehood first: the client asks for it ahead of the other appliances.
+const APPLIANCES = ["hood", "range", "refrigerator", "dishwasher", "microwave"];
+
+/*
+ * Interior order, from the client's basement list: flooring, light,
+ * door, trim, paint. The washroom and the kitchen sit between light and
+ * door on his list; they arrive from their own questions and the portal
+ * shows them as their own sections, which reads better than threading
+ * a toilet through a list of doors.
+ */
 const INTERIOR_CORE = [
   "flooring",
-  "paint",
-  "baseboards",
+  "lighting",
   "interior-doors",
   "door-hardware",
-  "lighting",
+  "baseboards",
+  "paint",
 ];
 
 export const PACKAGE_TEMPLATES: PackageTemplate[] = [
@@ -108,7 +134,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     defaultTier: "basic",
     base: BATH_CORE,
     optional: ["heated-floor", "shower-niche", "shower-glass", "bath-wall-tile"],
-    adjusters: ["projectSize", "vanity", "shower", "tile", "budgetTier"],
+    adjusters: ["projectSize", "vanity", "shower", "budgetTier"],
     exclusions: "Hidden plumbing; structural; rough-in changes",
   },
   {
@@ -118,9 +144,9 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     baseScope: "Full visible renovation with shower/tub work.",
     tiers: ["medium", "luxury"],
     defaultTier: "medium",
-    base: [...BATH_CORE, ...BATH_WET],
+    base: [...BATH_WET, ...BATH_CORE],
     optional: ["heated-floor", "shower-niche", "shower-bench", "tub", "tub-filler"],
-    adjusters: ["projectSize", "shower", "tub", "vanity", "tile", "lighting"],
+    adjusters: ["projectSize", "shower", "tub", "vanity", "lighting"],
     exclusions: "Structural; major drain relocation; engineering",
   },
   {
@@ -131,8 +157,8 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     tiers: ["luxury"],
     defaultTier: "luxury",
     base: [
-      ...BATH_CORE,
       ...BATH_WET,
+      ...BATH_CORE,
       "tub",
       "tub-filler",
       "heated-floor",
@@ -140,7 +166,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "shower-bench",
     ],
     optional: ["smart-controls"],
-    adjusters: ["vanity", "shower", "tub", "tile", "lighting", "smartHome"],
+    adjusters: ["vanity", "shower", "tub", "lighting", "smartHome"],
     exclusions: "Structural/engineering unless scoped",
   },
   {
@@ -152,7 +178,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     defaultTier: "basic",
     base: KITCHEN_CORE,
     optional: ["flooring", "kitchen-cabinets", "lighting"],
-    adjusters: ["projectSize", "kitchenCabinets", "appliances", "flooring"],
+    adjusters: ["projectSize", "kitchenCabinets", "appliances", "flooring", "flooringMaterial"],
     exclusions: "Cabinet replacement; major plumbing/electrical",
   },
   {
@@ -163,9 +189,16 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "New cabinetry and countertops with normal appliance and finish decisions.",
     tiers: ["medium", "luxury"],
     defaultTier: "medium",
-    base: ["kitchen-cabinets", ...KITCHEN_CORE, ...APPLIANCES, "flooring"],
+    base: [
+      "kitchen-cabinets",
+      ...KITCHEN_SURFACES,
+      ...APPLIANCES,
+      ...KITCHEN_FIXTURES,
+      "flooring",
+      "paint",
+    ],
     optional: ["island", "pantry", "wall-oven", "beverage-fridge"],
-    adjusters: ["projectSize", "kitchenCabinets", "appliances", "flooring", "lighting"],
+    adjusters: ["projectSize", "kitchenCabinets", "appliances", "flooring", "flooringMaterial", "lighting"],
     exclusions: "Structural/service upgrades",
   },
   {
@@ -177,8 +210,9 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     defaultTier: "luxury",
     base: [
       "kitchen-cabinets",
-      ...KITCHEN_CORE,
+      ...KITCHEN_SURFACES,
       ...APPLIANCES,
+      ...KITCHEN_FIXTURES,
       "wall-oven",
       "beverage-fridge",
       "island",
@@ -193,13 +227,22 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     id: "basement-finish-basic",
     name: "Basement Finish — Basic",
     group: "Basement",
-    baseScope: "Finish existing basement without wet areas.",
+    baseScope: "Finish an existing basement. Washroom and kitchen optional.",
     tiers: ["basic", "medium"],
     defaultTier: "basic",
     base: [...INTERIOR_CORE, "drywall", "switches", "hvac-registers", "stairs"],
     optional: ["feature-wall", "built-ins"],
-    adjusters: ["projectSize", "roomCount", "flooring", "lighting"],
-    exclusions: "Bathroom; wet bar; structural; major HVAC/plumbing",
+    adjusters: [
+      "projectSize",
+      "roomCount",
+      "basementBathroom",
+      "basementKitchen",
+      "shower",
+      "flooring",
+      "flooringMaterial",
+      "lighting",
+    ],
+    exclusions: "Structural; major HVAC/plumbing",
   },
   {
     id: "basement-finish-medium",
@@ -214,11 +257,20 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "switches",
       "hvac-registers",
       "stairs",
-      ...BATH_CORE.filter((i) => i !== "paint"),
-      "wet-bar",
     ],
-    optional: ["built-ins", "fireplace", "shower-glass"],
-    adjusters: ["projectSize", "roomCount", "shower", "flooring", "lighting"],
+    optional: ["built-ins", "fireplace", "shower-glass", "feature-wall"],
+    adjusters: [
+      "projectSize",
+      "roomCount",
+      "basementBathroom",
+      "basementKitchen",
+      "shower",
+      "flooring",
+      "flooringMaterial",
+      "lighting",
+    ],
+    // What this package has always included, now stated as answers.
+    defaultAdjusters: { basementBathroom: "full", basementKitchen: "wet-bar" },
     exclusions: "Underpinning; structural; foundation repair",
   },
   {
@@ -233,17 +285,22 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "drywall",
       "switches",
       "stairs",
-      ...BATH_CORE.filter((i) => i !== "paint"),
-      ...BATH_WET,
-      "wet-bar",
-      "beverage-fridge",
       "built-ins",
       "fireplace",
       "media-wall",
       "feature-wall",
     ],
     optional: ["smart-controls", "millwork"],
-    adjusters: ["projectSize", "roomCount", "lighting", "smartHome"],
+    adjusters: [
+      "projectSize",
+      "roomCount",
+      "basementBathroom",
+      "basementKitchen",
+      "shower",
+      "lighting",
+      "smartHome",
+    ],
+    defaultAdjusters: { basementBathroom: "full", basementKitchen: "wet-bar" },
     exclusions: "Major structural work unless scoped",
   },
   {
@@ -255,7 +312,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     defaultTier: "basic",
     base: [...INTERIOR_CORE, "window-coverings"],
     optional: ["feature-wall", "smart-controls"],
-    adjusters: ["projectSize", "roomCount", "flooring", "lighting", "smartHome"],
+    adjusters: ["projectSize", "roomCount", "flooring", "flooringMaterial", "lighting", "smartHome"],
     exclusions: "Kitchen/bath full renovations; structural",
   },
   {
@@ -275,7 +332,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "hvac-controls",
     ],
     optional: ["built-ins", "feature-wall", "smart-controls"],
-    adjusters: ["roomCount", "kitchenCabinets", "appliances", "flooring", "lighting"],
+    adjusters: ["roomCount", "kitchenCabinets", "appliances", "flooring", "flooringMaterial", "lighting"],
     exclusions: "Major additions/structural/exterior",
   },
   {
@@ -290,8 +347,9 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "switches",
       "window-coverings",
       "kitchen-cabinets",
-      ...KITCHEN_CORE,
+      ...KITCHEN_SURFACES,
       ...APPLIANCES,
+      ...KITCHEN_FIXTURES,
       ...BATH_CORE.filter((i) => i !== "paint"),
       ...BATH_WET,
       "millwork",
@@ -317,8 +375,9 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "garage-door",
       ...INTERIOR_CORE,
       "kitchen-cabinets",
-      ...KITCHEN_CORE,
+      ...KITCHEN_SURFACES,
       ...APPLIANCES,
+      ...KITCHEN_FIXTURES,
       ...BATH_CORE.filter((i) => i !== "paint"),
       "hvac-controls",
       "stairs",
@@ -344,8 +403,9 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "garage-door",
       ...INTERIOR_CORE,
       "kitchen-cabinets",
-      ...KITCHEN_CORE,
+      ...KITCHEN_SURFACES,
       ...APPLIANCES,
+      ...KITCHEN_FIXTURES,
       ...BATH_CORE.filter((i) => i !== "paint"),
       ...BATH_WET,
       "hvac-controls",
@@ -375,8 +435,9 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "exterior-lighting",
       ...INTERIOR_CORE,
       "kitchen-cabinets",
-      ...KITCHEN_CORE,
+      ...KITCHEN_SURFACES,
       ...APPLIANCES,
+      ...KITCHEN_FIXTURES,
       "wall-oven",
       "island",
       ...BATH_CORE.filter((i) => i !== "paint"),
@@ -470,7 +531,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     defaultTier: "medium",
     base: ["flooring", "underlayment", "transitions", "stair-nosing", "baseboards"],
     optional: ["heated-floor"],
-    adjusters: ["projectSize", "roomCount", "flooring"],
+    adjusters: ["projectSize", "roomCount", "flooring", "flooringMaterial"],
     exclusions: "Subfloor repair",
     defaultAdjusters: { flooring: "mixed" },
   },
@@ -490,11 +551,12 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "countertop",
       "shelving",
       "flooring",
+      "flooringMaterial",
       "lighting",
       "paint",
     ],
     optional: ["built-ins"],
-    adjusters: ["projectSize", "appliances", "flooring", "lighting"],
+    adjusters: ["projectSize", "appliances", "flooring", "flooringMaterial", "lighting"],
     exclusions: "Major plumbing/electrical",
   },
   {
@@ -506,7 +568,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
     defaultTier: "medium",
     base: ["entry-storage", "flooring", "paint", "lighting", "door-hardware"],
     optional: ["built-ins", "heated-floor"],
-    adjusters: ["projectSize", "flooring", "lighting"],
+    adjusters: ["projectSize", "flooring", "flooringMaterial", "lighting"],
     exclusions: "Structural",
   },
   {
@@ -528,7 +590,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "window-coverings",
     ],
     optional: ["smart-controls"],
-    adjusters: ["projectSize", "flooring", "lighting", "smartHome"],
+    adjusters: ["projectSize", "flooring", "flooringMaterial", "lighting", "smartHome"],
     exclusions: "Major electrical/structural",
   },
   {
@@ -548,7 +610,7 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       ...BATH_WET,
     ],
     optional: ["fireplace", "millwork", "heated-floor"],
-    adjusters: ["projectSize", "vanity", "shower", "tub", "flooring", "lighting"],
+    adjusters: ["projectSize", "vanity", "shower", "tub", "flooring", "flooringMaterial", "lighting"],
     exclusions: "Structural unless scoped",
   },
 ];
