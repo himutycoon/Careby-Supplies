@@ -43,6 +43,7 @@ const BLANK: AdminProductRow = {
   stockQuantity: 0,
   stockStatus: "in-stock",
   lowStockThreshold: 10,
+  trackStock: true,
   description: "",
   imageUrl: "",
   isActive: true,
@@ -141,6 +142,8 @@ function ProductForm({
       unit: form.unit,
       stockQuantity: form.stockQuantity,
       lowStockThreshold: form.lowStockThreshold,
+      trackStock: form.trackStock,
+      stockStatus: form.stockStatus,
       description: form.description,
       imageUrl: form.imageUrl,
       isActive: form.isActive,
@@ -264,36 +267,71 @@ function ProductForm({
                 ))}
               </select>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="product-stock-qty">Stock qty</Label>
-              <Input
-                id="product-stock-qty"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={form.stockQuantity}
-                onChange={(e) => set("stockQuantity", Number(e.target.value))}
-              />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="product-low-stock">Warn me at</Label>
-              <Input
-                id="product-low-stock"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={form.lowStockThreshold}
-                onChange={(e) =>
-                  set("lowStockThreshold", Number(e.target.value))
-                }
-              />
-            </div>
+            {form.trackStock ? (
+              <>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="product-stock-qty">Stock qty</Label>
+                  <Input
+                    id="product-stock-qty"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={form.stockQuantity}
+                    onChange={(e) =>
+                      set("stockQuantity", Number(e.target.value))
+                    }
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="product-low-stock">Warn me at</Label>
+                  <Input
+                    id="product-low-stock"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={form.lowStockThreshold}
+                    onChange={(e) =>
+                      set("lowStockThreshold", Number(e.target.value))
+                    }
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2 sm:col-span-2">
+                <Label htmlFor="product-availability">Availability</Label>
+                <select
+                  id="product-availability"
+                  value={form.stockStatus}
+                  onChange={(e) => set("stockStatus", e.target.value)}
+                  className="h-10 rounded-lg border border-input bg-background px-3 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:h-8"
+                >
+                  <option value="in-stock">In stock</option>
+                  <option value="low-stock">Running low</option>
+                  <option value="out-of-stock">Out of stock</option>
+                </select>
+              </div>
+            )}
           </div>
-          <p className="-mt-2 text-xs text-muted-foreground">
-            Availability is worked out from the stock count: zero is out of
-            stock, anything at or below &ldquo;warn me at&rdquo; shows as
-            running low. You only maintain the number.
-          </p>
+
+          {/* Most of the catalogue is stocked by a supplier and never
+              counted here. Forcing a number on those products is what
+              put all 3,405 of them out of stock in the first place. */}
+          <label className="-mt-2 flex items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              checked={form.trackStock}
+              onChange={(e) => set("trackStock", e.target.checked)}
+              className="mt-0.5 size-4 accent-[var(--primary)]"
+            />
+            <span>
+              Count this product
+              <span className="block text-xs text-muted-foreground">
+                {form.trackStock
+                  ? "Availability follows the count: zero is out of stock, anything at or below “warn me at” shows as running low."
+                  : "Availability is whatever you set above, and stays there until you change it."}
+              </span>
+            </span>
+          </label>
 
           <div className="flex flex-col gap-2">
             <Label>Photo</Label>

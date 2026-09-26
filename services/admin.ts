@@ -231,6 +231,10 @@ export interface AdminProductInput {
   unit: string;
   stockQuantity: number;
   lowStockThreshold: number;
+  /** False: availability is stated, not derived from the count. */
+  trackStock: boolean;
+  /** Only read when trackStock is false. */
+  stockStatus: string;
   description: string;
   imageUrl: string;
   isActive: boolean;
@@ -257,21 +261,29 @@ export async function upsertProduct(
     contractor_price: input.contractorPrice,
     unit: input.unit,
     stock_quantity: input.stockQuantity,
+    track_stock: input.trackStock,
+    // Only sent for products nobody counts; for the rest the trigger
+    // derives it, and sending both would let them disagree.
+    ...(input.trackStock ? {} : { stock_status: input.stockStatus }),
     description: input.description.trim(),
     image_url: input.imageUrl.trim() || null,
     is_active: input.isActive,
     updated_at: new Date().toISOString(),
   };
 
-  // stock_status is intentionally never sent — a trigger derives it from
-  // the quantity so the two can never disagree. low_stock_threshold is
-  // retried away if schema-07 hasn't been applied yet.
+  // stock_status is sent only for uncounted products — for counted ones
+  // a trigger derives it from the quantity, so the two can never
+  // disagree. low_stock_threshold and track_stock are retried away if
+  // schema-07 and schema-19 haven't been applied yet.
   let { error } = await supabase
     .from("products")
     .upsert({ ...base, low_stock_threshold: input.lowStockThreshold });
 
   if (error) {
-    ({ error } = await supabase.from("products").upsert(base));
+    const { track_stock, stock_status, ...withoutSchema19 } = base;
+    void track_stock;
+    void stock_status;
+    ({ error } = await supabase.from("products").upsert(withoutSchema19));
   }
 
   if (error) {
@@ -293,6 +305,8 @@ export interface AdminProductRow {
   stockStatus: string;
   /** Count at or below which the product counts as low. */
   lowStockThreshold: number;
+  /** False: the status is set directly rather than derived from a count. */
+  trackStock: boolean;
   description: string;
   imageUrl: string;
   isActive: boolean;
@@ -319,6 +333,9 @@ export async function setProductStock(
     .from("products")
     .update({
       stock_quantity: Math.round(quantity),
+      // Giving a product a count is what puts it under counted stock;
+      // otherwise the number sits there being ignored by the trigger.
+      track_stock: true,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
@@ -354,7 +371,7 @@ export async function getAllProductsForAdmin(): Promise<AdminProductRow[]> {
   // low_stock_threshold arrives in schema-07. Asking for a column that
   // doesn't exist fails the whole select, which would blank the products
   // screen, so fall back to the base columns if it isn't there yet.
-  const columns = `${ADMIN_PRODUCT_COLUMNS}, low_stock_threshold`;
+  const columns = `${ADMIN_PRODUCT_COLUMNS}, low_stock_threshold, track_stock`;
   const probe = await supabase.from("products").select(columns).limit(1);
   const selection = probe.error ? ADMIN_PRODUCT_COLUMNS : columns;
 
@@ -389,6 +406,8 @@ export async function getAllProductsForAdmin(): Promise<AdminProductRow[]> {
     stockQuantity: Number(row.stock_quantity ?? 0),
     stockStatus: (row.stock_status as string) ?? "in-stock",
     lowStockThreshold: Number(row.low_stock_threshold ?? 10),
+    // Absent until schema-19; a product without the column is counted.
+    trackStock: row.track_stock === undefined ? true : Boolean(row.track_stock),
     description: (row.description as string) ?? "",
     imageUrl: (row.image_url as string) ?? "",
     isActive: Boolean(row.is_active),
@@ -796,5 +815,240 @@ export async function getAllContactMessages(): Promise<AdminRow[]> {
       status: row.status as string,
       createdAt: row.created_at as string,
     };
+  });
+}
+
+/* ---------------------------------------------------------------------------
+ * Bulk operations
+ *
+ * A 3,405-product catalogue cannot be maintained one row at a time: a
+ * price change across an aisle, or putting a supplier's range back in
+ * stock, is one decision and should be one action.
+ *
+ * Two rules hold throughout. Updates go out in chunks, because a URL
+ * carrying 3,000 ids in an `in` clause is refused long before the
+ * database sees it. And the same guards apply as to the single-row
+ * versions -- bulk is a faster way to do the allowed thing, never a way
+ * around the thing that was refused.
+ * ------------------------------------------------------------------------- */
+
+/** Ids per request. PostgREST puts `in` lists in the URL, which is finite. */
+const BULK_CHUNK = 200;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
+export interface BulkResult {
+  /** Rows the operation applied to. */
+  changed: number;
+  /** Rows deliberately left alone, with the reason. */
+  skipped: { id: string; reason: string }[];
+}
+
+async function bulkUpdate(
+  ids: string[],
+  patch: Record<string, unknown>,
+  label: string,
+): Promise<ServiceResult<BulkResult>> {
+  if (ids.length === 0) return fail("Nothing selected.");
+
+  const supabase = createClient();
+  const body = { ...patch, updated_at: new Date().toISOString() };
+  let changed = 0;
+
+  for (const batch of chunk(ids, BULK_CHUNK)) {
+    const { data, error } = await supabase
+      .from("products")
+      .update(body)
+      .in("id", batch)
+      .select("id");
+
+    if (error) {
+      console.error(`[${label}]`, error);
+      // Say how far it got: a partial change the operator does not know
+      // about is worse than a failure they can see.
+      return fail(
+        toUserMessage(
+          error,
+          changed > 0
+            ? `Updated ${changed} products, then stopped on an error.`
+            : "We couldn't apply that change.",
+        ),
+      );
+    }
+    changed += data?.length ?? 0;
+  }
+
+  return ok({ changed, skipped: [] });
+}
+
+export function bulkSetActive(ids: string[], isActive: boolean) {
+  return bulkUpdate(ids, { is_active: isActive }, "bulkSetActive");
+}
+
+export function bulkSetCategory(ids: string[], categoryId: string) {
+  return bulkUpdate(ids, { category_id: categoryId }, "bulkSetCategory");
+}
+
+/**
+ * Sets a count, which also puts the products under counted stock: a
+ * number nobody derives anything from would be decoration.
+ */
+export function bulkSetStock(
+  ids: string[],
+  quantity: number,
+): Promise<ServiceResult<BulkResult>> {
+  if (!Number.isFinite(quantity) || quantity < 0) {
+    return Promise.resolve(fail("Stock can't be negative."));
+  }
+  return bulkUpdate(
+    ids,
+    { stock_quantity: Math.round(quantity), track_stock: true },
+    "bulkSetStock",
+  );
+}
+
+/**
+ * Says a product is available without claiming to know how many.
+ *
+ * The trigger derives the status from the count while track_stock is on,
+ * so setting a status without turning it off would be overwritten on the
+ * way in — the exact bug schema-19 exists to fix.
+ */
+export function bulkSetStockStatus(
+  ids: string[],
+  status: "in-stock" | "low-stock" | "out-of-stock",
+) {
+  return bulkUpdate(
+    ids,
+    { stock_status: status, track_stock: false },
+    "bulkSetStockStatus",
+  );
+}
+
+/** Applies a percentage to both prices, e.g. -10 for a 10% cut. */
+export async function bulkAdjustPrices(
+  ids: string[],
+  percent: number,
+): Promise<ServiceResult<BulkResult>> {
+  if (!Number.isFinite(percent) || percent <= -100) {
+    return fail("That price change would take products to zero or below.");
+  }
+  if (ids.length === 0) return fail("Nothing selected.");
+
+  const supabase = createClient();
+  const factor = 1 + percent / 100;
+  let changed = 0;
+
+  // Read then write: the prices are per-row, so there is no single UPDATE
+  // that expresses this without a stored function.
+  for (const batch of chunk(ids, BULK_CHUNK)) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, homeowner_price, contractor_price")
+      .in("id", batch);
+
+    if (error || !data) {
+      console.error("[bulkAdjustPrices]", error);
+      return fail(toUserMessage(error, "We couldn't read those prices."));
+    }
+
+    for (const row of data as unknown as Record<string, unknown>[]) {
+      const homeowner = Number(row.homeowner_price ?? 0) * factor;
+      const contractor = Number(row.contractor_price ?? 0) * factor;
+      const { error: writeError } = await supabase
+        .from("products")
+        .update({
+          // price mirrors homeowner_price, per the products table comment.
+          price: Math.round(homeowner * 100) / 100,
+          homeowner_price: Math.round(homeowner * 100) / 100,
+          contractor_price: Math.round(contractor * 100) / 100,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", row.id as string);
+
+      if (writeError) {
+        console.error("[bulkAdjustPrices]", writeError);
+        return fail(
+          toUserMessage(
+            writeError,
+            `Repriced ${changed} products, then stopped on an error.`,
+          ),
+        );
+      }
+      changed += 1;
+    }
+  }
+
+  return ok({ changed, skipped: [] });
+}
+
+/**
+ * Deletes what can be deleted and says what it did not touch.
+ *
+ * A product on an order or in a package is kept, for the same reason the
+ * single delete refuses: order_items and package_items have no ON DELETE
+ * clause, so removing one would either fail or rewrite somebody's order
+ * history. Those are reported rather than silently skipped.
+ */
+export async function bulkDeleteProducts(
+  ids: string[],
+): Promise<ServiceResult<BulkResult>> {
+  if (ids.length === 0) return fail("Nothing selected.");
+
+  const supabase = createClient();
+  const blocked = new Map<string, string>();
+
+  for (const batch of chunk(ids, BULK_CHUNK)) {
+    const [ordered, packaged] = await Promise.all([
+      supabase.from("order_items").select("product_id").in("product_id", batch),
+      supabase.from("package_items").select("product_id").in("product_id", batch),
+    ]);
+
+    if (ordered.error || packaged.error) {
+      console.error("[bulkDeleteProducts]", ordered.error ?? packaged.error);
+      return fail("We couldn't check which products are safe to delete.");
+    }
+
+    for (const row of ordered.data ?? []) {
+      blocked.set(String(row.product_id), "on an order");
+    }
+    for (const row of packaged.data ?? []) {
+      if (!blocked.has(String(row.product_id))) {
+        blocked.set(String(row.product_id), "in a package");
+      }
+    }
+  }
+
+  const deletable = ids.filter((id) => !blocked.has(id));
+  let changed = 0;
+
+  for (const batch of chunk(deletable, BULK_CHUNK)) {
+    const { data, error } = await supabase
+      .from("products")
+      .delete()
+      .in("id", batch)
+      .select("id");
+
+    if (error) {
+      console.error("[bulkDeleteProducts]", error);
+      return fail(
+        toUserMessage(
+          error,
+          changed > 0
+            ? `Deleted ${changed} products, then stopped on an error.`
+            : "We couldn't delete those products.",
+        ),
+      );
+    }
+    changed += data?.length ?? 0;
+  }
+
+  return ok({
+    changed,
+    skipped: [...blocked.entries()].map(([id, reason]) => ({ id, reason })),
   });
 }

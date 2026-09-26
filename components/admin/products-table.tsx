@@ -21,6 +21,7 @@ import { ProductFormDialog } from "@/components/admin/product-form-dialog";
 import { ProductImportDialog } from "@/components/admin/product-import-dialog";
 import { StockControl } from "@/components/admin/stock-control";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
+import { BulkActionsBar } from "@/components/admin/bulk-actions-bar";
 import { useAsyncData } from "@/lib/store/hooks";
 import {
   deleteProduct,
@@ -87,6 +88,48 @@ function Thumb({ src, name }: { src: string; name: string }) {
   );
 }
 
+/**
+ * What the stock column shows.
+ *
+ * Most of the catalogue is stocked without being counted, and a spin box
+ * reading "0" next to an "In stock" badge invites somebody to correct a
+ * number that means nothing. Untracked products say so, and offer the
+ * count as the thing you opt into rather than the thing you fight.
+ */
+function StockCell({
+  product,
+  pending,
+  onCommit,
+  onStartCounting,
+}: {
+  product: AdminProductRow;
+  pending: boolean;
+  onCommit: (next: number) => void;
+  onStartCounting: () => void;
+}) {
+  if (product.trackStock) {
+    return (
+      <StockControl
+        value={product.stockQuantity}
+        unit={product.unit}
+        pending={pending}
+        onCommit={onCommit}
+      />
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onStartCounting}
+      disabled={pending}
+      className="rounded-lg border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/40 hover:text-foreground"
+      title="Start counting this product"
+    >
+      Not counted
+    </button>
+  );
+}
+
 export function ProductsTable() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -110,6 +153,7 @@ export function ProductsTable() {
   );
   const [sort, setSort] = React.useState<SortKey>("name");
   const [shown, setShown] = React.useState(PAGE);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<AdminProductRow | null>(null);
   const [deleting, setDeleting] = React.useState<AdminProductRow | null>(null);
@@ -227,6 +271,46 @@ export function ProductsTable() {
   }
 
   const visible = React.useMemo(() => products.slice(0, shown), [products, shown]);
+
+  /*
+   * Selection is kept as ids rather than rows, so it survives a reload
+   * after a bulk change, and is pruned to what the current filter can
+   * see — acting on a product you filtered away ten clicks ago is how
+   * bulk tools do damage quietly.
+   */
+  const selectable = React.useMemo(
+    () => new Set(products.map((p) => p.id)),
+    [products],
+  );
+  const selectedIds = React.useMemo(
+    () => [...selected].filter((id) => selectable.has(id)),
+    [selected, selectable],
+  );
+  const allVisibleSelected =
+    visible.length > 0 && visible.every((p) => selected.has(p.id));
+
+  function toggleRow(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleVisible() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) for (const p of visible) next.delete(p.id);
+      else for (const p of visible) next.add(p.id);
+      return next;
+    });
+  }
+
+  function afterBulk() {
+    setSelected(new Set());
+    reload();
+  }
 
   async function toggleActive(id: string, next: boolean) {
     setPendingId(id);
@@ -441,6 +525,13 @@ export function ProductsTable() {
             {visible.map((product) => (
               <li key={product.id} className="flex flex-col gap-2 px-3 py-2.5">
                 <div className="flex items-start justify-between gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(product.id)}
+                    onChange={() => toggleRow(product.id)}
+                    aria-label={`Select ${product.name}`}
+                    className="mt-3 size-4 shrink-0 accent-[var(--primary)]"
+                  />
                   <Thumb src={product.imageUrl} name={product.name} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
@@ -466,11 +557,11 @@ export function ProductsTable() {
                 </div>
 
                 <div className="flex items-center justify-between gap-2">
-                  <StockControl
-                    value={product.stockQuantity}
-                    unit={product.unit}
+                  <StockCell
+                    product={product}
                     pending={stockPendingId === product.id}
                     onCommit={(next) => commitStock(product.id, next)}
+                    onStartCounting={() => commitStock(product.id, product.stockQuantity)}
                   />
 
                   <div className="flex shrink-0 items-center gap-1">
@@ -511,6 +602,15 @@ export function ProductsTable() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={allVisibleSelected}
+                      onChange={toggleVisible}
+                      aria-label="Select every product shown"
+                      className="size-4 accent-[var(--primary)]"
+                    />
+                  </TableHead>
                   <TableHead>Product</TableHead>
                   <TableHead>Brand</TableHead>
                   <TableHead>Category</TableHead>
@@ -524,6 +624,15 @@ export function ProductsTable() {
               <TableBody>
                 {visible.map((product) => (
                   <TableRow key={product.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(product.id)}
+                        onChange={() => toggleRow(product.id)}
+                        aria-label={`Select ${product.name}`}
+                        className="size-4 accent-[var(--primary)]"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">
                       <span className="flex items-center gap-2.5">
                         <Thumb src={product.imageUrl} name={product.name} />
@@ -546,16 +655,17 @@ export function ProductsTable() {
                       {formatCad(product.contractorPrice)}
                     </TableCell>
                     <TableCell>
-                      <StockControl
-                        value={product.stockQuantity}
-                        unit={product.unit}
+                      <StockCell
+                        product={product}
                         pending={stockPendingId === product.id}
                         onCommit={(next) => commitStock(product.id, next)}
+                        onStartCounting={() => commitStock(product.id, product.stockQuantity)}
                       />
                     </TableCell>
                     <TableCell>
-                      {/* Derived from the count by a database trigger —
-                          never set by hand, so it can't contradict it. */}
+                      {/* Derived from the count by a database trigger
+                          while the product is counted; set directly when
+                          it is not. Either way, never both. */}
                       <span
                         className={cn(
                           "rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap capitalize",
@@ -605,6 +715,19 @@ export function ProductsTable() {
             </p>
           </div>
 
+          {allVisibleSelected && selectedIds.length < products.length ? (
+            <p className="text-center text-sm text-muted-foreground">
+              All {visible.length} shown are selected.{" "}
+              <button
+                type="button"
+                className="font-medium text-primary underline underline-offset-2"
+                onClick={() => setSelected(new Set(products.map((p) => p.id)))}
+              >
+                Select all {products.length} matching
+              </button>
+            </p>
+          ) : null}
+
           {products.length > visible.length ? (
             <div className="flex items-center justify-center gap-3">
               <Button
@@ -621,6 +744,15 @@ export function ProductsTable() {
           ) : null}
         </>
       )}
+
+      {selectedIds.length > 0 ? (
+        <BulkActionsBar
+          ids={selectedIds}
+          categories={categories}
+          onDone={afterBulk}
+          onClear={() => setSelected(new Set())}
+        />
+      ) : null}
 
       <ProductImportDialog
         open={importOpen}
