@@ -1,68 +1,134 @@
 """
-Attach photographs and real descriptions to the imported catalogue.
+Attach photographs and the store's own descriptions to the catalogue.
 
-    python scripts/attach-images.py
+    python scripts/attach-images.py            # uses the cached feed if present
+    python scripts/attach-images.py --refresh  # re-fetches it
 
-Reads a native Shopify product export from images/ and writes
-supabase/schema-18-product-images.sql.
+Writes supabase/schema-18-product-images.sql, which updates the products
+imported by schema-16.
 
-WHY A CSV AND NOT A SCRAPE
---------------------------
-The store's public feed (/products.json) carries the same data, but
-pulling it means 3,405 products' worth of requests against a live
-storefront. The admin export is one file, one click, no traffic, and it
-carries more than the feed does. Shopify writes it from:
+WHERE THE DATA COMES FROM
+-------------------------
+The store's public product feed, /products.json, paginated 250 at a time
+— fourteen requests with a second between them, not one request per
+product. The spreadsheet the catalogue was imported from is a
+third-party app's export and carries neither images nor descriptions;
+the feed carries both.
 
-    Shopify admin -> Products -> Export -> All products,
-                     "CSV for Excel, Numbers, or other spreadsheet"
+The feed is cached in images/ (gitignored) so re-running this to change a
+rule costs no traffic at all. Pass --refresh when the store has changed.
 
-WHAT IT USES
-------------
-  Handle        the join key. The catalogue import kept every product's
-                handle, so this matches without guessing.
-  Image Src     the photograph. Shopify writes one row per image, so the
-                first row per handle (Image Position 1) is the main one.
-  Body (HTML)   the real description, where the product has one. That
-                beats the generated sentence, so it wins when present.
+WHAT IT TAKES
+-------------
+  images[0].src   the main photograph, rewritten to Shopify's 800px
+                  variant — the originals run past 2000px, which is a
+                  slow catalogue on a phone for pixels nothing renders.
+  body_html       the real description, when it is actually a
+                  description. Plenty are not: 52 products say only
+                  "Call for availability this product only sell in store
+                  only", 32 are an empty "Item Dimension: Package
+                  Dimension:" template, some are a bare part number.
+                  Those are dropped and the generated sentence stays.
 
-Everything else in the export is ignored: prices and stock came from the
-first import and should not be silently re-sourced here.
-
-Requires nothing outside the standard library.
+Prices, stock and categories are NOT re-sourced here. They came from the
+first import; quietly re-deriving them from a second source is how two
+systems start disagreeing about what something costs.
 """
 
-import csv
-import glob
 import html
 import io
+import json
 import os
 import re
 import sys
+import time
+import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-IMAGES_DIR = os.path.join(REPO, "images")
-OUT = os.path.join(REPO, "supabase", "schema-18-product-images.sql")
+CACHE = os.path.join(REPO, "images", "zion-products-feed.json")
+OUT = os.path.join(REPO, "supabase", "schema-18-product-images-{n}.sql")
 
-# Shopify serves any size from the same URL by suffixing the filename.
-# 800px wide is what the product page and the card actually render at;
-# the originals are frequently 2000px+ and would be a slow catalogue on
-# a phone for no visible gain.
+FEED = "https://zionbuildingsupplies.com/products.json?limit=250&page={page}"
+UA = "CareBySuppliesCatalogueSync/1.0 (owner-authorised import)"
+PAGE_PAUSE = 1.0
+MAX_PAGES = 40
+
 IMAGE_WIDTH = 800
+CHUNK = 900
+MIN_DESCRIPTION = 25
 
-CHUNK = 1200
+
+def fetch_feed() -> list:
+    products, page = [], 1
+    while page <= MAX_PAGES:
+        req = urllib.request.Request(FEED.format(page=page), headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=60) as response:
+            batch = json.load(response)["products"]
+        if not batch:
+            break
+        products.extend(batch)
+        print(f"  page {page}: {len(batch)} (total {len(products)})", flush=True)
+        page += 1
+        time.sleep(PAGE_PAUSE)
+    return products
 
 
-def find_export() -> str:
-    """The newest CSV in images/ that looks like a Shopify export."""
-    best, best_mtime = None, -1
-    for path in glob.glob(os.path.join(IMAGES_DIR, "*.csv")):
-        with io.open(path, encoding="utf-8-sig", errors="replace") as fh:
-            header = fh.readline()
-        if "Handle" in header and "Image Src" in header:
-            mtime = os.path.getmtime(path)
-            if mtime > best_mtime:
-                best, best_mtime = path, mtime
-    return best
+def load_feed(refresh: bool) -> list:
+    if not refresh and os.path.exists(CACHE):
+        print("using cached feed:", os.path.relpath(CACHE, REPO))
+        return json.load(io.open(CACHE, encoding="utf-8"))
+    print("fetching product feed")
+    products = fetch_feed()
+    io.open(CACHE, "w", encoding="utf-8").write(json.dumps(products))
+    print(f"  cached {len(products)} products")
+    return products
+
+
+# ---------------------------------------------------------------------------
+# Descriptions
+# ---------------------------------------------------------------------------
+
+TAG = re.compile(r"<[^>]+>")
+SPACE = re.compile(r"\s+")
+
+# Availability notes rather than descriptions. Stripped wherever they
+# appear, so a real description that happens to end with one survives.
+BOILERPLATE = re.compile(
+    r"(call for availability"
+    r"|this product only sell in store only"
+    r"|only sold in store"
+    r"|only sell in store"
+    r"|discount applied at check ?out)",
+    re.I,
+)
+
+# The store's dimension template, left unfilled.
+EMPTY_TEMPLATE = re.compile(
+    r"^(item|package)\s+dimension\s*:\s*(package\s+dimension\s*:\s*)?"
+    r"(package\s+weight\s*:\s*)?$",
+    re.I,
+)
+
+
+def plain_text(body: str) -> str:
+    if not body:
+        return ""
+    text = re.sub(r"<(br|/p|/div|/li|/tr)[^>]*>", " ", body, flags=re.I)
+    text = TAG.sub("", text)
+    return SPACE.sub(" ", html.unescape(text)).strip()
+
+
+def usable_description(body: str) -> str:
+    """The feed's description, or "" when it is not one."""
+    text = BOILERPLATE.sub("", plain_text(body))
+    text = SPACE.sub(" ", text).strip(" .,;-")
+    if len(text) < MIN_DESCRIPTION:
+        return ""
+    if EMPTY_TEMPLATE.match(text):
+        return ""
+    if " " not in text:                      # a bare part number
+        return ""
+    return text if text.endswith((".", "!", "?")) else text + "."
 
 
 def sized(url: str) -> str:
@@ -76,23 +142,6 @@ def sized(url: str) -> str:
     return f"{root}_{IMAGE_WIDTH}x{ext}" + (f"?{query}" if query else "")
 
 
-TAG = re.compile(r"<[^>]+>")
-SPACE = re.compile(r"\s+")
-
-
-def plain_text(body: str) -> str:
-    """
-    Shopify descriptions are HTML. The product page renders plain text,
-    so the markup is stripped rather than stored and escaped later.
-    """
-    if not body:
-        return ""
-    text = re.sub(r"<(br|/p|/div|/li)[^>]*>", " ", body, flags=re.I)
-    text = TAG.sub("", text)
-    text = html.unescape(text)
-    return SPACE.sub(" ", text).strip()
-
-
 def sql(value) -> str:
     if value is None:
         return "null"
@@ -100,18 +149,19 @@ def sql(value) -> str:
 
 
 HEADER = """-- ===========================================================================
--- 18 — Photographs, and the descriptions Shopify already had
+-- 18 — Photographs and descriptions, part {n} of {total}
 --
--- Generated by scripts/attach-images.py from the Shopify product export.
--- Do not hand-edit; re-run the script.
+-- Generated by scripts/attach-images.py from the storefront's product
+-- feed. Do not hand-edit; re-run the script.
 --
--- Run AFTER schema-16. Matches on the handle each product was imported
--- with, so a product the export no longer carries is left alone rather
--- than blanked.
+-- Run AFTER schema-16. Joins on the handle each product was imported
+-- with, so a product the feed no longer carries keeps what it has rather
+-- than being blanked.
 --
--- Descriptions: only replaced where Shopify has a real one. The
--- generated sentence stays on every product that does not, which is why
--- this is a coalesce rather than a straight assignment.
+-- Descriptions coalesce rather than overwrite: where the store has a
+-- real one it wins, and where it has only "Call for availability" the
+-- sentence generated from the product's own tags stays. That is why
+-- every row carries both columns and nulls the one it does not change.
 --
 -- Safe to re-run.
 -- ===========================================================================
@@ -119,34 +169,11 @@ HEADER = """-- =================================================================
 
 
 def main() -> int:
-    export = find_export()
-    if not export:
-        print("No Shopify CSV export found in images/.", file=sys.stderr)
-        print("Export from: Shopify admin -> Products -> Export -> All "
-              "products -> CSV for Excel/Numbers, then drop it in images/.",
-              file=sys.stderr)
-        return 1
-    print("reading", os.path.basename(export))
+    refresh = "--refresh" in sys.argv
+    feed = load_feed(refresh)
+    by_handle = {p["handle"]: p for p in feed}
 
-    # handle -> (image, description). First image row per handle wins,
-    # which is Shopify's own position 1.
-    images, bodies = {}, {}
-    with io.open(export, encoding="utf-8-sig", errors="replace", newline="") as fh:
-        for row in csv.DictReader(fh):
-            handle = (row.get("Handle") or "").strip()
-            if not handle:
-                continue
-            src = (row.get("Image Src") or "").strip()
-            if src and handle not in images:
-                images[handle] = sized(src)
-            body = plain_text(row.get("Body (HTML)") or "")
-            if body and handle not in bodies:
-                bodies[handle] = body
-
-    print(f"  {len(images)} handles with an image, {len(bodies)} with a description")
-
-    # The catalogue import is the source of which handle became which id.
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    sys.path.insert(0, os.path.join(REPO, "scripts"))
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
@@ -154,34 +181,45 @@ def main() -> int:
     build = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(build)
 
-    buf = io.StringIO()
-    stdout, sys.stdout = sys.stdout, buf
+    stdout, sys.stdout = sys.stdout, io.StringIO()
     try:
         products = build.main()
     finally:
         sys.stdout = stdout
 
-    rows, matched, described = [], 0, 0
-    for p in products:
-        handle = p["handle"]
-        image = images.get(handle)
-        body = bodies.get(handle)
-        if not image and not body:
+    rows, photos, described, missing = [], 0, 0, []
+    for product in products:
+        source = by_handle.get(product["handle"])
+        if not source:
+            missing.append(product["name"])
             continue
-        matched += 1 if image else 0
+        images = source.get("images") or []
+        image = sized(images[0]["src"]) if images else None
+        body = usable_description(source.get("body_html"))
+        if not image and not body:
+            if not image:
+                missing.append(product["name"])
+            continue
+        photos += 1 if image else 0
         described += 1 if body else 0
-        rows.append((p["id"], image, body))
+        rows.append((product["id"], image, body or None))
 
-    print(f"  {matched} products get a photograph, {described} a real description")
-    print(f"  {len(products) - matched} still without one")
+    print(f"\ncatalogue        {len(products)}")
+    print(f"  photographs    {photos}")
+    print(f"  descriptions   {described}")
+    print(f"  still no photo {len(products) - photos}")
+    for name in missing[:10]:
+        print(f"     - {name[:60]}")
 
+    # One file per statement, for the same reason schema-16 is in four:
+    # a megabyte of SQL is more than the editor wants in one paste.
     parts = [rows[i:i + CHUNK] for i in range(0, len(rows), CHUNK)]
-    out = [HEADER]
-    for part in parts:
+    print()
+    for n, part in enumerate(parts, start=1):
         values = ",\n".join(
             f"    ({sql(pid)}, {sql(img)}, {sql(body)})" for pid, img, body in part
         )
-        out.append(f"""
+        statement = f"""
 update public.products p
    set image_url = coalesce(v.image_url, p.image_url),
        description = coalesce(v.description, p.description),
@@ -190,15 +228,19 @@ update public.products p
 {values}
   ) as v(id, image_url, description)
  where p.id = v.id;
-""")
-    out.append("""
+"""
+        # The count only means anything once every part has run.
+        tail = """
 select count(*) filter (where image_url is not null) as with_photo,
        count(*) filter (where image_url is null) as without_photo
   from public.products
  where is_active;
-""")
-    io.open(OUT, "w", encoding="utf-8", newline="\n").write("\n".join(out))
-    print("wrote", os.path.relpath(OUT, REPO), f"({len(parts)} statements)")
+""" if n == len(parts) else ""
+
+        path = OUT.format(n=n)
+        io.open(path, "w", encoding="utf-8", newline="\n").write(
+            HEADER.format(n=n, total=len(parts)) + statement + tail)
+        print("  wrote", os.path.relpath(path, REPO))
     return 0
 
 
