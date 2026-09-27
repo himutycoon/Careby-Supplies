@@ -18,6 +18,7 @@ import { useCart } from "@/components/shop/cart-provider";
 import { createProject } from "@/services/projects";
 import { createServiceRequest } from "@/services/service-requests";
 import { PACKAGE_TIERS, PROJECT_FLOWS } from "@/data/project-flows";
+import { projectScope } from "@/data/project-scopes";
 import { formatCad } from "@/lib/format";
 
 const STEPS = ["Type", "Details", "Package", "Materials", "Review"];
@@ -49,6 +50,24 @@ const ALL_CATEGORIES = [
   "concrete",
   "metal-framing",
 ];
+
+/*
+ * Aisles a job type buys from.
+ *
+ * Where the job matches one of the project scopes the homeowner
+ * checklist is built from, the aisles are taken from that scope's own
+ * stages rather than written again here — two hand-kept lists of the
+ * same thing drift, and the client asked for this side to match.
+ */
+function scopeCategories(projectId: string): string[] | undefined {
+  const project = projectScope(projectId);
+  if (!project) return undefined;
+  const all = [
+    ...project.stages,
+    ...(project.variants ?? []).flatMap((v) => v.stages),
+  ].flatMap((stage) => stage.categories);
+  return [...new Set(all)];
+}
 
 const SUBTYPE_CATEGORIES: Record<string, string[]> = {
   // Repairs stay tight — you are fixing one thing.
@@ -83,6 +102,12 @@ const SUBTYPE_CATEGORIES: Record<string, string[]> = {
   commercial: ALL_CATEGORIES,
   other: ALL_CATEGORIES,
 };
+
+/** The scope's aisles when the job is one of them, else the map above. */
+function categoriesFor(subtype: string): string[] {
+  return scopeCategories(subtype) ?? SUBTYPE_CATEGORIES[subtype] ?? ALL_CATEGORIES;
+}
+
 
 export function CategoryOrderFlow() {
   const router = useRouter();
@@ -314,7 +339,7 @@ export function CategoryOrderFlow() {
           helper="Add what you need — quantities stay editable in the cart."
         >
           <ProductSelector
-            categoryIds={subtype ? SUBTYPE_CATEGORIES[subtype] : null}
+            categoryIds={subtype ? categoriesFor(subtype) : null}
             showContractorPrice
           />
         </WizardStep>

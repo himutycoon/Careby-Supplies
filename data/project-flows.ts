@@ -77,6 +77,12 @@ export const PROJECT_FLOWS: ProjectFlowType[] = [
       { id: "bathroom", label: "Bathroom", icon: "Boxes" },
       { id: "basement", label: "Basement", icon: "Building2" },
       { id: "bedroom", label: "Bedroom", icon: "Home" },
+      // The client's own project list, which the homeowner checklist
+      // already works from. A contractor picking "by job type" was
+      // offered fewer jobs than a homeowner was.
+      { id: "flooring", label: "Flooring", icon: "Ruler" },
+      { id: "painting", label: "Painting", icon: "PaintRoller" },
+      { id: "fence", label: "Fence", icon: "Ruler" },
       { id: "whole-house", label: "Full House", icon: "Home" },
       { id: "addition", label: "Addition", icon: "Building2" },
       { id: "deck", label: "Deck", icon: "Ruler" },

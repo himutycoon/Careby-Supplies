@@ -1,13 +1,16 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { OptionCard } from "@/components/wizard-kit/option-card";
 import { WizardFrame } from "@/components/wizard-kit/wizard-frame";
+import { ProductSelector } from "@/components/wizard-kit/product-selector";
+import { useCart } from "@/components/shop/cart-provider";
 import { useToast } from "@/components/shared/toast";
 import { createServiceRequest } from "@/services/service-requests";
 import {
@@ -18,7 +21,7 @@ import {
 } from "@/data/project-scopes";
 import { cn } from "@/lib/utils";
 
-const STEPS = ["Project", "What you need", "Send"];
+const STEPS = ["Project", "What you need", "Materials", "Send"];
 
 /**
  * Pick a project, tick the parts of it you need materials for, send it.
@@ -43,6 +46,8 @@ export function ScopeRequestFlow() {
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
   const [notes, setNotes] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [openStage, setOpenStage] = React.useState("");
+  const { itemCount } = useCart();
 
   const project = projectId ? projectScope(projectId) : undefined;
   const stages: ScopeStage[] = project ? stagesFor(project, variantId) : [];
@@ -74,13 +79,24 @@ export function ScopeRequestFlow() {
   }
 
   const needsVariant = Boolean(project?.variants?.length) && !variantId;
+  // Not memoised: `stages` is rebuilt every render anyway, so a memo
+  // keyed on it would never hit, and filtering 29 items is free.
+  const chosen = stages.filter((s) => picked.has(s.id));
   const canContinue =
     step === 0 ? Boolean(project) && !needsVariant : step === 1 ? picked.size > 0 : true;
+
+  // Open the first ticked stage on arrival rather than an empty grid.
+  const stageView = `${projectId}|${variantId}|${[...picked].sort().join(",")}`;
+  const [lastStageView, setLastStageView] = React.useState(stageView);
+  if (stageView !== lastStageView) {
+    setLastStageView(stageView);
+    setOpenStage(chosen[0]?.id ?? "");
+  }
+  const activeStage = chosen.find((s) => s.id === openStage) ?? chosen[0];
 
   async function submit() {
     if (!project) return;
     setSubmitting(true);
-    const chosen = stages.filter((s) => picked.has(s.id));
     const result = await createServiceRequest({
       serviceType: "material-list",
       category: project.id,
@@ -209,6 +225,48 @@ export function ScopeRequestFlow() {
       ) : null}
 
       {step === 2 && project ? (
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">
+            What we stock for each part you ticked. Add what you need and
+            check out — nothing here has to wait on a phone call.
+          </p>
+
+          {/* One stage open at a time: a bathroom can carry 29 of them,
+              and fetching a grid for every one would be 29 requests to
+              fill a screen nobody has scrolled to yet. */}
+          <div className="scroll-row gap-2 pb-1">
+            {chosen.map((stage) => {
+              const on = stage.id === activeStage?.id;
+              return (
+                <button
+                  key={stage.id}
+                  type="button"
+                  onClick={() => setOpenStage(stage.id)}
+                  aria-pressed={on}
+                  className={cn(
+                    "press flex min-h-9 items-center rounded-full border px-3 text-sm font-medium whitespace-nowrap",
+                    on
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {stage.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {activeStage ? (
+            <ProductSelector
+              key={activeStage.id}
+              categoryIds={activeStage.categories}
+              emptyMessage={`We don't stock ${activeStage.label.toLowerCase()} online yet — leave it ticked and we'll price it with your request.`}
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {step === 3 && project ? (
         <div className="flex flex-col gap-5">
           <div className="rounded-xl border p-4">
             <p className="text-sm font-medium">
@@ -236,9 +294,25 @@ export function ScopeRequestFlow() {
             />
           </div>
 
+          {itemCount > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4">
+              <p className="text-sm">
+                <ShoppingCart className="mr-1.5 inline size-4" aria-hidden="true" />
+                {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                render={<Link href="/cart">Go to checkout</Link>}
+              />
+            </div>
+          ) : null}
+
           <p className="text-xs text-muted-foreground">
-            We come back with a material list and a price. Installation is
-            handled by your own contractor.
+            Sending the request covers the parts we could not price for you
+            here. Anything already in your cart can be checked out now —
+            the two do not wait on each other. Installation is handled by
+            your own contractor.
           </p>
         </div>
       ) : null}
