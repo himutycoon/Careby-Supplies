@@ -78,10 +78,10 @@ export const GUIDED_FLOWS: Record<
       id: "renovation",
       label: "Materials for a room",
       description:
-        "Photo-based material estimate now, checked by hand within 48 hours.",
-      steps: ["Property details", "Upload photos", "Get your estimate"],
-      icon: "Ruler",
-      href: "/new",
+        "Tick the parts of the job and get every material it needs, priced.",
+      steps: ["Pick the project", "Tick what you need", "Get the materials"],
+      icon: "ClipboardList",
+      href: "/materials",
     },
     {
       id: "new-construction",

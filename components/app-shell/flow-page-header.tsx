@@ -25,6 +25,7 @@ export function FlowPageHeader({
   accent,
   description,
   imageSlot,
+  tone = "default",
   className,
 }: {
   eyebrow: string;
@@ -33,6 +34,8 @@ export function FlowPageHeader({
   accent?: string;
   description: string;
   imageSlot?: SiteImageSlot;
+  /** "premium" prints the eyebrow in the brand's gold rather than navy. */
+  tone?: "default" | "premium";
   className?: string;
 }) {
   return (
@@ -47,8 +50,21 @@ export function FlowPageHeader({
         )}
       >
         <div className="flex min-w-0 flex-col gap-2">
-          <span className="flex items-center gap-2.5 text-xs font-semibold tracking-[0.14em] text-primary uppercase">
-            <span className="h-px w-6 shrink-0 bg-primary/50" aria-hidden="true" />
+          <span
+            className={cn(
+              "flex items-center gap-2.5 text-xs font-semibold tracking-[0.14em] uppercase",
+              tone === "premium"
+                ? "text-hi-vis-foreground dark:text-hi-vis"
+                : "text-primary",
+            )}
+          >
+            <span
+              className={cn(
+                "h-px w-6 shrink-0",
+                tone === "premium" ? "bg-hi-vis" : "bg-primary/50",
+              )}
+              aria-hidden="true"
+            />
             {eyebrow}
           </span>
 

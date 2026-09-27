@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { WHATSAPP_URL } from "@/data/mock";
 
 const QUICK_ACTIONS: { label: string; href: string; icon: LucideIcon }[] = [
-  { label: "Get a new estimate", href: "/new", icon: PencilRuler },
+  { label: "Get a material list", href: "/materials", icon: PencilRuler },
   // The requests list is on this page; the anchor jumps to it.
   { label: "Track your requests", href: "#requests", icon: ClipboardList },
   { label: "Browse products", href: "/products", icon: ShoppingCart },
@@ -110,8 +110,8 @@ export function HelpRail() {
               size="sm"
               className="press mt-3"
               render={
-                <Link href="/new">
-                  Create estimate <ArrowRight className="size-3.5" />
+                <Link href="/materials">
+                  Get a material list <ArrowRight className="size-3.5" />
                 </Link>
               }
             />

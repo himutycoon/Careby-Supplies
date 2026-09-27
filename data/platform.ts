@@ -108,10 +108,10 @@ export const SERVICES: ServiceItem[] = [
     href: "/services",
   },
   {
-    icon: "Ruler",
-    title: "Renovation Materials",
+    icon: "ClipboardList",
+    title: "Renovation Material List",
     description:
-      "Photograph the room and get back the material list it needs, priced.",
+      "Tick the parts of the job and get back every material it needs, priced.",
     href: "/services",
   },
   {
@@ -188,8 +188,8 @@ export const PROJECT_CATEGORIES: ProjectCategory[] = [
   },
   {
     id: "renovation",
-    title: "Renovation Materials",
-    description: "Everything a room needs, in the quantities it needs, priced to your budget.",
+    title: "Renovation Material List",
+    description: "Every material the job needs, part by part, so nothing is missed and each stage can be budgeted.",
     tone: "slate",
     href: "/services",
   },

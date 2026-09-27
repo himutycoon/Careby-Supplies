@@ -323,20 +323,20 @@ export function PremiumRequestWizard() {
           <legend className="text-lg font-medium">
             How much support do you want?
           </legend>
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             {PREMIUM_TIERS.map((option) => (
               <PickCard
                 key={option.id}
                 selected={tier === option.id}
                 title={option.name}
                 description={option.tagline}
-                /* The paid tier says its price here. The others are
-                   scoped on a call, so quoting a number would invent
-                   one. */
+                /* Both prices are known now that there are two
+                   packages, and the free one saying so is the whole
+                   reason someone starts here. */
                 meta={
                   isPaidConsultationTier(option.id)
                     ? `${formatCad(CONSULTATION_FEE_CAD)} one-time · ${option.bestFor}`
-                    : option.bestFor
+                    : `Free · ${option.bestFor}`
                 }
                 onClick={() => setTier(option.id)}
               />
@@ -590,6 +590,9 @@ export function PremiumRequestWizard() {
         ) : (
           <Button
             size="lg"
+            /* Safety yellow is the colour this product already uses for
+               premium; the paying step is where it earns its keep. */
+            variant={isPaidConsultationTier(tier) ? "hi-vis" : "default"}
             className="press"
             onClick={handleSubmit}
             disabled={submitting}
@@ -598,8 +601,10 @@ export function PremiumRequestWizard() {
               <Loader2 className="size-4 animate-spin" />
             ) : isPaidConsultationTier(tier) && paymentsLive ? (
               `Pay ${formatCad(CONSULTATION_FEE_CAD)} and book`
-            ) : (
+            ) : isPaidConsultationTier(tier) ? (
               "Submit request"
+            ) : (
+              "Get my free takeoff"
             )}
           </Button>
         )}

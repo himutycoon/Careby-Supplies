@@ -730,7 +730,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "Email summary",
     ],
     ctaLabel: "Get my estimate",
-    ctaHref: "/new",
+    ctaHref: "/materials",
     highlighted: false,
   },
   {
@@ -746,7 +746,7 @@ export const PRICING_TIERS: PricingTier[] = [
       "Delivered within 48 hours",
     ],
     ctaLabel: "Get my full plan",
-    ctaHref: "/new",
+    ctaHref: "/materials",
     highlighted: true,
   },
   {

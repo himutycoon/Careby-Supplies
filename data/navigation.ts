@@ -57,9 +57,9 @@ export const CONTRACTOR_NAV: AppNavItem[] = [
 export const HOMEOWNER_NAV: AppNavItem[] = [
   { label: "Home", href: "/dashboard", icon: "Home" },
   { label: "Shop", href: "/products", icon: "Store" },
-  { label: "Estimate", href: "/new", icon: "Ruler" },
+  { label: "Materials", href: "/materials", icon: "ClipboardList" },
   { label: "Parts", href: "/repair", icon: "Wrench" },
-  { label: "New Build", href: "/new-construction", icon: "Building2" },
+  { label: "Cost Guide", href: "/new-construction", icon: "Building2" },
   { label: "Premium", href: "/premium-request", icon: "Crown" },
 ];
 
@@ -76,12 +76,16 @@ export const HOMEOWNER_NAV: AppNavItem[] = [
 export const HOMEOWNER_SIDEBAR_NAV: AppNavItem[] = [
   { label: "Home", href: "/dashboard", icon: "Home" },
   { label: "Shop Products", href: "/products", icon: "ShoppingCart" },
-  // The three intake flows, named for what they hand you. On the phone
-  // these are one word each; here there is room to say it properly.
-  { label: "Material estimate", href: "/new", icon: "PencilRuler" },
+  // The intake flows, named for what they hand you. On the phone these
+  // are one word each; here there is room to say it properly. These
+  // labels are the client's own, and must match the dashboard tiles —
+  // the sidebar still said "Premium Supply" and still pointed at the
+  // renovation estimate he asked us to retire, so a customer could
+  // reach the old flow from here and never find the checklist at all.
+  { label: "Renovation material list", href: "/materials", icon: "ClipboardList" },
   { label: "Repair parts", href: "/repair", icon: "Wrench" },
-  { label: "New build materials", href: "/new-construction", icon: "Building2" },
-  { label: "Premium Supply", href: "/premium-request", icon: "Crown" },
+  { label: "Project cost guide", href: "/new-construction", icon: "Building2" },
+  { label: "Premium takeoff & DIY", href: "/premium-request", icon: "Crown" },
   { label: "My projects", href: "/dashboard#projects", icon: "FolderKanban" },
   { label: "Orders", href: "/orders", icon: "Receipt" },
 ];

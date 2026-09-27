@@ -130,7 +130,7 @@ export function ActiveProjects({
           size="sm"
           className="press mt-1"
           render={
-            <Link href="/new">
+            <Link href="/materials">
               Start a project <ArrowRight className="size-3.5" />
             </Link>
           }

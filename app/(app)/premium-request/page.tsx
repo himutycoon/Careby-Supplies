@@ -1,29 +1,37 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { Ruler, Truck, UserRound } from "lucide-react";
+import { FileUp, HardHat, ListChecks } from "lucide-react";
 import { PremiumRequestWizard } from "@/components/homeowner/premium-request-wizard";
 import { FlowPageHeader } from "@/components/app-shell/flow-page-header";
 import { SupplySteps } from "@/components/shared/supply-steps";
 
 export const metadata: Metadata = {
-  title: "Request Premium Supply — CareBy Supplies",
+  title: "Project Takeoff & DIY Support — CareBy Supplies",
 };
 
+/*
+ * What the two packages actually hand over.
+ *
+ * This rail used to promise staged deliveries and a named contact. Those
+ * belonged to a third package that no longer exists, so the page was
+ * selling a service nobody could buy — the fastest way to lose the sale
+ * is at the moment someone asks for the thing you described.
+ */
 const STEPS = [
   {
-    icon: Ruler,
-    title: "A takeoff from your drawings",
-    body: "Send what you have and we work out the quantities from it.",
+    icon: FileUp,
+    title: "Send your drawings",
+    body: "Plans, a sketch, or photos of what you have. We work the quantities out from them.",
   },
   {
-    icon: Truck,
-    title: "Deliveries to your dates",
-    body: "Staged so material lands ahead of the trade that needs it.",
+    icon: ListChecks,
+    title: "Get a priced list back",
+    body: "Free, with alternates where they save money, and no obligation to order.",
   },
   {
-    icon: UserRound,
-    title: "A named contact",
-    body: "One person who knows your job, reachable by phone or email.",
+    icon: HardHat,
+    title: "Add a contractor if you want one",
+    body: "A session with an experienced contractor for when you are building it yourself.",
   },
 ];
 
@@ -31,10 +39,11 @@ export default function PremiumRequestPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <FlowPageHeader
-        eyebrow="Premium supply"
-        title="Hand us the drawings,"
-        accent="take delivery"
-        description="Tell us what you need and an advisor takes the material side from there — priced, staged and delivered around your build."
+        eyebrow="Premium · Project takeoff"
+        tone="premium"
+        title="Upload your drawings,"
+        accent="get the materials"
+        description="A takeoff from your own plans, priced and itemised — free. Add on-demand contractor guidance if you are building it yourself."
         imageSlot="premium"
       />
 

@@ -16,9 +16,17 @@ interface Tile {
   href: string;
   image: string;
   icon: LucideIcon;
-  /** Tints the icon chip so the five paths are told apart at a glance. */
+  /** Tints the icon chip so the paths are told apart at a glance. */
   tone: string;
   badge?: string;
+  /** Small line above the title, for saying what kind of thing this is. */
+  eyebrow?: string;
+  /*
+   * Premium is the earning feature, and it looked like the other five.
+   * This dresses it in the brand's safety yellow — the same gold the
+   * marketing page already uses for it — rather than inventing a colour.
+   */
+  premium?: boolean;
 }
 
 /*
@@ -73,8 +81,10 @@ const SECONDARY: Tile[] = [
     href: "/premium-request",
     image: "/images/premium-1-plans.webp",
     icon: Crown,
-    tone: "bg-primary/10 text-primary",
+    tone: "bg-hi-vis text-hi-vis-foreground",
     badge: "Premium",
+    premium: true,
+    eyebrow: "Premium service",
   },
 ];
 
@@ -84,9 +94,18 @@ function ServiceTile({ tile, tall }: { tile: Tile; tall?: boolean }) {
     <Link
       href={tile.href}
       className={cn(
-        "group press-sm relative flex overflow-hidden rounded-2xl border border-border bg-card transition-[border-color,box-shadow] duration-200",
-        "hover:border-primary/40 hover:shadow-[0_6px_20px_color-mix(in_oklch,var(--primary),transparent_88%)]",
+        "group press-sm relative flex overflow-hidden rounded-2xl border bg-card transition-[border-color,box-shadow] duration-200",
         "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+        tile.premium
+          ? [
+              "border-hi-vis/60",
+              "shadow-[0_2px_14px_color-mix(in_oklch,var(--hi-vis),transparent_82%)]",
+              "hover:border-hi-vis hover:shadow-[0_8px_28px_color-mix(in_oklch,var(--hi-vis),transparent_62%)]",
+            ]
+          : [
+              "border-border",
+              "hover:border-primary/40 hover:shadow-[0_6px_20px_color-mix(in_oklch,var(--primary),transparent_88%)]",
+            ],
         tall ? "min-h-40 sm:min-h-44" : "min-h-36",
       )}
     >
@@ -103,8 +122,24 @@ function ServiceTile({ tile, tall }: { tile: Tile; tall?: boolean }) {
         className="absolute inset-y-0 right-0 h-full w-[55%] object-cover transition-transform duration-500 [mask-image:linear-gradient(to_right,transparent,black_55%)] group-hover:scale-105"
       />
 
+      {/* A thin gold edge down the left, so the tile reads as premium
+          even where the badge is off-screen on a narrow phone. */}
+      {tile.premium ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-y-0 left-0 z-10 w-1 bg-hi-vis"
+        />
+      ) : null}
+
       {tile.badge ? (
-        <span className="absolute top-3 right-3 z-10 rounded-md bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+        <span
+          className={cn(
+            "absolute top-3 right-3 z-10 rounded-md px-2 py-0.5 text-[11px] font-semibold",
+            tile.premium
+              ? "bg-hi-vis text-hi-vis-foreground shadow-sm"
+              : "bg-primary text-primary-foreground",
+          )}
+        >
           {tile.badge}
         </span>
       ) : null}
@@ -119,6 +154,11 @@ function ServiceTile({ tile, tall }: { tile: Tile; tall?: boolean }) {
           <Icon className="size-5" aria-hidden="true" />
         </span>
         <div>
+          {tile.eyebrow ? (
+            <span className="mb-0.5 block text-[10px] font-bold tracking-[0.14em] text-hi-vis-foreground/70 uppercase dark:text-hi-vis">
+              {tile.eyebrow}
+            </span>
+          ) : null}
           <h3 className="font-sans text-base font-semibold tracking-normal">
             {tile.title}
           </h3>

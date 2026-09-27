@@ -38,8 +38,8 @@ export function DashboardHero({ name }: { name: string }) {
           size="lg"
           className="press mt-2 w-full rounded-full sm:w-fit"
           render={
-            <Link href="/new">
-              Get an estimate <ArrowRight className="size-4" />
+            <Link href="/materials">
+              Get a material list <ArrowRight className="size-4" />
             </Link>
           }
         />

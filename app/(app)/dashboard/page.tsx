@@ -96,8 +96,8 @@ export default async function DashboardPage({
             id="projects"
             icon={FolderKanban}
             title="Active projects"
-            href="/new"
-            hrefLabel="New estimate"
+            href="/materials"
+            hrefLabel="New material list"
           >
             <ActiveProjects
               submissions={submissions}
