@@ -40,9 +40,16 @@ export function DashboardSidebar({ items }: { items: AppNavItem[] }) {
                   href={item.href}
                   className={cn(
                     "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    // Premium is gold whether or not you are on it, so
+                    // the sidebar and the dashboard tile read as one
+                    // feature rather than two.
+                    item.premium
+                      ? isActive
+                        ? "bg-hi-vis text-hi-vis-foreground"
+                        : "bg-hi-vis/12 text-hi-vis-foreground ring-1 ring-hi-vis/40 hover:bg-hi-vis/20 dark:text-hi-vis"
+                      : isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >

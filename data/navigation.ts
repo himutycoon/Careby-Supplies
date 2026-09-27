@@ -10,6 +10,13 @@ export interface AppNavItem {
   group?: string;
   /** Renders a live count on the icon. Only the cart needs one today. */
   badge?: "cart";
+  /**
+   * Picks out the earning feature in the brand's safety yellow.
+   *
+   * The dashboard tile is gold and the sidebar entry beside it was not,
+   * which made the same feature look like two different things.
+   */
+  premium?: boolean;
 }
 
 /**
@@ -60,7 +67,7 @@ export const HOMEOWNER_NAV: AppNavItem[] = [
   { label: "Materials", href: "/materials", icon: "ClipboardList" },
   { label: "Parts", href: "/repair", icon: "Wrench" },
   { label: "Cost Guide", href: "/new-construction", icon: "Building2" },
-  { label: "Premium", href: "/premium-request", icon: "Crown" },
+  { label: "Premium", href: "/premium-request", icon: "Crown", premium: true },
 ];
 
 /**
@@ -85,7 +92,12 @@ export const HOMEOWNER_SIDEBAR_NAV: AppNavItem[] = [
   { label: "Renovation material list", href: "/materials", icon: "ClipboardList" },
   { label: "Repair parts", href: "/repair", icon: "Wrench" },
   { label: "Project cost guide", href: "/new-construction", icon: "Building2" },
-  { label: "Premium takeoff & DIY", href: "/premium-request", icon: "Crown" },
+  {
+    label: "Premium takeoff & DIY",
+    href: "/premium-request",
+    icon: "Crown",
+    premium: true,
+  },
   { label: "My projects", href: "/dashboard#projects", icon: "FolderKanban" },
   { label: "Orders", href: "/orders", icon: "Receipt" },
 ];

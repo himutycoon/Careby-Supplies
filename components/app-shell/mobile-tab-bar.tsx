@@ -74,7 +74,17 @@ export function MobileTabBar({ items }: { items: AppNavItem[] }) {
                     aria-hidden="true"
                   />
                 ) : null}
-                <span className="relative">
+                <span
+                  className={cn(
+                    "relative",
+                    // Premium gets a gold chip rather than gold text:
+                    // safety yellow has no contrast as ink on a light
+                    // tab bar, which is why the theme treats it as a
+                    // fill that carries navy.
+                    item.premium &&
+                      "flex size-7 items-center justify-center rounded-full bg-hi-vis text-hi-vis-foreground",
+                  )}
+                >
                   <Icon name={item.icon} className="size-5" />
                   {item.badge === "cart" && itemCount > 0 ? (
                     <span className="absolute -top-1 -right-2.5 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] leading-4 font-semibold text-primary-foreground tabular-nums">
