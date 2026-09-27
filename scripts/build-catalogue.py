@@ -195,7 +195,7 @@ def split_item_code(raw: str):
 
 
 MEASURE = re.compile(
-    r"""[\d/\.\-]+\s*(?:"|''|'|MM|CM|IN)\s*[XxÃ—*]\s*[\d/\.\-]+\s*(?:"|''|'|MM|CM|IN)?"""
+    r"""[\d/\.\-]+\s*(?:"|''|'|MM|CM|IN\b)\s*[XxÃ—*]\s*[\d/\.\-]+\s*(?:"|''|'|MM|CM|IN\b)?"""
     r"""(?:\s*[XxÃ—*]\s*[\d/\.\-]+\s*(?:"|''|'|MM|CM)?)?""",
     re.I,
 )
@@ -300,10 +300,10 @@ def describe(name, category, tags, brand, sku, pickup_only, unit) -> str:
         first += f" in {colour.lower()}"
     first += "."
 
-    where = f"Part of our {CATEGORY_LABEL.get(category, 'catalogue')} range"
-    if brand and brand.lower() not in ("zion", "zion building supplies"):
-        where += f", supplied by {brand}"
-    where += "."
+    # The range is ours to mention; where we buy it is not. The client
+    # asked for the supplier off the products, and "supplied by X" is
+    # that sentence even when X happens to be a manufacturer.
+    where = f"Part of our {CATEGORY_LABEL.get(category, 'catalogue')} range."
 
     sold = "" if unit == "each" else f"Sold by the {unit}."
 
@@ -357,7 +357,10 @@ def main():
         pickup_only = "InStoreOnly" in tags_raw
         sku = (r[idx["sku"]] or "").strip()
         brand_raw = (r[idx["vendor"]] or "").strip()
-        brand = "Zion Building Supplies" if brand_raw.lower() in (
+        # The supplier is not a brand we sell under. Their own rows get
+        # no brand at all; a real manufacturer keeps its name, because a
+        # customer shops by Makita and does not shop by our wholesaler.
+        brand = "" if brand_raw.lower() in (
             "zion", "zion building supplies") else brand_raw
 
         price = round(float(r[idx["price"]]), 2)

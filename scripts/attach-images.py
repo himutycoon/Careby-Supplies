@@ -105,6 +105,12 @@ BOILERPLATE = re.compile(
     re.I,
 )
 
+# The supplier's own about-us text rides along in 28 descriptions —
+# "... is a local Toronto store owned and operated by ..." — which is a
+# rival storefront advertising itself on our product pages. Any sentence
+# naming them goes, not just the phrase.
+SUPPLIER_SENTENCE = re.compile(r"[^.!?]*\bzion\b[^.!?]*[.!?]\s*", re.I)
+
 # The store's dimension template, left unfilled.
 EMPTY_TEMPLATE = re.compile(
     r"^(item|package)\s+dimension\s*:\s*(package\s+dimension\s*:\s*)?"
@@ -123,7 +129,8 @@ def plain_text(body: str) -> str:
 
 def usable_description(body: str) -> str:
     """The feed's description, or "" when it is not one."""
-    text = BOILERPLATE.sub("", plain_text(body))
+    text = SUPPLIER_SENTENCE.sub(" ", plain_text(body))
+    text = BOILERPLATE.sub("", text)
     text = SPACE.sub(" ", text).strip(" .,;-")
     if len(text) < MIN_DESCRIPTION:
         return ""
