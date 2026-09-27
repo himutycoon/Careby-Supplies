@@ -4,7 +4,6 @@ import {
   Building2,
   ClipboardList,
   Crown,
-  PaintRoller,
   ShoppingCart,
   Wrench,
   type LucideIcon,
@@ -39,32 +38,26 @@ const PRIMARY: Tile[] = [
     tone: "bg-primary/10 text-primary",
   },
   {
-    title: "New Build Materials",
-    description: "Budget the material for a build, stage by stage.",
+    title: "Project Cost Guide",
+    description:
+      "Get a reference project cost, then source architecture, design and materials under one roof.",
     href: "/new-construction",
     image: "/images/category-new-construction-framing.webp",
     icon: Building2,
     tone: "bg-success/12 text-success",
   },
   {
-    title: "Renovation Materials",
-    description: "Work out what a room needs, priced and delivered.",
-    href: "/new",
+    title: "Renovation Material List",
+    description:
+      "Every material your renovation needs, part by part — so nothing is missed and each stage can be budgeted.",
+    href: "/materials",
     image: "/images/category-renovation-kitchen.webp",
-    icon: PaintRoller,
+    icon: ClipboardList,
     tone: "bg-chart-3/15 text-chart-3",
   },
 ];
 
 const SECONDARY: Tile[] = [
-  {
-    title: "Material Checklist",
-    description: "Tick the parts of your job; we price the list.",
-    href: "/materials",
-    image: "/images/premium-2-materials.webp",
-    icon: ClipboardList,
-    tone: "bg-chart-2/15 text-chart-2",
-  },
   {
     title: "Shop Products",
     description: "Quality materials and tools for your projects.",
@@ -74,13 +67,14 @@ const SECONDARY: Tile[] = [
     tone: "bg-warning/15 text-warning-foreground dark:text-warning",
   },
   {
-    title: "Premium Supply",
-    description: "A takeoff from your drawings, priced and scheduled.",
+    title: "Project Takeoff & DIY Support",
+    description:
+      "Upload your drawings, get a materials estimate, and build with on-demand contractor guidance.",
     href: "/premium-request",
     image: "/images/premium-1-plans.webp",
     icon: Crown,
     tone: "bg-primary/10 text-primary",
-    badge: "Full service",
+    badge: "Premium",
   },
 ];
 
@@ -149,7 +143,7 @@ export function ServiceTiles() {
           <ServiceTile key={tile.href} tile={tile} tall />
         ))}
       </div>
-      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1.4fr] sm:gap-4">
+      <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr] sm:gap-4">
         {SECONDARY.map((tile) => (
           <ServiceTile key={tile.href} tile={tile} />
         ))}

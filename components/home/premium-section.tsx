@@ -29,7 +29,7 @@ export function PremiumSection() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="flex flex-col items-start gap-4 sm:items-center sm:gap-5 sm:text-center">
           <span className="w-fit rounded-full border border-hi-vis/30 bg-hi-vis/10 px-3.5 py-1.5 text-xs font-semibold tracking-[0.14em] text-hi-vis uppercase">
-            Premium Supply
+            Project Takeoff & DIY Support
           </span>
 
           <h2 className="max-w-3xl text-balance text-ink-foreground">
@@ -37,13 +37,13 @@ export function PremiumSection() {
           </h2>
 
           <p className="max-w-2xl text-pretty leading-relaxed text-ink-foreground/70">
-            Three ways to get the material side off your plate — from a
-            single session with an advisor to a named contact who keeps
-            every delivery ahead of your trades.
+            Upload your drawings, get a materials estimate, and build with
+            on-demand contractor guidance. The takeoff costs nothing — the
+            session is there if you want someone in your corner.
           </p>
         </div>
 
-        <ul className="mt-8 grid gap-4 sm:mt-12 lg:grid-cols-3">
+        <ul className="mt-8 grid gap-4 sm:mt-12 sm:grid-cols-2">
           {PREMIUM_TIERS.map((tier) => {
             const paid = isPaidConsultationTier(tier.id);
             return (
@@ -65,7 +65,7 @@ export function PremiumSection() {
                         paid ? "text-hi-vis" : "text-ink-foreground/60",
                       )}
                     >
-                      {paid ? `$${CONSULTATION_FEE_CAD} CAD` : "Priced per job"}
+                      {paid ? `$${CONSULTATION_FEE_CAD} CAD` : "Free"}
                     </span>
                   </div>
                   <p className="text-sm text-ink-foreground/70">

@@ -120,36 +120,44 @@ export interface PremiumTier {
   includes: string[];
 }
 
+/*
+ * Two packages, per the client's 26/09 correction.
+ *
+ * There were three, and the middle one ("Managed Supply" — a named
+ * contact scheduling deliveries) was a service nobody had asked to buy
+ * and nobody was staffed to deliver. What is left is the pair he
+ * described: send drawings and get a price, which costs nothing, and a
+ * session with an experienced contractor for people building it
+ * themselves, which is the part that is paid for.
+ *
+ * The ids are unchanged on purpose. They are stored on premium_requests
+ * rows and read back by the Stripe webhook, so renaming them would
+ * orphan every request already taken.
+ */
 export const PREMIUM_TIERS: PremiumTier[] = [
   {
-    id: "concierge",
-    name: "Managed Supply",
-    tagline: "A named contact who keeps every delivery ahead of the trades.",
-    bestFor: "Best for full-home projects",
-    includes: [
-      "A named materials contact",
-      "Quantity takeoff from your drawings",
-      "Delivery scheduled to your build dates",
-      "Order by phone or email",
-    ],
-  },
-  {
     id: "design-permits",
-    name: "Takeoff + Pricing",
-    tagline: "Send your drawings, get a priced material list back.",
-    bestFor: "Best for major remodels",
+    name: "Drawing Takeoff",
+    tagline: "Send your drawings and get a priced material list back. Free.",
+    bestFor: "Start here",
     includes: [
       "Quantity takeoff from your drawings",
-      "Priced list with alternates",
-      "Material selection help",
+      "A priced material list for the job",
+      "Alternates where they save money",
+      "No charge, and no obligation to order",
     ],
   },
   {
     id: "expert-session",
-    name: "Materials Consultation",
-    tagline: "A one-to-one session plus a curated materials list.",
-    bestFor: "Best for confident DIY",
-    includes: ["1:1 materials consultation", "Curated materials list"],
+    name: "DIY Contractor Support",
+    tagline:
+      "A session with an experienced contractor, for when you are building it yourself.",
+    bestFor: "Best for DIY",
+    includes: [
+      "One-to-one session with an experienced contractor",
+      "Advice on sequence, method and what to watch for",
+      "A materials list that matches the plan you agree",
+    ],
   },
 ];
 
