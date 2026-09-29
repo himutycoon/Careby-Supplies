@@ -52,6 +52,18 @@ export function PackageReview({ reference }: { reference: string }) {
   const [comments, setComments] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [pricesBusy, setPricesBusy] = React.useState(false);
+  /*
+   * Optimistic, because the checkbox is otherwise driven by server state
+   * and springs back to where it was until the reload lands. The write
+   * had already worked; it just looked like a dead control for as long
+   * as the round trip took. On failure it drops back to what the server
+   * says, which is the truth.
+   *
+   * Declared with the other hooks, above the early returns below: put
+   * beside the value it feeds, it ran only on renders that got that far
+   * and crashed the page with "rendered more hooks than last time".
+   */
+  const [pricesIntent, setPricesIntent] = React.useState<boolean | null>(null);
 
   const reload = React.useCallback(async () => {
     const data = await getScopedPackage(reference);
@@ -134,14 +146,16 @@ export function PackageReview({ reference }: { reference: string }) {
       ? ""
       : `${window.location.origin}/customer/package/${pkg.reference}`;
 
-  const showPrices = pkg?.showPrices !== false;
+  const showPrices = pricesIntent ?? pkg?.showPrices !== false;
 
   async function togglePrices(next: boolean) {
     if (!pkg) return;
+    setPricesIntent(next);
     setPricesBusy(true);
     const result = await setPackagePricesVisible(pkg.dbId, next);
     setPricesBusy(false);
     if (!result.ok) {
+      setPricesIntent(null);
       toast(result.error, "error");
       return;
     }

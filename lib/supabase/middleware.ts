@@ -4,7 +4,9 @@ import { getUserRole, homeForRole } from "@/lib/supabase/profile";
 
 const HOMEOWNER_PREFIXES = [
   "/dashboard",
-  "/new",
+  // "/new" was the photo estimate, retired with the route. Left here it
+  // sent an old link to the login page and then to a 404, which reads as
+  // "sign in to see nothing".
   "/new-construction",
   "/repair",
   "/renovation",

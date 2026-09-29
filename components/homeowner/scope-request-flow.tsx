@@ -11,6 +11,8 @@ import { OptionCard } from "@/components/wizard-kit/option-card";
 import { WizardFrame } from "@/components/wizard-kit/wizard-frame";
 import { ProductSelector } from "@/components/wizard-kit/product-selector";
 import { useCart } from "@/components/shop/cart-provider";
+import { useMaterialListDraft } from "@/lib/store/hooks";
+import { materialListDraftStore } from "@/lib/store/app-store";
 import { useToast } from "@/components/shared/toast";
 import { createServiceRequest } from "@/services/service-requests";
 import { uploadDrawing, validateDrawingFile } from "@/services/drawings";
@@ -43,10 +45,32 @@ export function ScopeRequestFlow() {
   const { toast } = useToast();
 
   const [step, setStep] = React.useState(0);
-  const [projectId, setProjectId] = React.useState("");
-  const [variantId, setVariantId] = React.useState("");
-  const [picked, setPicked] = React.useState<Set<string>>(new Set());
-  const [notes, setNotes] = React.useState("");
+  /*
+   * The answers live in a persisted store, not component state.
+   *
+   * This page is reachable signed out, but sending needs an account, and
+   * logging in lands you on the dashboard rather than back here. Without
+   * this, a visitor ticked twenty-nine stages, pressed send, was told to
+   * log in, and lost all of it. useSyncExternalStore keeps localStorage
+   * an external system instead of state synced in an effect.
+   */
+  const draft = useMaterialListDraft();
+  const { projectId, variantId, notes } = draft;
+  const picked = React.useMemo(() => new Set(draft.picked), [draft.picked]);
+
+  const setProjectId = (value: string) =>
+    materialListDraftStore.set((d) => ({ ...d, projectId: value }));
+  const setVariantId = (value: string) =>
+    materialListDraftStore.set((d) => ({ ...d, variantId: value }));
+  const setNotes = (value: string) =>
+    materialListDraftStore.set((d) => ({ ...d, notes: value }));
+  const setPicked = (next: Set<string> | ((current: Set<string>) => Set<string>)) =>
+    materialListDraftStore.set((d) => ({
+      ...d,
+      picked: [
+        ...(typeof next === "function" ? next(new Set(d.picked)) : next),
+      ],
+    }));
   const [files, setFiles] = React.useState<File[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [openStage, setOpenStage] = React.useState("");
@@ -154,6 +178,7 @@ export function ScopeRequestFlow() {
       toast(result.error, "error");
       return;
     }
+    materialListDraftStore.reset();
     toast(`Request ${result.data.reference} sent. We'll come back with a list.`, "success");
     router.push("/dashboard");
   }
