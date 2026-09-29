@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { WizardFrame } from "@/components/wizard-kit/wizard-frame";
 import { useToast } from "@/components/shared/toast";
 import { createScopedPackage } from "@/services/package-scope";
+import { getAllowanceOverrides } from "@/services/allowances";
+import { useAsyncData } from "@/lib/store/hooks";
 import {
   generateScope,
   groupByRoom,
@@ -100,12 +102,25 @@ export function PackageScopeBuilder() {
 
   const template = templateId ? packageTemplate(templateId) : undefined;
 
+  /*
+   * The preview has to quote the same figures the package will be
+   * created with, or a contractor agrees a number on screen and the
+   * customer is sent a different one.
+   */
+  const { data: allowanceData } = useAsyncData(getAllowanceOverrides);
+  const allowances = React.useMemo(() => allowanceData ?? {}, [allowanceData]);
+
   const scope = React.useMemo(
     () =>
       template
-        ? generateScope({ templateId: template.id, tier, adjusters: answers })
+        ? generateScope({
+            templateId: template.id,
+            tier,
+            adjusters: answers,
+            allowances,
+          })
         : null,
-    [template, tier, answers],
+    [template, tier, answers, allowances],
   );
 
   const kept = React.useMemo(

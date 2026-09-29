@@ -145,6 +145,12 @@ export const ADMIN_NAV: AppNavItem[] = [
     icon: "ListChecks",
     group: "Inventory",
   },
+  {
+    label: "Allowances",
+    href: "/admin/allowances",
+    icon: "Receipt",
+    group: "Inventory",
+  },
   { label: "Categories", href: "/admin/categories", icon: "LayoutGrid", group: "Inventory" },
 
   { label: "Messages", href: "/admin/messages", icon: "MessageSquare", group: "Requests" },

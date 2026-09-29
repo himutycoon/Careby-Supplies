@@ -36,6 +36,14 @@ export interface ScopeRequest {
   tier: BudgetTier;
   /** adjusterId -> choice value. Missing ids fall back to the default. */
   adjusters: Record<string, string>;
+  /**
+   * itemId -> Medium allowance in CAD, replacing the figure in the
+   * catalogue file.
+   *
+   * Passed in rather than fetched: this module decides, it does not go
+   * looking. A caller with no overrides gets exactly what shipped.
+   */
+  allowances?: Record<string, number>;
 }
 
 export interface SelectionRequirement {
@@ -192,7 +200,13 @@ export function generateScope(request: ScopeRequest): GeneratedScope | null {
     if (!item) continue;
 
     const quantity = roundQuantity(quantities.get(id) ?? 1);
-    const allowance = allowanceFor(item, tier);
+    // An override replaces the item's own Medium figure; the tier
+    // multiplier still applies on top of whichever is used.
+    const override = request.allowances?.[item.id];
+    const allowance =
+      override === undefined
+        ? allowanceFor(item, tier)
+        : allowanceFor({ ...item, allowanceCad: override }, tier);
 
     requirements.push({
       itemId: item.id,

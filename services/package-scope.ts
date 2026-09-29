@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { fail, ok, toUserMessage, type ServiceResult } from "@/services/client";
 import { getProducts, getProductsByIds } from "@/services/products";
+import { getAllowanceOverrides } from "@/services/allowances";
 import { getCuratedProductIds, itemSlot } from "@/services/curated-products";
 import {
   generateScope,
@@ -60,10 +61,16 @@ export async function createScopedPackage(
     return fail("Enter a valid customer email address.");
   }
 
+  /*
+   * Read the overrides at creation, not at preview: this is the moment
+   * the allowance becomes a promise to a named customer, and it is
+   * snapshotted onto package_selections just below.
+   */
   const scope = generateScope({
     templateId: input.templateId,
     tier: input.tier,
     adjusters: input.adjusters,
+    allowances: await getAllowanceOverrides(),
   });
   if (!scope) return fail("That package template no longer exists.");
 
