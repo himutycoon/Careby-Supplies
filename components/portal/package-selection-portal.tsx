@@ -138,6 +138,14 @@ export function PackageSelectionPortal({ reference }: { reference: string }) {
   );
   const difference = Math.round((selectedTotal - allowanceTotal) * 100) / 100;
 
+  /*
+   * A contractor quotes their customer a figure with their own margin in
+   * it. Showing our trade price beside every line undercut that, which
+   * is why the portal link was going unsent. Hidden means hidden: the
+   * customer still learns whether a choice is an upgrade, never by how
+   * much.
+   */
+  const showPrices = pkg.showPrices !== false;
   const locked = pkg.status === "approved" || pkg.status === "ordered";
   const submitted = Boolean(pkg.submittedAt);
 
@@ -218,16 +226,31 @@ export function PackageSelectionPortal({ reference }: { reference: string }) {
             />
           </div>
         </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Your allowance</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {formatCad(allowanceTotal)}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Selected so far {formatCad(selectedTotal)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
+        {showPrices ? (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Your allowance</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">
+              {formatCad(allowanceTotal)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Selected so far {formatCad(selectedTotal)}
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-border bg-card p-4">
+            <p className="text-xs text-muted-foreground">Pricing</p>
+            <p className="mt-1 text-sm font-medium">Handled by your contractor</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Choose what you like — they will confirm the cost with you.
+            </p>
+          </div>
+        )}
+        <div
+          className={cn(
+            "rounded-xl border border-border bg-card p-4",
+            !showPrices && "hidden",
+          )}
+        >
           <p className="text-xs text-muted-foreground">
             {difference >= 0 ? "Upgrade" : "Credit"}
           </p>
@@ -305,6 +328,7 @@ export function PackageSelectionPortal({ reference }: { reference: string }) {
                 selection={selection}
                 finish={pkg.finishPalette}
                 locked={locked || submitted}
+                showPrices={showPrices}
                 onChanged={reload}
               />
             ))}
@@ -388,11 +412,14 @@ function SelectionRow({
   selection,
   finish,
   locked,
+  showPrices,
   onChanged,
 }: {
   selection: ScopedPackage["selections"][number];
   finish: string;
   locked: boolean;
+  /** False when the contractor is quoting a lump sum and hiding cost. */
+  showPrices: boolean;
   onChanged: () => void;
 }) {
   const { toast } = useToast();
@@ -410,7 +437,13 @@ function SelectionRow({
     setOpen(next);
     if (next && options === null) {
       const items = await productsForRequirement(
-        { categoryId: selection.categoryId, keywords: selection.keywords },
+        {
+          // itemId is what a curated list is keyed on, so the portal has
+          // to pass it or the hand-picked options never appear.
+          itemId: selection.itemId,
+          categoryId: selection.categoryId,
+          keywords: selection.keywords,
+        },
         12,
         finish,
       );
@@ -488,7 +521,9 @@ function SelectionRow({
             ) : null}
           </p>
           <p className="text-xs text-muted-foreground">
-            Allowance {formatCad(selection.totalAllowanceCad)}
+            {showPrices
+              ? `Allowance ${formatCad(selection.totalAllowanceCad)}`
+              : "Included in your package"}
             {delta ? (
               <>
                 {" · "}
@@ -502,11 +537,17 @@ function SelectionRow({
                         : "text-muted-foreground",
                   )}
                 >
+                  {/* Without prices the customer still learns that a
+                      choice is an upgrade, just not by how much. */}
                   {delta.differenceCad === 0
                     ? "on allowance"
                     : delta.differenceCad > 0
-                      ? `+${formatCad(delta.differenceCad)} upgrade`
-                      : `${formatCad(Math.abs(delta.differenceCad))} credit`}
+                      ? showPrices
+                        ? `+${formatCad(delta.differenceCad)} upgrade`
+                        : "upgrade"
+                      : showPrices
+                        ? `${formatCad(Math.abs(delta.differenceCad))} credit`
+                        : "credit"}
                 </span>
               </>
             ) : null}
@@ -541,7 +582,7 @@ function SelectionRow({
           <span className="font-medium">
             {chosen?.name ?? "Selected product"}
           </span>
-          {selection.selectedPriceCad ? (
+          {showPrices && selection.selectedPriceCad ? (
             <span className="text-muted-foreground">
               {" "}
               · {formatCad(selection.selectedPriceCad)} each
@@ -591,9 +632,11 @@ function SelectionRow({
                           <span className="line-clamp-2 block text-sm font-medium">
                             {product.name}
                           </span>
-                          <span className="block text-xs text-muted-foreground tabular-nums">
-                            {formatCad(product.priceCad)} each
-                          </span>
+                          {showPrices ? (
+                            <span className="block text-xs text-muted-foreground tabular-nums">
+                              {formatCad(product.priceCad)} each
+                            </span>
+                          ) : null}
                           <span
                             className={cn(
                               "block text-xs font-medium tabular-nums",
@@ -607,8 +650,12 @@ function SelectionRow({
                             {optionDelta.differenceCad === 0
                               ? "On allowance"
                               : optionDelta.differenceCad > 0
-                                ? `+${formatCad(optionDelta.differenceCad)}`
-                                : `${formatCad(Math.abs(optionDelta.differenceCad))} back`}
+                                ? showPrices
+                                  ? `+${formatCad(optionDelta.differenceCad)}`
+                                  : "Upgrade"
+                                : showPrices
+                                  ? `${formatCad(Math.abs(optionDelta.differenceCad))} back`
+                                  : "Credit"}
                           </span>
                         </span>
                       </button>

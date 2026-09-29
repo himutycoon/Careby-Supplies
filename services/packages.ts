@@ -17,6 +17,7 @@ interface PackageRow {
   customer_phone: string;
   status: PackageStatus;
   total_price: number;
+  show_prices?: boolean;
   created_at: string;
   package_items?: { product_id: string; quantity: number; price: number }[];
 }
@@ -40,12 +41,28 @@ function mapPackage(row: PackageRow): CustomerPackage {
     })),
     accessCode: row.reference,
     totalPrice: Number(row.total_price),
+    // Absent until schema-21; a package without the column shows prices,
+    // which is how every existing package already behaves.
+    showPrices: row.show_prices ?? true,
   };
 }
 
-const SELECT = `
+/*
+ * show_prices arrives in schema-21. Asking for a column that does not
+ * exist fails the whole select, and both readers below return empty on
+ * error -- so on a database that has not run the migration yet, every
+ * package would quietly disappear from the contractor's list. The
+ * fallback keeps them visible, showing prices, exactly as before.
+ */
+const SELECT_BASE = `
   id, reference, contractor_id, name, project_type, customer_name,
   customer_email, customer_phone, status, total_price, created_at,
+  package_items ( product_id, quantity, price )
+`;
+
+const SELECT = `
+  id, reference, contractor_id, name, project_type, customer_name,
+  customer_email, customer_phone, status, total_price, show_prices, created_at,
   package_items ( product_id, quantity, price )
 `;
 
@@ -131,27 +148,42 @@ export async function createPackage(
 
 export async function getPackages(): Promise<CustomerPackage[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const withPrices = await supabase
     .from("packages")
     .select(SELECT)
     .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
-  return (data as unknown as PackageRow[]).map(mapPackage);
+  const result = withPrices.error
+    ? await supabase
+        .from("packages")
+        .select(SELECT_BASE)
+        .order("created_at", { ascending: false })
+    : withPrices;
+
+  if (result.error || !result.data) return [];
+  return (result.data as unknown as PackageRow[]).map(mapPackage);
 }
 
 export async function getPackageByReference(
   reference: string,
 ): Promise<CustomerPackage | null> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const withPrices = await supabase
     .from("packages")
     .select(SELECT)
     .eq("reference", reference.toUpperCase())
     .maybeSingle();
 
-  if (error || !data) return null;
-  return mapPackage(data as unknown as PackageRow);
+  const result = withPrices.error
+    ? await supabase
+        .from("packages")
+        .select(SELECT_BASE)
+        .eq("reference", reference.toUpperCase())
+        .maybeSingle()
+    : withPrices;
+
+  if (result.error || !result.data) return null;
+  return mapPackage(result.data as unknown as PackageRow);
 }
 
 export async function updatePackageStatus(

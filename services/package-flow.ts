@@ -26,26 +26,41 @@ export interface ScopedPackage {
   finishPalette: string;
   submittedAt: string | null;
   approvedAt: string | null;
+  /** False hides every amount from the customer. The contractor always sees them. */
+  showPrices: boolean;
   customer: { name: string; email: string; phone: string };
   selections: StoredSelection[];
 }
 
-const PACKAGE_SELECT = `
+const PACKAGE_COLUMNS = `
   id, reference, name, status, template_id, budget_tier, exclusions,
   finish_palette, submitted_at, approved_at,
   customer_name, customer_email, customer_phone
 `;
+
+// show_prices arrives in schema-21. Asked for separately so a database
+// without it still opens the portal, showing prices as it does today,
+// rather than 404ing every package link a contractor has sent out.
+const PACKAGE_SELECT = `${PACKAGE_COLUMNS}, show_prices`;
 
 /** A package with its generated checklist, by customer-facing reference. */
 export async function getScopedPackage(
   reference: string,
 ): Promise<ScopedPackage | null> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  const withPrices = await supabase
     .from("packages")
     .select(PACKAGE_SELECT)
     .eq("reference", reference.toUpperCase())
     .maybeSingle();
+
+  const { data, error } = withPrices.error
+    ? await supabase
+        .from("packages")
+        .select(PACKAGE_COLUMNS)
+        .eq("reference", reference.toUpperCase())
+        .maybeSingle()
+    : withPrices;
 
   if (error || !data) return null;
 
@@ -67,8 +82,35 @@ export async function getScopedPackage(
       email: (data.customer_email as string) ?? "",
       phone: (data.customer_phone as string) ?? "",
     },
+    showPrices: (data as Record<string, unknown>).show_prices !== false,
     selections,
   };
+}
+
+/**
+ * Turns the customer's view of prices on or off.
+ *
+ * Only the contractor who owns the package can call this — the RLS
+ * policy on `packages` restricts updates to them, so a customer opening
+ * the portal cannot turn prices back on for themselves.
+ */
+export async function setPackagePricesVisible(
+  packageId: string,
+  visible: boolean,
+): Promise<ServiceResult<null>> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("packages")
+    .update({ show_prices: visible, updated_at: new Date().toISOString() })
+    .eq("id", packageId);
+
+  if (error) {
+    console.error("[setPackagePricesVisible]", error);
+    return fail(
+      toUserMessage(error, "We couldn't change what your customer sees."),
+    );
+  }
+  return ok(null);
 }
 
 /**

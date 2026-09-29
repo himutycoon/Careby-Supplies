@@ -8,6 +8,7 @@ import {
   Copy,
   Download,
   History,
+  Loader2,
   Lock,
   Undo2,
 } from "lucide-react";
@@ -24,6 +25,7 @@ import {
   getScopedPackage,
   procurementCsv,
   requestReplacement,
+  setPackagePricesVisible,
   type PackageVersion,
   type ProcurementLine,
   type ScopedPackage,
@@ -49,6 +51,7 @@ export function PackageReview({ reference }: { reference: string }) {
   const [loaded, setLoaded] = React.useState(false);
   const [comments, setComments] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [pricesBusy, setPricesBusy] = React.useState(false);
 
   const reload = React.useCallback(async () => {
     const data = await getScopedPackage(reference);
@@ -131,6 +134,21 @@ export function PackageReview({ reference }: { reference: string }) {
       ? ""
       : `${window.location.origin}/customer/package/${pkg.reference}`;
 
+  const showPrices = pkg?.showPrices !== false;
+
+  async function togglePrices(next: boolean) {
+    if (!pkg) return;
+    setPricesBusy(true);
+    const result = await setPackagePricesVisible(pkg.dbId, next);
+    setPricesBusy(false);
+    if (!result.ok) {
+      toast(result.error, "error");
+      return;
+    }
+    toast(next ? "Your customer will see prices" : "Prices hidden from your customer");
+    reload();
+  }
+
   async function handleApprove() {
     if (!pkg) return;
     setBusy(true);
@@ -203,6 +221,32 @@ export function PackageReview({ reference }: { reference: string }) {
         >
           <Copy className="size-3.5" /> Copy link
         </Button>
+      </section>
+
+      {/* The reason the link was going unsent: it showed the customer
+          what the materials cost us, next to the number the contractor
+          had quoted them. */}
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2.5">
+        <label className="flex items-center gap-2.5 text-sm">
+          <input
+            type="checkbox"
+            checked={showPrices}
+            disabled={pricesBusy}
+            onChange={(e) => togglePrices(e.target.checked)}
+            className="size-4 accent-[var(--primary)]"
+          />
+          <span>
+            Show prices to your customer
+            <span className="block text-xs text-muted-foreground">
+              {showPrices
+                ? "They see the allowance and what each option costs."
+                : "They choose finishes; you confirm the price with them."}
+            </span>
+          </span>
+        </label>
+        {pricesBusy ? (
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        ) : null}
       </section>
 
       <section className="grid gap-3 sm:grid-cols-3">

@@ -164,6 +164,14 @@ export interface CustomerPackage {
   accessCode: string;
   /** Server-computed total (trade pricing + delivery + HST). */
   totalPrice?: number;
+  /**
+   * False hides every amount from the customer portal.
+   *
+   * A contractor quotes a number that includes their margin; showing our
+   * trade price beside each line undercuts that. Their own review screen
+   * is unaffected.
+   */
+  showPrices?: boolean;
 }
 
 export type AppointmentStatus = "scheduled" | "completed" | "cancelled";
