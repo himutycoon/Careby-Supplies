@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { fail, ok, toUserMessage, type ServiceResult } from "@/services/client";
-import { getProducts } from "@/services/products";
+import { getProducts, getProductsByIds } from "@/services/products";
+import { getCuratedProductIds, itemSlot } from "@/services/curated-products";
 import {
   generateScope,
   type GeneratedScope,
@@ -174,11 +175,31 @@ export async function getPackageSelections(
  * product, the whole category is still offered rather than an empty list.
  */
 export async function productsForRequirement(
-  requirement: Pick<SelectionRequirement, "categoryId" | "keywords">,
+  requirement: Pick<SelectionRequirement, "categoryId" | "keywords"> & {
+    itemId?: string;
+  },
   limit = 12,
   /** The package finish palette, if one is set and applies here. */
   finish = "",
 ): Promise<Product[]> {
+  /*
+   * A hand-picked list wins outright, and skips the keyword scoring
+   * below: an admin who chose five tiles for this requirement meant
+   * those five, in that order, not those five re-ranked by how well
+   * their names match.
+   */
+  if (requirement.itemId) {
+    const curated = await getCuratedProductIds(itemSlot(requirement.itemId));
+    if (curated.length > 0) {
+      const picked = await getProductsByIds(curated);
+      const byId = new Map(picked.map((p) => [p.id, p]));
+      return curated
+        .map((id) => byId.get(id))
+        .filter((p): p is Product => Boolean(p))
+        .slice(0, limit);
+    }
+  }
+
   const page = await getProducts({
     categoryId: requirement.categoryId,
     pageSize: 60,

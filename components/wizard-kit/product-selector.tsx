@@ -5,7 +5,8 @@ import { ProductCard } from "@/components/shop/product-card";
 import { AddToCartControl } from "@/components/shop/add-to-cart-control";
 import { ProductCardSkeleton } from "@/components/shared/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { getProducts } from "@/services/products";
+import { getProducts, getProductsByIds } from "@/services/products";
+import { getCuratedProductIds } from "@/services/curated-products";
 import type { Product } from "@/lib/types";
 
 /**
@@ -15,12 +16,23 @@ import type { Product } from "@/lib/types";
 export function ProductSelector({
   categoryId,
   categoryIds,
+  slot,
   showContractorPrice = false,
   emptyMessage = "We don't stock materials for this option online yet.",
 }: {
   categoryId?: string | null;
   /** Several aisles at once — a kitchen job spans more than one. */
   categoryIds?: string[] | null;
+  /**
+   * A curated list to prefer over the aisles.
+   *
+   * Where an admin has hand-picked products for this stage, those are
+   * what a customer should see — "tile" across a whole aisle is 400
+   * products, and the point of the checklist is to narrow it. An empty
+   * or uncurated slot falls through to the categories, so this can be
+   * filled in one stage at a time.
+   */
+  slot?: string;
   showContractorPrice?: boolean;
   emptyMessage?: string;
 }) {
@@ -37,6 +49,20 @@ export function ProductSelector({
 
     startTransition(async () => {
       try {
+        const curatedIds = slot ? await getCuratedProductIds(slot) : [];
+
+        if (curatedIds.length > 0) {
+          const picked = await getProductsByIds(curatedIds);
+          // getProductsByIds does not promise an order, and the admin's
+          // order is the point of curating.
+          const byId = new Map(picked.map((p) => [p.id, p]));
+          const ordered = curatedIds
+            .map((id) => byId.get(id))
+            .filter((p): p is Product => Boolean(p));
+          if (!cancelled) setProducts(ordered);
+          return;
+        }
+
         const page = await getProducts({
           categoryId: categoryId ?? null,
           categoryIds: categoryKey ? categoryKey.split(",") : null,
@@ -52,7 +78,7 @@ export function ProductSelector({
     return () => {
       cancelled = true;
     };
-  }, [categoryId, categoryKey, showContractorPrice]);
+  }, [categoryId, categoryKey, slot, showContractorPrice]);
 
   if (!loaded || isPending) {
     return (
