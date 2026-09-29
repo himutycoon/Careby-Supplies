@@ -3,11 +3,21 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CircleCheck, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CircleCheck,
+  FileText,
+  Loader2,
+  UploadCloud,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { StepIndicator } from "@/components/shared/step-indicator";
+import { uploadDrawing, validateDrawingFile } from "@/services/drawings";
 import { useToast } from "@/components/shared/toast";
 import { useAsyncData } from "@/lib/store/hooks";
 import { createPremiumRequest, getServices } from "@/services/service-requests";
@@ -36,7 +46,33 @@ const BUDGET_RANGES = [
   "Over $1M",
 ];
 
-const STEPS = ["Tier", "Project", "Contact", "Review"];
+/*
+ * The two packages do not ask the same questions, per the client's 28/09
+ * note: the free takeoff is "drop a file, leave your details, done", and
+ * the paid session keeps the project questions and ends at payment.
+ *
+ * Steps are keyed rather than indexed because the list now changes
+ * length. Index-based checks silently validated the wrong step the
+ * moment a step was skipped.
+ */
+type StepKey = "package" | "drawings" | "project" | "contact" | "review";
+
+const FREE_STEPS: StepKey[] = ["package", "drawings", "contact"];
+const PAID_STEPS: StepKey[] = [
+  "package",
+  "drawings",
+  "project",
+  "contact",
+  "review",
+];
+
+const STEP_LABELS: Record<StepKey, string> = {
+  package: "Package",
+  drawings: "Drawings",
+  project: "Project",
+  contact: "Contact",
+  review: "Review",
+};
 
 /** Shared select styling — matches the rest of the form controls. */
 const SELECT_CLASS =
@@ -158,9 +194,15 @@ export function PremiumRequestWizard() {
   const [budget, setBudget] = React.useState("");
   const [propertyType, setPropertyType] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [files, setFiles] = React.useState<File[]>([]);
   const [contactPreference, setContactPreference] = React.useState("");
   const [day, setDay] = React.useState("");
   const [time, setTime] = React.useState("");
+
+  const steps = isPaidConsultationTier(tier) ? PAID_STEPS : FREE_STEPS;
+  const stepIndex = Math.min(step, steps.length - 1);
+  const stepKey = steps[stepIndex];
+  const isLastStep = stepIndex === steps.length - 1;
 
   const tierName =
     PREMIUM_TIERS.find((option) => option.id === tier)?.name ?? "";
@@ -168,6 +210,25 @@ export function PremiumRequestWizard() {
     PREMIUM_CONTACT_PREFERENCES.find((c) => c.id === contactPreference)
       ?.label ?? "";
   const needsSlot = contactPreference === "scheduled";
+
+  function addFiles(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    const accepted: File[] = [];
+    for (const file of Array.from(list)) {
+      // The same check the upload service runs, so the form cannot
+      // accept something the server will refuse.
+      const problem = validateDrawingFile(file);
+      if (problem) {
+        setError(problem);
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (accepted.length > 0) {
+      setError(null);
+      setFiles((current) => [...current, ...accepted]);
+    }
+  }
 
   function toggleService(service: string) {
     setSelected((current) =>
@@ -178,14 +239,17 @@ export function PremiumRequestWizard() {
   }
 
   /** Returns an error message, or null when the step is complete. */
-  function validate(index: number): string | null {
-    if (index === 0 && !tier) return "Choose an engagement level.";
-    if (index === 1) {
+  function validate(key: StepKey): string | null {
+    if (key === "package" && !tier) return "Choose a package.";
+    if (key === "drawings" && files.length === 0) {
+      return "Add at least one drawing, plan or photo.";
+    }
+    if (key === "project") {
       if (selected.length === 0) return "Select at least one service.";
       if (!projectType) return "Choose a project type.";
       if (!timeline) return "Choose a timeline.";
     }
-    if (index === 2) {
+    if (key === "contact") {
       if (!contactPreference) return "Choose how you'd like us to reach you.";
       if (needsSlot && (!day || !time)) {
         return "Pick a preferred day and time.";
@@ -195,13 +259,13 @@ export function PremiumRequestWizard() {
   }
 
   function next() {
-    const problem = validate(step);
+    const problem = validate(stepKey);
     if (problem) {
       setError(problem);
       return;
     }
     setError(null);
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setStep((s) => Math.min(s + 1, steps.length - 1));
   }
 
   function back() {
@@ -212,8 +276,8 @@ export function PremiumRequestWizard() {
   async function handleSubmit() {
     // Re-check every step, not just the last — someone could reach
     // review and then go back and clear a field.
-    for (let i = 0; i < STEPS.length - 1; i++) {
-      const problem = validate(i);
+    for (let i = 0; i < steps.length; i++) {
+      const problem = validate(steps[i]);
       if (problem) {
         setStep(i);
         setError(problem);
@@ -222,6 +286,31 @@ export function PremiumRequestWizard() {
     }
 
     setSubmitting(true);
+
+    /*
+     * Drawings first. The whole package is "send us your plans", so a
+     * request whose files failed to upload is not worth taking — better
+     * to say so now than to have an advisor open an empty request.
+     */
+    const uploaded: { reference: string; fileName: string }[] = [];
+    for (const file of files) {
+      const result = await uploadDrawing({
+        projectName: projectType || tierName || "Premium request",
+        location: "",
+        drawingType: "premium-request",
+        comments: notes,
+        file,
+      });
+      if (!result.ok) {
+        setSubmitting(false);
+        setError(result.error);
+        toast(result.error, "error");
+        return;
+      }
+      // `id` is the human-facing DWG-XXXXXX reference on this type.
+      uploaded.push({ reference: result.data.id, fileName: file.name });
+    }
+
     const result = await createPremiumRequest({
       selectedServices: selected,
       budgetRange: budget,
@@ -229,6 +318,7 @@ export function PremiumRequestWizard() {
       details: {
         tier,
         tierName,
+        drawings: uploaded,
         projectType,
         timeline,
         propertyType,
@@ -316,9 +406,12 @@ export function PremiumRequestWizard() {
 
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-border bg-card p-4 sm:p-6">
-      <StepIndicator steps={STEPS} current={step} />
+      <StepIndicator
+        steps={steps.map((k) => STEP_LABELS[k])}
+        current={stepIndex}
+      />
 
-      {step === 0 ? (
+      {stepKey === "package" ? (
         <fieldset className="flex flex-col gap-4">
           <legend className="text-lg font-medium">
             How much support do you want?
@@ -360,7 +453,89 @@ export function PremiumRequestWizard() {
         </fieldset>
       ) : null}
 
-      {step === 1 ? (
+      {stepKey === "drawings" ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-medium">Send us your drawings</h2>
+            <p className="text-sm text-muted-foreground">
+              Plans, a permit set, a hand sketch, or photos of what you
+              have. We work the quantities out from them. PDF, JPG or PNG,
+              up to 10 MB each.
+            </p>
+          </div>
+
+          <label
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              addFiles(e.dataTransfer.files);
+            }}
+            className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border px-4 py-10 text-center transition-colors hover:border-primary/50 hover:bg-muted/40"
+          >
+            <UploadCloud
+              className="size-7 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <span className="text-sm font-medium">
+              Drop your files here, or choose them
+            </span>
+            <span className="text-xs text-muted-foreground">
+              You can add more than one.
+            </span>
+            <input
+              type="file"
+              multiple
+              accept="application/pdf,image/jpeg,image/png"
+              className="sr-only"
+              onChange={(e) => {
+                addFiles(e.target.files);
+                // Cleared so choosing the same file twice still fires.
+                e.target.value = "";
+              }}
+            />
+          </label>
+
+          {files.length > 0 ? (
+            <ul className="flex flex-col gap-2">
+              {files.map((file, index) => (
+                <li
+                  key={`${file.name}-${index}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <FileText
+                      className="size-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm">
+                        {file.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {(file.size / 1024 / 1024).toFixed(1)} MB
+                      </span>
+                    </span>
+                  </span>
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() =>
+                      setFiles((current) =>
+                        current.filter((_, i) => i !== index),
+                      )
+                    }
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+
+      {stepKey === "project" ? (
         <div className="flex flex-col gap-5">
           <fieldset className="flex flex-col gap-3">
             <legend className="text-lg font-medium">
@@ -456,7 +631,7 @@ export function PremiumRequestWizard() {
         </div>
       ) : null}
 
-      {step === 2 ? (
+      {stepKey === "contact" ? (
         <div className="flex flex-col gap-5">
           <fieldset className="flex flex-col gap-3">
             <legend className="text-lg font-medium">
@@ -513,7 +688,7 @@ export function PremiumRequestWizard() {
         </div>
       ) : null}
 
-      {step === 3 ? (
+      {stepKey === "review" ? (
         <div className="flex flex-col gap-4">
           <h2 className="text-lg font-medium">Review your request</h2>
           <dl className="grid gap-3 rounded-lg border border-border bg-muted/40 p-4 text-sm sm:grid-cols-2">
@@ -578,12 +753,12 @@ export function PremiumRequestWizard() {
           variant="ghost"
           className="press"
           onClick={back}
-          disabled={step === 0 || submitting}
+          disabled={stepIndex === 0 || submitting}
         >
           <ArrowLeft className="size-4" /> Back
         </Button>
 
-        {step < STEPS.length - 1 ? (
+        {!isLastStep ? (
           <Button size="lg" className="press" onClick={next}>
             Continue <ArrowRight className="size-4" />
           </Button>

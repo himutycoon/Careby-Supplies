@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ShoppingCart } from "lucide-react";
+import { Check, Paperclip, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,8 @@ import { ProductSelector } from "@/components/wizard-kit/product-selector";
 import { useCart } from "@/components/shop/cart-provider";
 import { useToast } from "@/components/shared/toast";
 import { createServiceRequest } from "@/services/service-requests";
+import { uploadDrawing, validateDrawingFile } from "@/services/drawings";
+import { stageSlot } from "@/services/curated-products";
 import {
   PROJECT_SCOPES,
   projectScope,
@@ -45,6 +47,7 @@ export function ScopeRequestFlow() {
   const [variantId, setVariantId] = React.useState("");
   const [picked, setPicked] = React.useState<Set<string>>(new Set());
   const [notes, setNotes] = React.useState("");
+  const [files, setFiles] = React.useState<File[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
   const [openStage, setOpenStage] = React.useState("");
   const { itemCount } = useCart();
@@ -67,6 +70,22 @@ export function ScopeRequestFlow() {
     setProjectId(id);
     setVariantId("");
     setPicked(new Set());
+  }
+
+  function addFiles(list: FileList | null) {
+    if (!list || list.length === 0) return;
+    const accepted: File[] = [];
+    for (const file of Array.from(list)) {
+      // The same check the upload service runs, so the form cannot
+      // accept what the server will refuse.
+      const problem = validateDrawingFile(file);
+      if (problem) {
+        toast(problem, "error");
+        continue;
+      }
+      accepted.push(file);
+    }
+    if (accepted.length > 0) setFiles((current) => [...current, ...accepted]);
   }
 
   function toggle(id: string) {
@@ -97,6 +116,26 @@ export function ScopeRequestFlow() {
   async function submit() {
     if (!project) return;
     setSubmitting(true);
+
+    // Attachments first: a request that references a file which never
+    // uploaded is worse than one that says it failed.
+    const uploaded: { reference: string; fileName: string }[] = [];
+    for (const file of files) {
+      const upload = await uploadDrawing({
+        projectName: project.name,
+        location: "",
+        drawingType: "material-list",
+        comments: notes,
+        file,
+      });
+      if (!upload.ok) {
+        setSubmitting(false);
+        toast(upload.error, "error");
+        return;
+      }
+      uploaded.push({ reference: upload.data.id, fileName: file.name });
+    }
+
     const result = await createServiceRequest({
       serviceType: "material-list",
       category: project.id,
@@ -105,6 +144,7 @@ export function ScopeRequestFlow() {
         project: project.name,
         variant: project.variants?.find((v) => v.id === variantId)?.label ?? "",
         stages: chosen.map((s) => ({ id: s.id, label: s.label, categories: s.categories })),
+        attachments: uploaded,
       },
       notes,
     });
@@ -259,6 +299,7 @@ export function ScopeRequestFlow() {
           {activeStage ? (
             <ProductSelector
               key={activeStage.id}
+              slot={stageSlot(project.id, activeStage.id)}
               categoryIds={activeStage.categories}
               emptyMessage={`We don't stock ${activeStage.label.toLowerCase()} online yet — leave it ticked and we'll price it with your request.`}
             />
@@ -284,14 +325,73 @@ export function ScopeRequestFlow() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label htmlFor="scope-notes">Anything else we should know?</Label>
+            <Label htmlFor="scope-notes">
+              Project details, and help planning it
+            </Label>
+            <p className="-mt-1 text-xs text-muted-foreground">
+              Tell us about the project. If you want a hand working out
+              how to plan and run it, say so here and we&apos;ll get in
+              touch.
+            </p>
             <Textarea
               id="scope-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Sizes, finishes, your install date — whatever you already know."
+              placeholder="Sizes, finishes, your install date, or what you'd like advice on."
               rows={4}
             />
+
+            {/* Plans, a sketch, a photo of the room — often quicker than
+                describing it, and the same upload the premium takeoff
+                uses so an advisor sees them in one place. */}
+            <label
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                addFiles(e.dataTransfer.files);
+              }}
+              className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border px-4 py-4 text-center text-sm transition-colors hover:border-primary/50 hover:bg-muted/40"
+            >
+              <Paperclip className="size-4 text-muted-foreground" aria-hidden="true" />
+              <span className="text-muted-foreground">
+                Add a plan, sketch or photo — optional
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="application/pdf,image/jpeg,image/png"
+                className="sr-only"
+                onChange={(e) => {
+                  addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+
+            {files.length > 0 ? (
+              <ul className="flex flex-col gap-1.5">
+                {files.map((file, index) => (
+                  <li
+                    key={`${file.name}-${index}`}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-1.5"
+                  >
+                    <span className="min-w-0 truncate text-sm">{file.name}</span>
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      aria-label={`Remove ${file.name}`}
+                      onClick={() =>
+                        setFiles((current) =>
+                          current.filter((_, i) => i !== index),
+                        )
+                      }
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
 
           {itemCount > 0 ? (
