@@ -1,11 +1,17 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * A loading block.
+ *
+ * Shimmers rather than pulses: a pulse blinks in place and reads as a
+ * page that has stalled, a sweep moves one way and reads as something
+ * on its way. `shimmer` carries its own background, so no bg-muted
+ * here — the two would fight. It falls back to a flat block under
+ * prefers-reduced-motion.
+ */
 export function Skeleton({ className }: { className?: string }) {
   return (
-    <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
-      aria-hidden="true"
-    />
+    <div className={cn("shimmer rounded-md", className)} aria-hidden="true" />
   );
 }
 

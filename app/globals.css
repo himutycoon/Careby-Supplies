@@ -499,3 +499,43 @@
     mask-image: linear-gradient(to right, #000 calc(100% - 4rem), transparent);
   }
 }
+
+/*
+ * Loading shimmer.
+ *
+ * A sweep rather than a pulse. A pulsing block blinks in place and
+ * reads as a page that has stalled; a sweep moves in one direction and
+ * reads as something arriving. Same cost, better manners.
+ *
+ * The gradient rides on --muted so it belongs in both themes, and the
+ * highlight is a mix toward the card colour rather than plain white,
+ * which would glare in dark mode.
+ */
+@keyframes shimmer-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@utility shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--muted) 20%,
+    color-mix(in oklch, var(--card), var(--muted) 35%) 42%,
+    var(--muted) 64%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.8s linear infinite;
+}
+
+/* Nothing moving: the block keeps its colour and simply sits there. */
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    background-image: none;
+    background-color: var(--muted);
+  }
+}

@@ -24,6 +24,16 @@ export function itemSlot(itemId: string): string {
   return `item:${itemId}`;
 }
 
+/**
+ * The home page shop window.
+ *
+ * The rail there used to sort by review_count, which is zero on every
+ * imported product, so what greeted a visitor was whichever rows had
+ * been touched most recently — and it was captioned "what people are
+ * ordering this month". This makes it a decision instead.
+ */
+export const HOME_FEATURED_SLOT = "home:featured";
+
 /** Product ids for one slot, in the order an admin put them. */
 export async function getCuratedProductIds(slot: string): Promise<string[]> {
   if (!slot) return [];

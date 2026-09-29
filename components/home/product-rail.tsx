@@ -8,7 +8,13 @@ import { ProductCard } from "@/components/shop/product-card";
 import { AddToCartControl } from "@/components/shop/add-to-cart-control";
 import { ProductCardSkeleton } from "@/components/shared/skeleton";
 import { useAsyncData } from "@/lib/store/hooks";
-import { getProducts, type ProductQuery } from "@/services/products";
+import {
+  getProducts,
+  getProductsByIds,
+  type ProductQuery,
+} from "@/services/products";
+import { getCuratedProductIds } from "@/services/curated-products";
+import type { Product } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,11 +34,20 @@ export function ProductRail({
   viewAllHref = "/products",
   viewAllLabel = "Shop all",
   count = 8,
+  slot,
   className,
 }: {
   title: string;
   subtitle?: string;
   query?: ProductQuery;
+  /**
+   * A curated slot to show instead of the query.
+   *
+   * Where an admin has picked products for it, those are the rail, in
+   * their order. Where they have not, the query runs — so the rail is
+   * never empty just because nobody has got round to curating it.
+   */
+  slot?: string;
   viewAllHref?: string;
   viewAllLabel?: string;
   count?: number;
@@ -41,10 +56,23 @@ export function ProductRail({
   // Serialised so an inline object literal at the call site doesn't
   // refetch on every render.
   const queryKey = JSON.stringify(query ?? {});
-  const { data, loading, error } = useAsyncData(
-    () => getProducts({ ...query, pageSize: count, page: 1 }),
-    [queryKey, count],
-  );
+  const { data, loading, error } = useAsyncData(async () => {
+    if (slot) {
+      const ids = await getCuratedProductIds(slot);
+      if (ids.length > 0) {
+        const picked = await getProductsByIds(ids);
+        // getProductsByIds makes no promise about order, and the order
+        // is the whole point of having curated it.
+        const byId = new Map(picked.map((p) => [p.id, p]));
+        const ordered = ids
+          .map((id) => byId.get(id))
+          .filter((p): p is Product => Boolean(p))
+          .slice(0, count);
+        return { items: ordered } as Awaited<ReturnType<typeof getProducts>>;
+      }
+    }
+    return getProducts({ ...query, pageSize: count, page: 1 });
+  }, [queryKey, count, slot]);
 
   const scroller = React.useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = React.useState(true);

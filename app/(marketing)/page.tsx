@@ -15,6 +15,7 @@ import { TrustSection } from "@/components/home/trust-section";
 import { FaqAccordion } from "@/components/home/faq-accordion";
 import { CtaBand } from "@/components/home/cta-band";
 import { Reveal } from "@/components/shared/reveal";
+import { HOME_FEATURED_SLOT } from "@/services/curated-products";
 
 export default function HomePage() {
   return (
@@ -45,11 +46,21 @@ export default function HomePage() {
       */}
       {[
         <ShopByCategory key="departments" />,
+        /*
+         * Curated, not "popular". This rail sorted by review_count,
+         * which is zero on all 3,449 products, so the shop window was
+         * whichever rows had been updated most recently -- captioned
+         * "what people are ordering this month", which was a claim
+         * nothing in the database supported. Admin picks what greets a
+         * visitor; until something is picked it falls back to the
+         * newest stock, which is at least true.
+         */
         <ProductRail
-          key="popular"
-          title="Popular right now"
-          subtitle="What contractors and homeowners are ordering this month."
-          query={{ sort: "popular" }}
+          key="featured"
+          title="Our picks"
+          subtitle="Chosen from the aisles we know best."
+          slot={HOME_FEATURED_SLOT}
+          query={{ sort: "newest" }}
           viewAllLabel="Shop all products"
         />,
         // Premium sits here, third, rather than ninth. It is the
@@ -63,12 +74,19 @@ export default function HomePage() {
           <UserTypeSection />
         </div>,
         <ServiceShowcase key="showcase" />,
+        /*
+         * Was "Top rated on site — rated 4 stars and up". No product has
+         * a rating: the import left them at zero rather than invent
+         * scores, so the rail matched nothing, returned null, and this
+         * section of the home page silently did not exist. Newest
+         * arrivals is true and never empty.
+         */
         <ProductRail
-          key="top-rated"
-          title="Top rated on site"
-          subtitle="Rated 4 stars and up by the people who installed them."
-          query={{ sort: "rating", minRating: 4 }}
-          viewAllLabel="See top rated"
+          key="new-in"
+          title="New in"
+          subtitle="The latest to land in the warehouse."
+          query={{ sort: "newest" }}
+          viewAllLabel="Shop all products"
         />,
         <ServicesSection key="services" />,
         <HowItWorks key="how" />,

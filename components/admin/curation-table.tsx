@@ -10,6 +10,7 @@ import { useToast } from "@/components/shared/toast";
 import {
   getCuratedCounts,
   getCuratedProductIds,
+  HOME_FEATURED_SLOT,
   itemSlot,
   setCuratedProducts,
   stageSlot,
@@ -34,7 +35,7 @@ import { cn } from "@/lib/utils";
  * than being a 140-stage chore before any of it helps.
  */
 
-type Source = "checklist" | "package";
+type Source = "checklist" | "package" | "home";
 
 interface Slot {
   slot: string;
@@ -50,6 +51,16 @@ function checklistSlots(projectId: string): Slot[] {
     label: stage.label,
     hint: stage.categories.join(", "),
   }));
+}
+
+function homeSlots(): Slot[] {
+  return [
+    {
+      slot: HOME_FEATURED_SLOT,
+      label: "Home page — Our picks",
+      hint: "the newest stock, until you choose",
+    },
+  ];
 }
 
 function packageSlots(): Slot[] {
@@ -89,10 +100,11 @@ export function CurationTable() {
   const [results, setResults] = React.useState<Product[]>([]);
   const [searching, setSearching] = React.useState(false);
 
-  const slots = React.useMemo(
-    () => (source === "checklist" ? checklistSlots(projectId) : packageSlots()),
-    [source, projectId],
-  );
+  const slots = React.useMemo(() => {
+    if (source === "home") return homeSlots();
+    if (source === "package") return packageSlots();
+    return checklistSlots(projectId);
+  }, [source, projectId]);
 
   // How many stages already have a list, so progress is visible.
   React.useEffect(() => {
@@ -196,6 +208,7 @@ export function CurationTable() {
           >
             <option value="checklist">Renovation material list</option>
             <option value="package">Contractor package</option>
+            <option value="home">Home page</option>
           </select>
         </label>
 
@@ -221,7 +234,8 @@ export function CurationTable() {
 
         <label className="flex flex-1 flex-col gap-1.5 text-sm">
           <span className="text-muted-foreground">
-            Stage {slots.length > 0 ? `(${slots.length})` : ""}
+            {source === "home" ? "Rail" : "Stage"}{" "}
+            {slots.length > 0 ? `(${slots.length})` : ""}
           </span>
           <select
             value={slot}
