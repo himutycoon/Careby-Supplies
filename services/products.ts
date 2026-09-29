@@ -84,6 +84,15 @@ function mapProduct(row: ProductRow): Product {
 const SELECT =
   "id,name,brand,category_id,price,homeowner_price,contractor_price,unit,rating,review_count,stock_status,delivery_estimate,description,specifications,image_tone,image_url,created_at";
 
+/**
+ * How many matches a search ranks before showing a page of them.
+ *
+ * Large enough that the good answer is almost always inside it — "tile"
+ * matches 265 — and small enough to stay one request. Past this, a
+ * search is too broad to rank usefully anyway and wants narrowing.
+ */
+const SEARCH_RANK_WINDOW = 200;
+
 export async function getProductCategories(): Promise<ProductCategory[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -117,18 +126,86 @@ export async function getProductCategories(): Promise<ProductCategory[]> {
  * the request: a PostgrestFilterBuilder is thenable, so handing it to
  * an async helper would await — and so run — the query early.
  */
-function searchClauses(search: string, categories: ProductCategory[]): string[] {
+function searchTokens(search: string): string[] {
   // A comma, parenthesis or quote would be read as filter syntax by
   // PostgREST rather than as text, so they are dropped rather than
   // escaped. Five words is plenty and keeps the query URL sane.
-  const tokens = search
+  return search
     .toLowerCase()
     .split(/\s+/)
     .map((token) => token.replace(/[,()"'\\%]/g, "").trim())
     .filter(Boolean)
     .slice(0, 5);
+}
 
-  return tokens.map((token) => {
+/** Category ids whose name or id contains the token. */
+function categoriesMatching(
+  token: string,
+  categories: ProductCategory[],
+): string[] {
+  return categories
+    .filter(
+      (category) =>
+        category.name.toLowerCase().includes(token) ||
+        category.id.toLowerCase().includes(token),
+    )
+    .map((category) => category.id);
+}
+
+/**
+ * How well a row answers the search, so the best match leads.
+ *
+ * Matching was never the problem. "Tile" already found 265 products,
+ * because the word appears in the description of cement, of tile glue
+ * and of pressure-treated wood — and cement came back first. The
+ * catalogue's actual tiles are named for their pattern, "Plata Perla
+ * Grigia Hexagon Polished Glazed Porcelain Mosaic", and never say the
+ * word at all; they were found by their category and then buried.
+ *
+ * So: a name beats a description, a whole word beats a fragment, and
+ * being in the aisle the word names beats mentioning it in passing.
+ * Nothing subtle — it only has to put a tile above a bag of cement.
+ */
+function relevance(
+  row: ProductRow,
+  tokens: string[],
+  categories: ProductCategory[],
+): number {
+  const name = (row.name ?? "").toLowerCase();
+  const brand = (row.brand ?? "").toLowerCase();
+  const description = (row.description ?? "").toLowerCase();
+
+  let score = 0;
+  for (const token of tokens) {
+    /*
+     * The aisle outranks the name. Searching "insulation" used to put
+     * insulation PINS above insulation, because the pins say the word
+     * and a batt is called "R-12 OC Batts". Naming the aisle is the
+     * strongest evidence a product IS the thing being asked for.
+     */
+    if (
+      row.category_id &&
+      categoriesMatching(token, categories).includes(row.category_id)
+    ) {
+      score += 8;
+    }
+    if (name.includes(token)) {
+      /*
+       * A whole word only. "Flextile" contains "tile" and a waterproof
+       * membrane is not a tile; scoring fragments highly is how it got
+       * to the top of the tile results.
+       */
+      const wholeWord = new RegExp(`(^|[^a-z0-9])${token}([^a-z0-9]|$)`);
+      score += wholeWord.test(name) ? 6 : 2;
+    }
+    if (brand.includes(token)) score += 2;
+    if (description.includes(token)) score += 1;
+  }
+  return score;
+}
+
+function searchClauses(search: string, categories: ProductCategory[]): string[] {
+  return searchTokens(search).map((token) => {
     const clauses = [
       `name.ilike.%${token}%`,
       `brand.ilike.%${token}%`,
@@ -136,14 +213,7 @@ function searchClauses(search: string, categories: ProductCategory[]): string[] 
       `sku.ilike.%${token}%`,
     ];
 
-    const matched = categories
-      .filter(
-        (category) =>
-          category.name.toLowerCase().includes(token) ||
-          category.id.toLowerCase().includes(token),
-      )
-      .map((category) => category.id);
-
+    const matched = categoriesMatching(token, categories);
     if (matched.length > 0) {
       clauses.push(`category_id.in.(${matched.join(",")})`);
     }
@@ -220,9 +290,21 @@ export async function getProducts(
     request = request.order("review_count", { ascending: false });
   }
 
-  // Page 1..n is cumulative (load-more), so always fetch from zero.
+  /*
+   * Page 1..n is cumulative (load-more), so always fetch from zero.
+   *
+   * A search fetches a wider window than the page needs, because the
+   * order the database returns is not the order a person wants: the
+   * default sort is review_count, which is zero on every imported
+   * product, so "tile" arrived in effectively arbitrary order. Ranking
+   * has to see more rows than it shows, or it just reorders the wrong
+   * ones. An explicit sort — price, newest — is the customer asking for
+   * a specific order, and is left alone.
+   */
   const end = page * pageSize;
-  const { data, error, count } = await request.range(0, end - 1);
+  const ranking = Boolean(search.trim()) && sort === "popular";
+  const fetchTo = ranking ? Math.max(end, SEARCH_RANK_WINDOW) : end;
+  const { data, error, count } = await request.range(0, fetchTo - 1);
 
   if (error || !data) {
     return {
@@ -238,8 +320,21 @@ export async function getProducts(
   const bounds = await getPriceBounds(useContractorPrice);
   const total = count ?? data.length;
 
+  let rows = data as unknown as ProductRow[];
+  if (ranking) {
+    const tokens = searchTokens(search);
+    const categories = await getProductCategories();
+    rows = [...rows]
+      .map((row) => ({ row, score: relevance(row, tokens, categories) }))
+      // Name as the tiebreak, so equal scores do not shuffle between
+      // loads and "load more" cannot show the same product twice.
+      .sort((a, b) => b.score - a.score || a.row.name.localeCompare(b.row.name))
+      .slice(0, end)
+      .map((entry) => entry.row);
+  }
+
   return {
-    items: (data as unknown as ProductRow[]).map(mapProduct),
+    items: rows.map(mapProduct),
     total,
     page,
     pageSize,
