@@ -40,6 +40,15 @@ export const MARKETING_TAB_NAV: AppNavItem[] = [
   { label: "Cart", href: "/cart", icon: "ShoppingCart", badge: "cart" },
 ];
 
+/**
+ * Tabs the phone bar shows directly; the rest go behind "More".
+ *
+ * Here rather than in the tab bar component so a dashboard can ask
+ * which destinations are already a thumb's reach away without importing
+ * a client component to find out.
+ */
+export const PHONE_TAB_COUNT = 4;
+
 export const CONTRACTOR_NAV: AppNavItem[] = [
   { label: "Dashboard", href: "/contractor", icon: "LayoutDashboard" },
   { label: "Shop Products", href: "/contractor/shop", icon: "ShoppingCart" },
@@ -116,6 +125,12 @@ export const ADMIN_NAV: AppNavItem[] = [
   { label: "Orders", href: "/admin/orders", icon: "Receipt", group: "Overview" },
 
   { label: "Products", href: "/admin/products", icon: "Boxes", group: "Inventory" },
+  {
+    label: "Product picks",
+    href: "/admin/curation",
+    icon: "ListChecks",
+    group: "Inventory",
+  },
   { label: "Categories", href: "/admin/categories", icon: "LayoutGrid", group: "Inventory" },
 
   { label: "Messages", href: "/admin/messages", icon: "MessageSquare", group: "Requests" },

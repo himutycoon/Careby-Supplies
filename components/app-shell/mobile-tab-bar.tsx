@@ -14,9 +14,9 @@ import {
 import { Icon } from "@/components/shared/icon";
 import { useCart } from "@/components/shop/cart-provider";
 import { cn } from "@/lib/utils";
-import type { AppNavItem } from "@/data/navigation";
+import { PHONE_TAB_COUNT, type AppNavItem } from "@/data/navigation";
 
-const PRIMARY_COUNT = 4;
+const PRIMARY_COUNT = PHONE_TAB_COUNT;
 
 function isActiveHref(pathname: string, href: string): boolean {
   // Section roots match exactly; deeper routes match by prefix.
