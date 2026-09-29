@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   AlertTriangle,
   Check,
-  Copy,
   Download,
   History,
   Loader2,
@@ -17,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PanelSkeleton } from "@/components/shared/skeleton";
+import { SharePackage } from "@/components/contractor/share-package";
 import { useToast } from "@/components/shared/toast";
 import {
   approvePackage,
@@ -207,21 +207,13 @@ export function PackageReview({ reference }: { reference: string }) {
         </Badge>
       </header>
 
-      <section className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
-        <code className="min-w-0 flex-1 truncate text-sm">{portalUrl}</code>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            navigator.clipboard.writeText(portalUrl).then(
-              () => toast("Link copied"),
-              () => toast("Couldn't copy the link", "error"),
-            );
-          }}
-        >
-          <Copy className="size-3.5" /> Copy link
-        </Button>
-      </section>
+      <SharePackage
+        url={portalUrl}
+        packageName={pkg.name}
+        customerName={pkg.customer.name}
+        customerEmail={pkg.customer.email}
+        customerPhone={pkg.customer.phone}
+      />
 
       {/* The reason the link was going unsent: it showed the customer
           what the materials cost us, next to the number the contractor
