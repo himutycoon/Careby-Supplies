@@ -49,16 +49,30 @@ export const MARKETING_TAB_NAV: AppNavItem[] = [
  */
 export const PHONE_TAB_COUNT = 4;
 
+/*
+ * Order matters: the phone tab bar takes the first four of these and
+ * puts the rest behind "More".
+ *
+ * Those four are deliberately the places a contractor RETURNS to --
+ * home, their cart, their orders, their projects. The things they START
+ * (shop, phone order, build a package, order by category, send a
+ * drawing) are the dashboard tiles, and having the same four as tabs an
+ * inch below them was the same list twice. The bar and the dashboard now
+ * answer different questions, so neither has to hide.
+ *
+ * No Cart tab on purpose: the top bar carries the cart on every screen,
+ * including phones, so a tab would be the same duplication again.
+ */
 export const CONTRACTOR_NAV: AppNavItem[] = [
   { label: "Dashboard", href: "/contractor", icon: "LayoutDashboard" },
-  { label: "Shop Products", href: "/contractor/shop", icon: "ShoppingCart" },
+  { label: "Orders", href: "/contractor/orders", icon: "Receipt" },
+  { label: "Projects", href: "/contractor/projects", icon: "FolderKanban" },
+  { label: "Packages", href: "/contractor/packages", icon: "Boxes" },
+  { label: "Shop Products", href: "/contractor/shop", icon: "Store" },
   { label: "Phone Order", href: "/contractor/call-order", icon: "Phone" },
   { label: "Create Package", href: "/contractor/packages/new", icon: "Package" },
   { label: "By Job Type", href: "/contractor/category-order", icon: "ListOrdered" },
   { label: "Upload Drawing", href: "/contractor/drawings", icon: "FileUp" },
-  { label: "Orders", href: "/contractor/orders", icon: "Receipt" },
-  { label: "Projects", href: "/contractor/projects", icon: "FolderKanban" },
-  { label: "Saved Packages", href: "/contractor/packages", icon: "Boxes" },
 ];
 
 /**

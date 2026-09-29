@@ -9,7 +9,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CONTRACTOR_NAV, PHONE_TAB_COUNT } from "@/data/navigation";
 
 interface Tile {
   title: string;
@@ -127,67 +126,19 @@ function ContractorTile({ tile, tall }: { tile: Tile; tall?: boolean }) {
   );
 }
 
-/*
- * On a phone the tab bar already carries the first few destinations, and
- * three of these tiles were the same three tabs sitting an inch above
- * the thumb — repeating them pushed the actual work (projects, orders,
- * appointments) below the fold for no gain.
- *
- * Derived from the nav rather than listed again here, so reordering the
- * tabs cannot leave the dashboard silently duplicating them.
- */
-const PHONE_TABS = new Set(
-  CONTRACTOR_NAV.slice(0, PHONE_TAB_COUNT).map((item) => item.href),
-);
-
-const NOT_ALREADY_A_TAB = [...PRIMARY, ...SECONDARY].filter(
-  (tile) => !PHONE_TABS.has(tile.href),
-);
-
 export function ContractorTiles() {
   return (
-    <>
-      {/* Phone: only what the tab bar does not already offer. */}
-      <div className="grid grid-cols-2 gap-3 sm:hidden">
-        {NOT_ALREADY_A_TAB.map((tile) => (
-          <Link
-            key={tile.href}
-            href={tile.href}
-            className="press-sm flex min-w-0 flex-col gap-2 rounded-xl border border-border bg-card p-3 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-          >
-            <span
-              className={cn(
-                "flex size-9 items-center justify-center rounded-lg",
-                tile.tone,
-              )}
-            >
-              <tile.icon className="size-4.5" aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block text-sm leading-tight font-semibold">
-                {tile.title}
-              </span>
-              <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
-                {tile.description}
-              </span>
-            </span>
-          </Link>
+    <div className="flex flex-col gap-3 sm:gap-4">
+      <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+        {PRIMARY.map((tile) => (
+          <ContractorTile key={tile.href} tile={tile} tall />
         ))}
       </div>
-
-      {/* Tablet and up: the full set, where there is room for it. */}
-      <div className="hidden flex-col gap-3 sm:flex sm:gap-4">
-        <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-          {PRIMARY.map((tile) => (
-            <ContractorTile key={tile.href} tile={tile} tall />
-          ))}
-        </div>
-        <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr] sm:gap-4">
-          {SECONDARY.map((tile) => (
-            <ContractorTile key={tile.href} tile={tile} />
-          ))}
-        </div>
+      <div className="grid gap-3 sm:grid-cols-[1fr_1.4fr] sm:gap-4">
+        {SECONDARY.map((tile) => (
+          <ContractorTile key={tile.href} tile={tile} />
+        ))}
       </div>
-    </>
+    </div>
   );
 }
