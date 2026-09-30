@@ -151,6 +151,7 @@ export function ProductsTable() {
   const [category, setCategory] = React.useState(
     searchParams.get("category") ?? "all",
   );
+  const [tag, setTag] = React.useState(searchParams.get("tag") ?? "all");
   const [sort, setSort] = React.useState<SortKey>("name");
   const [shown, setShown] = React.useState(PAGE);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
@@ -209,6 +210,20 @@ export function ProductsTable() {
     [inCategory],
   );
 
+  // Every tag in use, counted, so the list shows what work is left.
+  const tagOptions = React.useMemo(() => {
+    const tally = new Map<string, number>();
+    for (const product of all) {
+      for (const t of product.tags ?? []) tally.set(t, (tally.get(t) ?? 0) + 1);
+    }
+    return [...tally.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [all]);
+
+  const untaggedCount = React.useMemo(
+    () => all.filter((p) => (p.tags ?? []).length === 0).length,
+    [all],
+  );
+
   // Only the aisles that hold something, with their live count.
   const categoryOptions = React.useMemo(() => {
     const tally = new Map<string, number>();
@@ -227,6 +242,10 @@ export function ProductsTable() {
   const products = React.useMemo(() => {
     const term = search.trim().toLowerCase();
     const matched = inCategory.filter((product) => {
+      if (tag === "untagged" && (product.tags ?? []).length > 0) return false;
+      if (tag !== "all" && tag !== "untagged" && !(product.tags ?? []).includes(tag)) {
+        return false;
+      }
       // "inactive" is its own view; every other filter shows live products.
       if (filter === "inactive") {
         if (product.isActive) return false;
@@ -254,7 +273,7 @@ export function ProductsTable() {
     return [...matched].sort(
       (a, b) => by[sort](a, b) || a.name.localeCompare(b.name),
     );
-  }, [inCategory, search, filter, sort]);
+  }, [inCategory, search, filter, sort, tag]);
 
   /*
    * A narrower view starts at the top, not 400 rows into the old one.
@@ -263,7 +282,7 @@ export function ProductsTable() {
    * paint the stale row count first and then immediately replace it,
    * which is the cascading render React warns about.
    */
-  const view = `${search}|${filter}|${category}|${sort}`;
+  const view = `${search}|${filter}|${category}|${tag}|${sort}`;
   const [lastView, setLastView] = React.useState(view);
   if (view !== lastView) {
     setLastView(view);
@@ -461,6 +480,24 @@ export function ProductsTable() {
           </label>
 
           <label className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Tag</span>
+            <select
+              value={tag}
+              onChange={(e) => setTag(e.target.value)}
+              aria-label="Filter by tag"
+              className="h-10 min-w-36 rounded-lg border border-input bg-background px-3 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none md:h-8"
+            >
+              <option value="all">Any tag</option>
+              <option value="untagged">Not tagged ({untaggedCount})</option>
+              {tagOptions.map(([name, count]) => (
+                <option key={name} value={name}>
+                  {name} ({count})
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Sort</span>
             <select
               value={sort}
@@ -612,7 +649,7 @@ export function ProductsTable() {
                     />
                   </TableHead>
                   <TableHead>Product</TableHead>
-                  <TableHead>Brand</TableHead>
+                  <TableHead>Tags</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead className="text-right">Retail</TableHead>
                   <TableHead className="text-right">Trade</TableHead>
@@ -643,7 +680,20 @@ export function ProductsTable() {
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {product.brand || "—"}
+                      {(product.tags ?? []).length > 0 ? (
+                        <span className="flex flex-wrap gap-1">
+                          {product.tags.map((name) => (
+                            <span
+                              key={name}
+                              className="rounded bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary"
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        <span className="text-xs">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {categoryNames.get(product.categoryId) ?? "—"}
@@ -744,6 +794,14 @@ export function ProductsTable() {
           ) : null}
         </>
       )}
+
+      {/* Offered to the tag box in the bulk bar, so an existing tag is
+          picked rather than retyped into a near-miss. */}
+      <datalist id="product-tags">
+        {tagOptions.map(([name]) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
 
       {selectedIds.length > 0 ? (
         <BulkActionsBar

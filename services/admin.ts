@@ -307,6 +307,8 @@ export interface AdminProductRow {
   lowStockThreshold: number;
   /** False: the status is set directly rather than derived from a count. */
   trackStock: boolean;
+  /** What jobs this product answers, e.g. ["tile"]. Empty = guess as before. */
+  tags: string[];
   description: string;
   imageUrl: string;
   isActive: boolean;
@@ -371,7 +373,7 @@ export async function getAllProductsForAdmin(): Promise<AdminProductRow[]> {
   // low_stock_threshold arrives in schema-07. Asking for a column that
   // doesn't exist fails the whole select, which would blank the products
   // screen, so fall back to the base columns if it isn't there yet.
-  const columns = `${ADMIN_PRODUCT_COLUMNS}, low_stock_threshold, track_stock`;
+  const columns = `${ADMIN_PRODUCT_COLUMNS}, low_stock_threshold, track_stock, tags`;
   const probe = await supabase.from("products").select(columns).limit(1);
   const selection = probe.error ? ADMIN_PRODUCT_COLUMNS : columns;
 
@@ -408,6 +410,8 @@ export async function getAllProductsForAdmin(): Promise<AdminProductRow[]> {
     lowStockThreshold: Number(row.low_stock_threshold ?? 10),
     // Absent until schema-19; a product without the column is counted.
     trackStock: row.track_stock === undefined ? true : Boolean(row.track_stock),
+    // Absent until schema-25.
+    tags: Array.isArray(row.tags) ? (row.tags as string[]) : [],
     description: (row.description as string) ?? "",
     imageUrl: (row.image_url as string) ?? "",
     isActive: Boolean(row.is_active),
@@ -891,6 +895,88 @@ export function bulkSetActive(ids: string[], isActive: boolean) {
 
 export function bulkSetCategory(ids: string[], categoryId: string) {
   return bulkUpdate(ids, { category_id: categoryId }, "bulkSetCategory");
+}
+
+/**
+ * Adds or removes one tag across a selection, leaving the others alone.
+ *
+ * Read-modify-write per row rather than a single UPDATE: PostgREST
+ * cannot express "append unless already present" in a filter, and
+ * replacing the whole array would wipe tags a product already carries.
+ * The alternative is a stored function, which is more machinery than a
+ * few hundred rows justifies.
+ */
+export async function bulkTagProducts(
+  ids: string[],
+  tag: string,
+  mode: "add" | "remove",
+): Promise<ServiceResult<BulkResult>> {
+  const clean = tag.trim().toLowerCase();
+  if (!clean) return fail("Type a tag first.");
+  if (ids.length === 0) return fail("Nothing selected.");
+
+  const supabase = createClient();
+  let changed = 0;
+
+  for (const batch of chunk(ids, BULK_CHUNK)) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, tags")
+      .in("id", batch);
+
+    if (error || !data) {
+      console.error("[bulkTagProducts:read]", error);
+      return fail(toUserMessage(error, "We couldn't read those products."));
+    }
+
+    for (const row of data as unknown as { id: string; tags: string[] | null }[]) {
+      const current = Array.isArray(row.tags) ? row.tags : [];
+      const next =
+        mode === "add"
+          ? current.includes(clean)
+            ? current
+            : [...current, clean]
+          : current.filter((t) => t !== clean);
+
+      // Nothing to do is not a write.
+      if (next.length === current.length && mode === "add") continue;
+      if (next.length === current.length && mode === "remove") continue;
+
+      const { error: writeError } = await supabase
+        .from("products")
+        .update({ tags: next, updated_at: new Date().toISOString() })
+        .eq("id", row.id);
+
+      if (writeError) {
+        console.error("[bulkTagProducts:write]", writeError);
+        return fail(
+          toUserMessage(
+            writeError,
+            `Tagged ${changed} products, then stopped on an error.`,
+          ),
+        );
+      }
+      changed += 1;
+    }
+  }
+
+  return ok({ changed, skipped: [] });
+}
+
+/** Every tag in use, for offering them rather than retyping. */
+export async function getProductTags(): Promise<string[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("tags")
+    .not("tags", "eq", "{}");
+
+  if (error || !data) return [];
+  const seen = new Set<string>();
+  for (const row of data as unknown as { tags: string[] | null }[]) {
+    for (const tag of row.tags ?? []) seen.add(tag);
+  }
+  return [...seen].sort();
 }
 
 /**

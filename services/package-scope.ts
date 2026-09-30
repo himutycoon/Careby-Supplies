@@ -207,6 +207,15 @@ export async function productsForRequirement(
     }
   }
 
+  // Then anything marked as answering this requirement.
+  if (requirement.itemId) {
+    const tagged = await getProducts({
+      tag: requirement.itemId,
+      pageSize: limit,
+    });
+    if (tagged.items.length > 0) return tagged.items;
+  }
+
   const page = await getProducts({
     categoryId: requirement.categoryId,
     pageSize: 60,

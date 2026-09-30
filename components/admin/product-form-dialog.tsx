@@ -44,6 +44,7 @@ const BLANK: AdminProductRow = {
   stockStatus: "in-stock",
   lowStockThreshold: 10,
   trackStock: true,
+  tags: [],
   description: "",
   imageUrl: "",
   isActive: true,

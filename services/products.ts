@@ -10,6 +10,15 @@ export type ProductSort =
 
 export interface ProductQuery {
   search?: string;
+  /**
+   * Only products marked as answering this job, e.g. "tile".
+   *
+   * The aisle says where a product is kept; a tag says what it is for,
+   * which is the question a suggestion actually asks. Where nothing
+   * carries the tag the caller falls back to the aisle, so tagging can
+   * be done one at a time rather than all at once.
+   */
+  tag?: string | null;
   categoryId?: string | null;
   /**
    * Several categories at once, for screens that suggest materials for a
@@ -227,6 +236,7 @@ export async function getProducts(
 ): Promise<ProductPage> {
   const {
     search = "",
+    tag = null,
     categoryId = null,
     categoryIds = null,
     minPrice,
@@ -250,6 +260,10 @@ export async function getProducts(
     .select(SELECT, { count: "exact" })
     .eq("is_active", true);
 
+  if (tag) {
+    // contains: the column is an array, and one product carries many.
+    request = request.contains("tags", [tag]);
+  }
   if (categoryIds && categoryIds.length > 0) {
     request = request.in("category_id", categoryIds);
   } else if (categoryId) {

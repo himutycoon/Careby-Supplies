@@ -17,12 +17,22 @@ export function ProductSelector({
   categoryId,
   categoryIds,
   slot,
+  tag,
   showContractorPrice = false,
   emptyMessage = "We don't stock materials for this option online yet.",
 }: {
   categoryId?: string | null;
   /** Several aisles at once — a kitchen job spans more than one. */
   categoryIds?: string[] | null;
+  /**
+   * What job this is for, e.g. "tile".
+   *
+   * The middle of three answers. A hand-picked list wins; failing that,
+   * products marked as answering this job; failing that, the aisles.
+   * Each rung is cheaper to maintain than the one above it, and an
+   * untagged catalogue behaves exactly as it did before.
+   */
+  tag?: string;
   /**
    * A curated list to prefer over the aisles.
    *
@@ -63,6 +73,19 @@ export function ProductSelector({
           return;
         }
 
+        // Tagged products, if any carry this tag.
+        if (tag) {
+          const tagged = await getProducts({
+            tag,
+            pageSize: 9,
+            useContractorPrice: showContractorPrice,
+          });
+          if (tagged.items.length > 0) {
+            if (!cancelled) setProducts(tagged.items);
+            return;
+          }
+        }
+
         const page = await getProducts({
           categoryId: categoryId ?? null,
           categoryIds: categoryKey ? categoryKey.split(",") : null,
@@ -78,7 +101,7 @@ export function ProductSelector({
     return () => {
       cancelled = true;
     };
-  }, [categoryId, categoryKey, slot, showContractorPrice]);
+  }, [categoryId, categoryKey, slot, tag, showContractorPrice]);
 
   if (!loaded || isPending) {
     return (

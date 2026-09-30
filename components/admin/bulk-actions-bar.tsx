@@ -8,6 +8,7 @@ import {
   EyeOff,
   Loader2,
   Percent,
+  Tag,
   Trash2,
   X,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import {
   bulkSetCategory,
   bulkSetStock,
   bulkSetStockStatus,
+  bulkTagProducts,
   type AdminCategoryRow,
   type BulkResult,
 } from "@/services/admin";
@@ -55,6 +57,7 @@ export function BulkActionsBar({
   const [quantity, setQuantity] = React.useState("");
   const [percent, setPercent] = React.useState("");
   const [category, setCategory] = React.useState("");
+  const [tag, setTag] = React.useState("");
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const [confirmReprice, setConfirmReprice] = React.useState(false);
 
@@ -209,6 +212,49 @@ export function BulkActionsBar({
             }
           >
             Move
+          </Button>
+        </label>
+
+        {/* The one action that makes tagging 3,405 products possible:
+            filter to an aisle, select all, name what they are. */}
+        <label className="flex items-center gap-2 text-sm">
+          <Tag className="size-4 text-muted-foreground" aria-hidden="true" />
+          <span className="text-muted-foreground whitespace-nowrap">Tag as</span>
+          <Input
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+            list="product-tags"
+            placeholder="tile"
+            className="h-9 w-32"
+            aria-label="Tag to apply"
+          />
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={Boolean(busy) || !tag.trim()}
+            onClick={() =>
+              run("tag-add", () => bulkTagProducts(ids, tag, "add"), (r) => {
+                const named = tag.trim().toLowerCase();
+                setTag("");
+                return `${r.changed} ${plural} tagged "${named}"`;
+              })
+            }
+          >
+            Add
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={Boolean(busy) || !tag.trim()}
+            onClick={() =>
+              run("tag-remove", () => bulkTagProducts(ids, tag, "remove"), (r) => {
+                const named = tag.trim().toLowerCase();
+                setTag("");
+                return `"${named}" removed from ${r.changed} ${plural}`;
+              })
+            }
+          >
+            Remove
           </Button>
         </label>
 
