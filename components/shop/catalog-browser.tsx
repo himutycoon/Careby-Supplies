@@ -7,7 +7,6 @@ import {
   Loader2,
   Search,
   SlidersHorizontal,
-  Star,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,7 @@ import { ProductCardSkeleton } from "@/components/shared/skeleton";
 import {
   getProductBrands,
   getProductCategories,
+  getProductTagsInUse,
   getProducts,
   type ProductPage,
   type ProductSort,
@@ -40,10 +40,7 @@ const SORTS: { value: ProductSort; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "price-asc", label: "Price: low to high" },
   { value: "price-desc", label: "Price: high to low" },
-  { value: "rating", label: "Highest rated" },
 ];
-
-const RATINGS = [4, 3] as const;
 
 const STOCK_FILTERS: { value: StockStatus; label: string }[] = [
   { value: "in-stock", label: "In stock" },
@@ -77,7 +74,11 @@ export function CatalogBrowser({
   const [stock, setStock] = React.useState<StockStatus[]>([]);
   const [brands, setBrands] = React.useState<string[]>([]);
   const [minRating, setMinRating] = React.useState<number | null>(null);
+  const [minPrice, setMinPrice] = React.useState<number | null>(null);
   const [maxPrice, setMaxPrice] = React.useState<number | null>(null);
+  const [tag, setTag] = React.useState<string | null>(null);
+  const { data: tagData } = useAsyncData(getProductTagsInUse);
+  const availableTags = tagData ?? [];
   const [page, setPage] = React.useState(1);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
 
@@ -116,7 +117,9 @@ export function CatalogBrowser({
           stock,
           brands,
           minRating: minRating ?? undefined,
+          minPrice: minPrice ?? undefined,
           maxPrice: maxPrice ?? undefined,
+          tag,
           page,
           pageSize: PAGE_SIZE,
           useContractorPrice: showContractorPrice,
@@ -143,7 +146,9 @@ export function CatalogBrowser({
     stock,
     brands,
     minRating,
+    minPrice,
     maxPrice,
+    tag,
     page,
     showContractorPrice,
     reloadKey,
@@ -155,6 +160,8 @@ export function CatalogBrowser({
     setStock([]);
     setBrands([]);
     setMinRating(null);
+    setMinPrice(null);
+    setTag(null);
     setMaxPrice(null);
     setPage(1);
   }
@@ -165,6 +172,8 @@ export function CatalogBrowser({
     (stock.length > 0 ? 1 : 0) +
     (brands.length > 0 ? 1 : 0) +
     (minRating ? 1 : 0) +
+    (minPrice !== null ? 1 : 0) +
+    (tag ? 1 : 0) +
     (maxPrice ? 1 : 0);
 
   const filterPanel = (
@@ -242,47 +251,15 @@ export function CatalogBrowser({
         </div>
       ) : null}
 
-      <div>
-        <h2 className="mb-3 text-sm font-semibold">Customer rating</h2>
-        <div className="flex flex-col gap-2">
-          {RATINGS.map((value) => (
-            <label
-              key={value}
-              className="flex cursor-pointer items-center gap-2.5 text-sm"
-            >
-              <input
-                type="radio"
-                name="min-rating"
-                checked={minRating === value}
-                onChange={() => {
-                  setMinRating(value);
-                  setPage(1);
-                }}
-                className="size-4 accent-primary"
-              />
-              <span className="flex items-center gap-1 text-muted-foreground">
-                <Star
-                  className="size-3.5 fill-warning text-warning"
-                  aria-hidden="true"
-                />
-                {value} & up
-              </span>
-            </label>
-          ))}
-          {minRating ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMinRating(null);
-                setPage(1);
-              }}
-              className="w-fit text-xs text-primary hover:underline"
-            >
-              Clear rating
-            </button>
-          ) : null}
-        </div>
-      </div>
+      {/*
+        Customer rating filter removed, and "Highest rated" with it.
+
+        No product carries a rating: the import left them at zero rather
+        than invent scores, and no review has ever been written. So "4
+        stars & up" returned an empty page every time, which reads as a
+        broken shop rather than an honest absence. Restore both when
+        reviews exist — the query already supports minRating.
+      */}
 
       <div>
         <h2 className="mb-3 text-sm font-semibold">Availability</h2>
@@ -312,7 +289,72 @@ export function CatalogBrowser({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold">Max price</h2>
+        {/* Type, from the tags the shop has marked up. An aisle is broad
+            -- 604 plumbing items -- and a shopper thinks narrower than
+            that. Absent entirely until something is tagged, rather than
+            showing an empty menu. */}
+        {availableTags.length > 0 ? (
+          <div className="mb-6">
+            <h2 className="mb-3 text-sm font-semibold">Type</h2>
+            {/* Scrolls: the catalogue carries 138 types, and a panel of
+                138 chips buries every filter below it. */}
+            <div className="flex max-h-56 flex-wrap gap-2 overflow-y-auto pr-1">
+              {availableTags.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  aria-pressed={tag === name}
+                  onClick={() => {
+                    setTag(tag === name ? null : name);
+                    setPage(1);
+                  }}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-sm capitalize",
+                    tag === name
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <h2 className="mb-3 text-sm font-semibold">Price</h2>
+        {/* Typed bounds as well as the slider: this catalogue runs from
+            $2.59 to four figures, and dragging to "between 40 and 60"
+            on that scale is hopeless. */}
+        <div className="mb-3 flex items-center gap-2">
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            placeholder={String(Math.floor(bounds.min))}
+            value={minPrice ?? ""}
+            onChange={(e) => {
+              setMinPrice(e.target.value === "" ? null : Number(e.target.value));
+              setPage(1);
+            }}
+            aria-label="Minimum price"
+            className="h-9"
+          />
+          <span className="text-sm text-muted-foreground">to</span>
+          <Input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            placeholder={String(Math.ceil(bounds.max))}
+            value={maxPrice ?? ""}
+            onChange={(e) => {
+              setMaxPrice(e.target.value === "" ? null : Number(e.target.value));
+              setPage(1);
+            }}
+            aria-label="Maximum price"
+            className="h-9"
+          />
+        </div>
         <input
           type="range"
           min={bounds.min}
@@ -324,7 +366,7 @@ export function CatalogBrowser({
             setPage(1);
           }}
           className="w-full accent-primary"
-          aria-label="Maximum price"
+          aria-label="Maximum price slider"
         />
         <p className="mt-1.5 text-sm text-muted-foreground">
           Up to {formatCad(maxPrice ?? bounds.max)}

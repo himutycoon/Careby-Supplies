@@ -398,6 +398,32 @@ export async function getProductById(id: string): Promise<Product | null> {
   return mapProduct(data as unknown as ProductRow);
 }
 
+/**
+ * Every tag in use, for the catalogue's type filter.
+ *
+ * The aisle is broad — 604 plumbing items — and a shopper thinks in
+ * narrower terms than that. Tags are the narrower term, so the list is
+ * whatever the shop has actually marked up rather than a fixed menu.
+ */
+export async function getProductTagsInUse(): Promise<string[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("products")
+    .select("tags")
+    .eq("is_active", true)
+    .not("tags", "eq", "{}");
+
+  // Before schema-25 there is no column; an empty list simply hides the
+  // filter rather than breaking the page.
+  if (error || !data) return [];
+
+  const seen = new Set<string>();
+  for (const row of data as unknown as { tags: string[] | null }[]) {
+    for (const tag of row.tags ?? []) seen.add(tag);
+  }
+  return [...seen].sort();
+}
+
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
   if (ids.length === 0) return [];
   const supabase = createClient();
