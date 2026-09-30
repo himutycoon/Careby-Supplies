@@ -2,7 +2,15 @@
 
 import * as React from "react";
 import { useSearchParams } from "next/navigation";
-import { FileUp, ImageOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import {
+  FileDown,
+  FileUp,
+  ImageOff,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -23,6 +31,10 @@ import { StockControl } from "@/components/admin/stock-control";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { BulkActionsBar } from "@/components/admin/bulk-actions-bar";
 import { useAsyncData } from "@/lib/store/hooks";
+import {
+  TEMPLATE_COLUMNS,
+  TEMPLATE_HEADERS,
+} from "@/services/product-import";
 import {
   deleteProduct,
   getAllCategoriesForAdmin,
@@ -57,6 +69,58 @@ const SORTS: [SortKey, string][] = [
   ["price-asc", "Price: low to high"],
   ["price-desc", "Price: high to low"],
 ];
+
+/**
+ * Does this row survive the current filters?
+ *
+ * Outside the component, like the comparators: the React Compiler gave
+ * up preserving the memo around it once the body grew this long, and a
+ * predicate that closes over nothing has no reason to live inside.
+ */
+function matches(
+  product: AdminProductRow,
+  search: string,
+  filter: StockFilter,
+  tag: string,
+): boolean {
+  if (tag === "untagged" && product.tags.length > 0) return false;
+  if (tag !== "all" && tag !== "untagged" && !product.tags.includes(tag)) {
+    return false;
+  }
+
+  // "inactive" is its own view; every other filter shows live products.
+  if (filter === "inactive") {
+    if (product.isActive) return false;
+  } else {
+    if (!product.isActive) return false;
+    if (filter !== "all" && product.stockStatus !== filter) return false;
+  }
+
+  const term = search.trim().toLowerCase();
+  if (!term) return true;
+  return (
+    product.name.toLowerCase().includes(term) ||
+    product.brand.toLowerCase().includes(term) ||
+    product.id.toLowerCase().includes(term)
+  );
+}
+
+/*
+ * Sort comparators, hoisted out of the component: they close over
+ * nothing, and rebuilding six functions inside a useMemo on every run
+ * was enough for the React Compiler to give up preserving it.
+ */
+const COMPARATORS: Record<
+  SortKey,
+  (a: AdminProductRow, b: AdminProductRow) => number
+> = {
+  name: (a, b) => a.name.localeCompare(b.name),
+  "name-desc": (a, b) => b.name.localeCompare(a.name),
+  "stock-asc": (a, b) => a.stockQuantity - b.stockQuantity,
+  "stock-desc": (a, b) => b.stockQuantity - a.stockQuantity,
+  "price-asc": (a, b) => a.homeownerPrice - b.homeownerPrice,
+  "price-desc": (a, b) => b.homeownerPrice - a.homeownerPrice,
+};
 
 /*
  * The catalogue is 3,449 products. Painting every row locks the tab for
@@ -239,41 +303,72 @@ export function ProductsTable() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [all, categoryNames]);
 
-  const products = React.useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const matched = inCategory.filter((product) => {
-      if (tag === "untagged" && (product.tags ?? []).length > 0) return false;
-      if (tag !== "all" && tag !== "untagged" && !(product.tags ?? []).includes(tag)) {
-        return false;
-      }
-      // "inactive" is its own view; every other filter shows live products.
-      if (filter === "inactive") {
-        if (product.isActive) return false;
-      } else {
-        if (!product.isActive) return false;
-        if (filter !== "all" && product.stockStatus !== filter) return false;
-      }
-      if (!term) return true;
-      return (
-        product.name.toLowerCase().includes(term) ||
-        product.brand.toLowerCase().includes(term) ||
-        product.id.toLowerCase().includes(term)
-      );
-    });
+  const products = React.useMemo(
+    () =>
+      inCategory.filter((p) => matches(p, search, filter, tag)).sort(
+        // Ties fall back to the name, so re-sorting never shuffles equals.
+        (a, b) => COMPARATORS[sort](a, b) || a.name.localeCompare(b.name),
+      ),
+    [inCategory, search, filter, sort, tag],
+  );
 
-    const by: Record<SortKey, (a: AdminProductRow, b: AdminProductRow) => number> = {
-      name: (a, b) => a.name.localeCompare(b.name),
-      "name-desc": (a, b) => b.name.localeCompare(a.name),
-      "stock-asc": (a, b) => a.stockQuantity - b.stockQuantity,
-      "stock-desc": (a, b) => b.stockQuantity - a.stockQuantity,
-      "price-asc": (a, b) => a.homeownerPrice - b.homeownerPrice,
-      "price-desc": (a, b) => b.homeownerPrice - a.homeownerPrice,
+  /**
+   * The catalogue as a spreadsheet.
+   *
+   * The client asked to see and manage his product list "as the Excel".
+   * A second copy of the sheet in admin would be a second source of
+   * truth, and within a week the two would disagree. This is the round
+   * trip instead: export what is here now, edit it in Excel, import it
+   * back. The columns are exactly the ones the importer reads, tags
+   * included, so a file that leaves here can come straight back.
+   *
+   * It exports what is on screen -- filtered, searched, sorted -- so
+   * "just the tile aisle" or "just what is out of stock" is a download
+   * rather than a spreadsheet chore.
+   */
+  function exportCsv() {
+    const header = TEMPLATE_COLUMNS.map((c) => TEMPLATE_HEADERS[c]);
+    const cell = (value: string | number | boolean) => {
+      const text = String(value ?? "");
+      // Quote anything a spreadsheet would otherwise split or eat.
+      const needsQuotes =
+        text.includes(",") || text.includes('"') || text.includes("\n");
+      return needsQuotes ? `"${text.replace(/"/g, '""')}"` : text;
     };
-    // Ties fall back to the name, so re-sorting never shuffles equals.
-    return [...matched].sort(
-      (a, b) => by[sort](a, b) || a.name.localeCompare(b.name),
+
+    const rows = products.map((p) =>
+      [
+        p.id,
+        p.name,
+        p.brand,
+        p.categoryId,
+        p.homeownerPrice,
+        p.contractorPrice,
+        p.unit,
+        p.stockQuantity,
+        p.lowStockThreshold,
+        p.description,
+        p.imageUrl,
+        p.isActive,
+        (p.tags ?? []).join(", "),
+      ].map(cell).join(","),
     );
-  }, [inCategory, search, filter, sort, tag]);
+
+    // The BOM is what makes Excel open this as UTF-8; without it the
+    // accented and fractional characters in these names arrive mangled.
+    const csv =
+      "\ufeff" + [header.join(","), ...rows].join("\r\n");
+
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `careby-products-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast(`${products.length} products exported`);
+  }
 
   /*
    * A narrower view starts at the top, not 400 rows into the old one.
@@ -405,6 +500,14 @@ export function ProductsTable() {
           />
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            className="press w-full sm:w-auto"
+            onClick={exportCsv}
+            disabled={products.length === 0}
+          >
+            <FileDown className="size-4" /> Export CSV
+          </Button>
           <Button
             variant="outline"
             className="press w-full sm:w-auto"

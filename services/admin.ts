@@ -235,6 +235,8 @@ export interface AdminProductInput {
   trackStock: boolean;
   /** Only read when trackStock is false. */
   stockStatus: string;
+  /** What jobs this product answers. Absent leaves existing tags alone. */
+  tags?: string[];
   description: string;
   imageUrl: string;
   isActive: boolean;
@@ -262,6 +264,9 @@ export async function upsertProduct(
     unit: input.unit,
     stock_quantity: input.stockQuantity,
     track_stock: input.trackStock,
+    // Omitted rather than emptied when the caller says nothing, so a
+    // spreadsheet without a tags column cannot silently wipe them.
+    ...(input.tags ? { tags: input.tags } : {}),
     // Only sent for products nobody counts; for the rest the trigger
     // derives it, and sending both would let them disagree.
     ...(input.trackStock ? {} : { stock_status: input.stockStatus }),
@@ -280,10 +285,12 @@ export async function upsertProduct(
     .upsert({ ...base, low_stock_threshold: input.lowStockThreshold });
 
   if (error) {
-    const { track_stock, stock_status, ...withoutSchema19 } = base;
+    const { track_stock, stock_status, tags, ...withoutNewColumns } = base as
+      Record<string, unknown>;
     void track_stock;
     void stock_status;
-    ({ error } = await supabase.from("products").upsert(withoutSchema19));
+    void tags;
+    ({ error } = await supabase.from("products").upsert(withoutNewColumns));
   }
 
   if (error) {

@@ -50,6 +50,10 @@ const COLUMN_ALIASES = {
   description: ["description", "details", "notes"],
   imageUrl: ["imageurl", "image", "photo", "imagelink"],
   isActive: ["isactive", "active", "published", "visible"],
+  // Comma-separated in a cell: "tile, waterproofing". Round-tripping
+  // this is what makes a spreadsheet a way to tag the catalogue rather
+  // than just read it.
+  tags: ["tags", "tag", "type", "types"],
 } satisfies Record<string, string[]>;
 
 type Column = keyof typeof COLUMN_ALIASES;
@@ -68,6 +72,7 @@ export const TEMPLATE_COLUMNS: Column[] = [
   "description",
   "imageUrl",
   "isActive",
+  "tags",
 ];
 
 export const TEMPLATE_HEADERS: Record<Column, string> = {
@@ -83,6 +88,7 @@ export const TEMPLATE_HEADERS: Record<Column, string> = {
   description: "description",
   imageUrl: "image_url",
   isActive: "is_active",
+  tags: "tags",
 };
 
 const normaliseHeader = (value: string) =>
@@ -274,6 +280,10 @@ export function planProductImport(
         trackStock,
         // Only read when the CSV gave no count.
         stockStatus: "in-stock",
+        tags: cellAt(row, "tags")
+          .split(",")
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean),
         stockQuantity,
         lowStockThreshold,
         description: cellAt(row, "description"),
