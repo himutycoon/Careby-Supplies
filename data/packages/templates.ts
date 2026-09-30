@@ -551,7 +551,6 @@ export const PACKAGE_TEMPLATES: PackageTemplate[] = [
       "countertop",
       "shelving",
       "flooring",
-      "flooringMaterial",
       "lighting",
       "paint",
     ],

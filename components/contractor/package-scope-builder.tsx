@@ -87,6 +87,14 @@ export function PackageScopeBuilder() {
   const [tier, setTier] = React.useState<BudgetTier>("medium");
   const [answers, setAnswers] = React.useState<Record<string, string>>({});
   const [excluded, setExcluded] = React.useState<Set<string>>(new Set());
+  /*
+   * Per-line allowances for this job, by item id, as typed.
+   *
+   * Held as strings so a half-typed "1" is not read as an allowance of
+   * one dollar, and only converted on the way out. A line with no entry
+   * keeps the generated figure.
+   */
+  const [lineAllowances, setLineAllowances] = React.useState<Record<string, string>>({});
   const [details, setDetails] = React.useState({
     name: "",
     customerName: "",
@@ -128,8 +136,16 @@ export function PackageScopeBuilder() {
     [scope, excluded],
   );
 
+  /** What this line is worth on this job: the typed figure, or the default. */
+  function allowanceFor(requirement: { itemId: string; totalAllowanceCad: number }) {
+    const typed = lineAllowances[requirement.itemId];
+    if (typed === undefined || typed === "") return requirement.totalAllowanceCad;
+    const value = Number(typed);
+    return Number.isFinite(value) && value >= 0 ? value : requirement.totalAllowanceCad;
+  }
+
   const keptRequired = kept.filter((r) => r.required);
-  const keptAllowance = kept.reduce((sum, r) => sum + r.totalAllowanceCad, 0);
+  const keptAllowance = kept.reduce((sum, r) => sum + allowanceFor(r), 0);
 
   function chooseLocation(next: WorkLocation) {
     setLocation(next);
@@ -193,6 +209,16 @@ export function PackageScopeBuilder() {
         phone: details.customerPhone,
       },
       excludedItemIds: [...excluded],
+      allowanceOverrides: Object.fromEntries(
+        kept
+          .filter(
+            (r) =>
+              lineAllowances[r.itemId] !== undefined &&
+              lineAllowances[r.itemId] !== "",
+          )
+          .map((r) => [r.itemId, Number(lineAllowances[r.itemId])])
+          .filter(([, value]) => Number.isFinite(value as number) && (value as number) >= 0),
+      ),
     });
     setSubmitting(false);
 
@@ -528,8 +554,33 @@ export function PackageScopeBuilder() {
                             {requirement.reason}
                           </span>
                         </span>
-                        <span className="shrink-0 text-sm font-medium tabular-nums">
-                          {formatCad(requirement.totalAllowanceCad)}
+                        {/* Editable: admin sets what a line is usually
+                            worth, this job decides what it is worth
+                            here. Stops propagation so typing in the box
+                            does not toggle the row's checkbox. */}
+                        <span
+                          className="flex shrink-0 items-center gap-1"
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <span className="text-sm text-muted-foreground">$</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="10"
+                            disabled={!on}
+                            value={
+                              lineAllowances[requirement.itemId] ??
+                              String(requirement.totalAllowanceCad)
+                            }
+                            onChange={(e) =>
+                              setLineAllowances((current) => ({
+                                ...current,
+                                [requirement.itemId]: e.target.value,
+                              }))
+                            }
+                            aria-label={`Allowance for ${requirement.label}`}
+                            className="h-9 w-28 text-sm tabular-nums"
+                          />
                         </span>
                       </label>
                     </li>

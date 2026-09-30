@@ -29,6 +29,15 @@ export interface CreateScopedPackageInput {
   customer: { name: string; email: string; phone: string };
   /** Item ids the contractor removed from the generated list. */
   excludedItemIds?: string[];
+  /**
+   * Per-line allowances the contractor set for THIS job, by item id.
+   *
+   * Admin sets what a vanity is usually worth; this job may not be
+   * usual. What is written here is what the customer is measured
+   * against, so it is the contractor's last word before the package
+   * becomes a quote.
+   */
+  allowanceOverrides?: Record<string, number>;
 }
 
 export interface StoredSelection extends SelectionRequirement {
@@ -75,6 +84,16 @@ export async function createScopedPackage(
   if (!scope) return fail("That package template no longer exists.");
 
   const excluded = new Set(input.excludedItemIds ?? []);
+  const overrides = input.allowanceOverrides ?? {};
+
+  /** The contractor's figure for this line, or the generated one. */
+  function overrideFor(requirement: SelectionRequirement): number {
+    const total = overrides[requirement.itemId];
+    if (total === undefined || !Number.isFinite(total) || total < 0) {
+      return requirement.allowanceCad;
+    }
+    return Math.round((total / Math.max(1, requirement.quantity)) * 100) / 100;
+  }
   const requirements = scope.requirements.filter((r) => !excluded.has(r.itemId));
   if (requirements.length === 0) {
     return fail("A package needs at least one selection.");
@@ -119,7 +138,10 @@ export async function createScopedPackage(
         reason: requirement.reason,
         required: requirement.required,
         quantity: requirement.quantity,
-        allowance_cad: requirement.allowanceCad,
+        // Per-unit, the way the column is read back: the total is this
+        // times the quantity, so dividing keeps the two in step when a
+        // contractor edits the line total on screen.
+        allowance_cad: overrideFor(requirement),
         sort_order: index,
       })),
     );
