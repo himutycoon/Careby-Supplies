@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, Copy, Info } from "lucide-react";
+import { AlertTriangle, Check, Copy, Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -101,6 +101,17 @@ export function PackageScopeBuilder() {
     customerEmail: "",
     customerPhone: "",
   });
+  /*
+   * Whether the customer's list shows money.
+   *
+   * Asked here rather than only on the package screen afterwards. The
+   * link is generated the moment the package is created, and the
+   * switch used to live below the share buttons on the next screen —
+   * so a contractor quoting a lump sum could copy the link, send it,
+   * and only then find the control that would have hidden the prices.
+   * By then the customer has seen them.
+   */
+  const [showPrices, setShowPrices] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [created, setCreated] = React.useState<{
     reference: string;
@@ -209,6 +220,7 @@ export function PackageScopeBuilder() {
         phone: details.customerPhone,
       },
       excludedItemIds: [...excluded],
+      showPrices,
       allowanceOverrides: Object.fromEntries(
         kept
           .filter(
@@ -247,6 +259,29 @@ export function PackageScopeBuilder() {
           {created.requirementCount} selections generated. Send this one
           link — every decision your customer needs is behind it.
         </p>
+
+        {/* What the link will show, said before it is copied rather
+            than discovered after it is sent. */}
+        <p
+          className={cn(
+            "flex items-start gap-2 rounded-lg px-3 py-2 text-xs",
+            showPrices
+              ? "bg-muted text-muted-foreground"
+              : "bg-primary/8 text-foreground",
+          )}
+        >
+          {showPrices ? (
+            <Eye className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          ) : (
+            <EyeOff className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+          )}
+          <span>
+            {showPrices
+              ? "Prices are visible: your customer sees each allowance and what every option costs."
+              : "Prices are hidden: your customer picks finishes only. Change this any time on the package screen."}
+          </span>
+        </p>
+
         <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
           <code className="min-w-0 flex-1 truncate text-sm">{portalUrl}</code>
           <Button
@@ -638,12 +673,30 @@ export function PackageScopeBuilder() {
               }
             />
           </div>
+          <label className="flex items-start gap-3 rounded-lg border border-border bg-card px-3 py-3 text-sm">
+            <input
+              type="checkbox"
+              checked={showPrices}
+              onChange={(e) => setShowPrices(e.target.checked)}
+              className="mt-0.5 size-4 accent-[var(--primary)]"
+            />
+            <span>
+              Show prices to your customer
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                {showPrices
+                  ? "They see the allowance for each line and what every option costs."
+                  : "They choose finishes only; no allowance and no prices. You confirm the cost with them."}
+              </span>
+            </span>
+          </label>
+
           <p className="flex items-start gap-2 rounded-lg bg-muted px-3 py-2.5 text-xs text-muted-foreground">
             <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
             <span>
               Creating the package generates {kept.length} selections and one
               customer link. Nothing is sent automatically — you copy the
-              link and send it yourself.
+              link and send it yourself. You can change whether prices show
+              at any time, from the package screen.
             </span>
           </p>
         </fieldset>

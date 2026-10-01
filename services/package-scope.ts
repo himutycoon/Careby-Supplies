@@ -44,6 +44,18 @@ export interface CreateScopedPackageInput {
    * becomes a quote.
    */
   allowanceOverrides?: Record<string, number>;
+  /**
+   * Whether the customer sees money on their list.
+   *
+   * Set here, at creation, because the link is generated at creation
+   * and the decision cannot usefully come after it. A contractor
+   * quoting a lump sum who copies the link first and finds the switch
+   * afterwards has already sent the customer the trade prices.
+   *
+   * Defaults to showing them, which is the honest default and matches
+   * the column.
+   */
+  showPrices?: boolean;
 }
 
 export interface StoredSelection extends SelectionRequirement {
@@ -122,6 +134,7 @@ export async function createScopedPackage(
       customer_name: input.customer.name.trim(),
       customer_email: input.customer.email.trim().toLowerCase(),
       customer_phone: input.customer.phone.trim(),
+      show_prices: input.showPrices !== false,
       status: "draft",
     })
     .select("id, reference")

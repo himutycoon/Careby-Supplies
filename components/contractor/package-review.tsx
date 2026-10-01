@@ -221,17 +221,13 @@ export function PackageReview({ reference }: { reference: string }) {
         </Badge>
       </header>
 
-      <SharePackage
-        url={portalUrl}
-        packageName={pkg.name}
-        customerName={pkg.customer.name}
-        customerEmail={pkg.customer.email}
-        customerPhone={pkg.customer.phone}
-      />
-
-      {/* The reason the link was going unsent: it showed the customer
-          what the materials cost us, next to the number the contractor
-          had quoted them. */}
+      {/* Above the share buttons, not below them. This is the reason
+          the link was going unsent — it showed the customer what the
+          materials cost us, next to the number the contractor had
+          quoted them — and a control you find after copying the link
+          is a control you find too late. It is also asked during
+          creation now, so this is the place to change the answer
+          rather than the place to discover the question. */}
       <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2.5">
         <label className="flex items-center gap-2.5 text-sm">
           <input
@@ -254,6 +250,14 @@ export function PackageReview({ reference }: { reference: string }) {
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         ) : null}
       </section>
+
+      <SharePackage
+        url={portalUrl}
+        packageName={pkg.name}
+        customerName={pkg.customer.name}
+        customerEmail={pkg.customer.email}
+        customerPhone={pkg.customer.phone}
+      />
 
       <section className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-xl border border-border bg-card p-4">
