@@ -31,6 +31,7 @@ import { StockControl } from "@/components/admin/stock-control";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { BulkActionsBar } from "@/components/admin/bulk-actions-bar";
 import { useAsyncData } from "@/lib/store/hooks";
+import { clearCatalogueFacetCache } from "@/services/products";
 import {
   TEMPLATE_COLUMNS,
   TEMPLATE_HEADERS,
@@ -423,6 +424,13 @@ export function ProductsTable() {
 
   function afterBulk() {
     setSelected(new Set());
+    /*
+     * The shop's tag and brand lists are cached per page load, because
+     * search reads them on every keystroke. A bulk edit here is exactly
+     * the thing that invalidates them, and without this the new tag
+     * would not appear in the shop's Type filter until a reload.
+     */
+    clearCatalogueFacetCache();
     reload();
   }
 

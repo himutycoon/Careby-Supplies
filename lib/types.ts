@@ -61,6 +61,13 @@ export interface Product {
   deliveryEstimate: string;
   description: string;
   specifications: { label: string; value: string }[];
+  /**
+   * What this product is for, in the shop's own words — "pot light",
+   * "pins & nails". Seeded from the supplier's spreadsheet and editable
+   * in admin. Empty for anything nobody has typed yet, so every reader
+   * has to treat an empty list as "not stated", not as "nothing".
+   */
+  tags: string[];
   /** Placeholder tone used until real product photography exists. */
   tone: "sand" | "slate" | "forest" | "navy";
   /** Real product image once uploaded; falls back to the tone placeholder. */
