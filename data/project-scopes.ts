@@ -16,13 +16,72 @@
  * can offer real stock instead of a text box.
  */
 
+import { STAGE_TAGS, stageTags, tagsFor } from "@/data/product-tags";
+import { wordForms } from "@/lib/rules/product-fit";
+
 export interface ScopeStage {
   id: string;
   label: string;
   /** Catalogue category ids this stage is bought from. */
   categories: string[];
+  /**
+   * The shop's own words for what this stage buys, resolved from
+   * data/product-tags by the stage id.
+   *
+   * Narrower than the categories and tried before them: "Faucets" in a
+   * bathroom means five tagged products, not the 897 in the plumbing
+   * aisle. Empty where the catalogue has no word for the stage, and
+   * then the categories answer exactly as they did before.
+   */
+  tags: string[];
+  /**
+   * Words to rank candidates by, derived from the label.
+   *
+   * Tags say which products are eligible; these say which of them is
+   * the thing itself. "Faucets" matches 104 tagged products and they
+   * all match equally, so without a word to sort on the list came back
+   * alphabetically — and this catalogue names things by size, so the
+   * first faucet a customer saw was a 1/2" ball valve.
+   */
+  keywords: string[];
   /** Shown under the label where the stage needs explaining. */
   note?: string;
+}
+
+/*
+ * Stop words, and the plural. "Cement board and backer board" is worth
+ * ranking on cement, board and backer; it is not worth ranking on
+ * "and". Singularising matters more than it looks: the stage is called
+ * "Faucets" and every product is called a Faucet, and a whole-word
+ * match on the plural finds none of them.
+ */
+const SKIP = new Set([
+  "and",
+  "all",
+  "any",
+  "its",
+  "not",
+  "or",
+  "the",
+  "for",
+  "with",
+  "your",
+  "system",
+  "materials",
+  "installation",
+  "protection",
+  "other",
+]);
+
+function keywordsFromLabel(label: string): string[] {
+  const words = label
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    // Three letters, not four: "Exhaust fan" and "Shower or tub system"
+    // turn on the short word, and dropping it left the stage ranking on
+    // "exhaust" and "shower" alone.
+    .filter((word) => word.length >= 3 && !SKIP.has(word));
+  return [...new Set(words.flatMap(wordForms))];
 }
 
 export interface ScopeVariant {
@@ -42,13 +101,25 @@ export interface ProjectScope {
   stages: ScopeStage[];
 }
 
+/*
+ * Tags come from the stage id rather than being repeated at every call
+ * site: "demolition" means the same thing in a bathroom and a basement,
+ * and 140 stages share 98 ids between them.
+ */
 function s(
   id: string,
   label: string,
   categories: string[],
   note?: string,
 ): ScopeStage {
-  return { id, label, categories, note };
+  return {
+    id,
+    label,
+    categories,
+    tags: tagsFor(STAGE_TAGS, id),
+    keywords: keywordsFromLabel(label),
+    note,
+  };
 }
 
 export const PROJECT_SCOPES: ProjectScope[] = [
@@ -103,7 +174,7 @@ export const PROJECT_SCOPES: ProjectScope[] = [
       s("ceilings", "Ceilings", ["drywall", "metal-framing"]),
       s("electrical", "Electrical", ["electrical"]),
       s("plumbing", "Plumbing", ["plumbing"]),
-      s("hvac", "HVAC", ["hardware", "electrical"]),
+      s("hvac", "HVAC", ["hvac", "electrical"]),
       s("bathroom", "Bathroom", ["plumbing", "bath", "tile"], "A basement washroom is usually part of the suite."),
       s("kitchenette", "Kitchenette or bar", ["cabinetry", "plumbing", "countertops"]),
       s("doors", "Doors", ["doors-windows"]),
@@ -289,11 +360,21 @@ export function projectScope(id: string): ProjectScope | undefined {
   return PROJECT_SCOPES.find((p) => p.id === id);
 }
 
-/** Every stage for a project, with the chosen variant's stages first. */
+/**
+ * Every stage for a project, with the chosen variant's stages first.
+ *
+ * Tags are resolved here rather than at construction because a handful
+ * of stage ids mean different things in different projects — a Sink in
+ * a kitchen is not a Sink in a bathroom — and only the caller knows
+ * which project is being asked about.
+ */
 export function stagesFor(
   project: ProjectScope,
   variantId?: string,
 ): ScopeStage[] {
   const variant = project.variants?.find((v) => v.id === variantId);
-  return [...(variant?.stages ?? []), ...project.stages];
+  return [...(variant?.stages ?? []), ...project.stages].map((stage) => ({
+    ...stage,
+    tags: stageTags(project.id, stage.id),
+  }));
 }

@@ -325,7 +325,8 @@ export function ScopeRequestFlow() {
             <ProductSelector
               key={activeStage.id}
               slot={stageSlot(project.id, activeStage.id)}
-              tag={activeStage.id}
+              tags={activeStage.tags}
+              keywords={activeStage.keywords}
               categoryIds={activeStage.categories}
               emptyMessage={`We don't stock ${activeStage.label.toLowerCase()} online yet — leave it ticked and we'll price it with your request.`}
             />

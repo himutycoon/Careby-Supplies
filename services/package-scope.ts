@@ -8,7 +8,13 @@ import {
   type GeneratedScope,
   type SelectionRequirement,
 } from "@/lib/rules/package-scope";
-import { finishApplies, type BudgetTier } from "@/data/packages/selection-items";
+import {
+  finishApplies,
+  selectionItem,
+  type BudgetTier,
+} from "@/data/packages/selection-items";
+import { ITEM_TAGS, tagsFor } from "@/data/product-tags";
+import { budgetBounds, rankByFit } from "@/lib/rules/product-fit";
 import type { Product } from "@/lib/types";
 
 /**
@@ -187,7 +193,16 @@ export async function getPackageSelections(
     quantity: Number(row.quantity),
     allowanceCad: Number(row.allowance_cad),
     totalAllowanceCad: Number(row.allowance_cad) * Number(row.quantity),
-    keywords: [],
+    /*
+     * Keywords are not stored — the row keeps item_id, and keywords are
+     * a property of the item, not of the quote. Reading them back as []
+     * is what made the portal's product list look random: every line
+     * fell through to "first twelve products in this aisle", so a
+     * Toilet worth $480 offered whatever the plumbing aisle returned
+     * first. The allowance is a commercial promise and stays stored;
+     * how we search for candidates is not, and is resolved here.
+     */
+    keywords: selectionItem(row.item_id as string)?.keywords ?? [],
     status: row.status as StoredSelection["status"],
     productId: (row.product_id as string) ?? null,
     selectedPriceCad:
@@ -198,24 +213,41 @@ export async function getPackageSelections(
 /**
  * Products a customer may pick for one requirement.
  *
- * Category first, then keyword ranking — a "Vanity countertop" and a
- * kitchen "Countertop" share a category, and the keywords are what tell
- * them apart. Never filtered down to nothing: if keywords match no
- * product, the whole category is still offered rather than an empty list.
+ * Four questions, in descending order of how much somebody meant them:
+ *
+ *   1. Did an admin hand-pick products for this line? Use those, in
+ *      that order, and stop.
+ *   2. Does the catalogue have a word for this kind of thing? Ask for
+ *      products carrying it, within the allowance's price range.
+ *   3. Failing that, the aisle.
+ *   4. Order whatever came back by how well it fits — tags, the item's
+ *      own words, and the allowance.
+ *
+ * THE ALLOWANCE IS THE POINT. Every line carries one — "Toilet, $480" —
+ * and until now it was printed on screen and ignored when choosing what
+ * to put under it, so a $480 decision came with $4 wax rings and $3,200
+ * fixtures in the same list and nothing to say which was meant. It is
+ * the best budget signal in the system and it was being thrown away at
+ * the one moment it mattered.
+ *
+ * Never filtered down to nothing: every narrowing below falls back to
+ * the broader question rather than returning an empty list.
  */
 export async function productsForRequirement(
   requirement: Pick<SelectionRequirement, "categoryId" | "keywords"> & {
     itemId?: string;
+    /** Per-unit allowance for this line, if the caller knows it. */
+    allowanceCad?: number;
   },
   limit = 12,
   /** The package finish palette, if one is set and applies here. */
   finish = "",
 ): Promise<Product[]> {
   /*
-   * A hand-picked list wins outright, and skips the keyword scoring
-   * below: an admin who chose five tiles for this requirement meant
-   * those five, in that order, not those five re-ranked by how well
-   * their names match.
+   * A hand-picked list wins outright, and skips the scoring below: an
+   * admin who chose five tiles for this requirement meant those five,
+   * in that order, not those five re-ranked by how well their names
+   * match or how close they sit to an allowance.
    */
   if (requirement.itemId) {
     const curated = await getCuratedProductIds(itemSlot(requirement.itemId));
@@ -229,48 +261,99 @@ export async function productsForRequirement(
     }
   }
 
-  // Then anything marked as answering this requirement.
-  if (requirement.itemId) {
-    const tagged = await getProducts({
-      tag: requirement.itemId,
-      pageSize: limit,
-    });
-    if (tagged.items.length > 0) return tagged.items;
+  const allowanceCad =
+    typeof requirement.allowanceCad === "number" && requirement.allowanceCad > 0
+      ? requirement.allowanceCad
+      : null;
+
+  const need = {
+    tags: tagsFor(ITEM_TAGS, requirement.itemId),
+    keywords: requirement.keywords,
+    allowanceCad,
+    finish: finish && finishApplies(requirement.categoryId) ? finish : "",
+  };
+
+  /*
+   * The band is a query bound, not a judgement — generous, because a
+   * bound that is too tight comes back empty and an empty list is the
+   * worst answer available. `budgetScore` does the actual judging.
+   */
+  const bounds = allowanceCad ? budgetBounds(allowanceCad) : null;
+
+  if (need.tags.length > 0) {
+    const banded = bounds
+      ? await getProducts({ tags: need.tags, ...bounds, pageSize: 80 })
+      : null;
+
+    const pool =
+      banded && banded.items.length >= 3
+        ? banded.items
+        : (await getProducts({ tags: need.tags, pageSize: 80 })).items;
+
+    if (pool.length > 0) return rankByFit(pool, need, limit);
   }
 
-  const page = await getProducts({
-    categoryId: requirement.categoryId,
-    pageSize: 60,
-  });
+  /*
+   * No tag for this kind of thing, so ask the database for the item's
+   * own words instead of sampling the aisle and hoping.
+   *
+   * This is the part that cannot be fixed by ranking. "Faucet" is a
+   * line in the plumbing aisle, which holds 897 products; taking 120 of
+   * them in an order decided by a review count that is zero on every
+   * row, then ranking those 120, cannot surface a faucet that was not
+   * among the 120. The Bath Faucets really are in there, and really
+   * were not being found.
+   *
+   * One query per word rather than one query for all of them, because
+   * search ANDs its words: "faucet tap" would ask for products that say
+   * both, and nothing says both.
+   */
+  const words = need.keywords.slice(0, 3).filter(Boolean);
+  const found = await Promise.all(
+    words.map((word) =>
+      getProducts({
+        search: word,
+        categoryId: requirement.categoryId,
+        pageSize: 40,
+      }),
+    ),
+  );
 
-  const keywords = requirement.keywords.map((k) => k.toLowerCase());
-  const finishTerm =
-    finish && finishApplies(requirement.categoryId)
-      ? finish.toLowerCase()
-      : "";
+  const byId = new Map<string, Product>();
+  for (const page of found) {
+    for (const product of page.items) byId.set(product.id, product);
+  }
 
-  if (keywords.length === 0 && !finishTerm) return page.items.slice(0, limit);
+  /*
+   * The aisle is the backstop, and only the backstop. Asking inside the
+   * allowance band first makes its sample relevant rather than merely
+   * large.
+   */
+  if (byId.size < limit) {
+    const banded = bounds
+      ? await getProducts({
+          categoryId: requirement.categoryId,
+          ...bounds,
+          pageSize: 120,
+        })
+      : null;
 
-  const scored = page.items
-    .map((product) => {
-      const haystack = `${product.name} ${product.description}`.toLowerCase();
-      let score = keywords.reduce(
-        (sum, keyword) => (haystack.includes(keyword) ? sum + 1 : sum),
-        0,
-      );
-      /*
-       * A matching finish lifts a product but never hides the rest: the
-       * catalogue does not record finish on every item, so filtering by
-       * it would empty the list rather than order it.
-       */
-      if (finishTerm && haystack.includes(finishTerm)) score += 2;
-      return { product, score };
-    })
-    .sort((a, b) => b.score - a.score);
+    const fallback =
+      banded && banded.items.length >= limit
+        ? banded.items
+        : (
+            await getProducts({
+              categoryId: requirement.categoryId,
+              pageSize: 120,
+            })
+          ).items;
 
-  const matched = scored.filter((entry) => entry.score > 0);
-  const chosen = matched.length > 0 ? matched : scored;
-  return chosen.slice(0, limit).map((entry) => entry.product);
+    for (const product of fallback) {
+      if (!byId.has(product.id)) byId.set(product.id, product);
+    }
+  }
+
+  return rankByFit([...byId.values()], need, limit);
 }
 
 export type { GeneratedScope };

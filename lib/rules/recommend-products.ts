@@ -307,10 +307,19 @@ export function candidateCategoryIds(
     .map(([category]) => category);
 }
 
-/** Which of their phrases this product actually answers. */
+/**
+ * Which of their phrases this product actually answers.
+ *
+ * Tags are part of the haystack because they are often the only place
+ * the plain word appears: somebody who writes "I want pot lights" is
+ * describing a product called "4\" Round Slim LED Downlight", and the
+ * only thing on that row saying "pot light" is the tag.
+ */
 function matchedPhrases(product: Product, signals: RecommendationSignals) {
   const haystack = normalise(
-    `${product.name} ${product.description} ${product.brand}`,
+    [product.name, product.description, product.brand, ...(product.tags ?? [])]
+      .filter(Boolean)
+      .join(" "),
   );
   const phrases: string[] = [];
 
@@ -325,6 +334,20 @@ function matchedPhrases(product: Product, signals: RecommendationSignals) {
   }
 
   return phrases;
+}
+
+/**
+ * True when a tag on this product is itself one of their words.
+ *
+ * Narrower than matchedPhrases and worth more: "pot light" naming the
+ * tag "pot light" is the shop and the customer using the same word for
+ * the same thing, which is as good as this gets without asking them.
+ */
+function namesATag(product: Product, signals: RecommendationSignals): boolean {
+  const tags = (product.tags ?? []).map(normalise).filter(Boolean);
+  if (tags.length === 0) return false;
+  const text = [...signals.wishes, ...signals.issues].map(normalise);
+  return tags.some((tag) => text.some((line) => line.includes(tag)));
 }
 
 export interface RankOptions {
@@ -374,6 +397,9 @@ export function recommendProducts(
         reasons.unshift(`You mentioned: "${truncate(phrases[0], 60)}"`);
       }
 
+      const tagged = namesATag(product, signals);
+      if (tagged) score += 4;
+
       // Don't re-sell something already bought; related items still rank.
       if (signals.purchasedProductIds.includes(product.id)) score -= 8;
 
@@ -392,7 +418,12 @@ export function recommendProducts(
       score += Math.min(product.rating, 5) * 0.2;
       if (product.stock === "low-stock") score -= 0.5;
 
-      return { product, score, reasons, relevant: categoryWeight > 0 || phrases.length > 0 };
+      return {
+        product,
+        score,
+        reasons,
+        relevant: categoryWeight > 0 || phrases.length > 0 || tagged,
+      };
     })
     /*
      * Relevance is a gate, not a score. An item in an aisle this job has

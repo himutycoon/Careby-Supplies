@@ -443,6 +443,9 @@ function SelectionRow({
           itemId: selection.itemId,
           categoryId: selection.categoryId,
           keywords: selection.keywords,
+          // What this line is budgeted at. Shown at the top of the row
+          // already; now it also decides what is offered underneath it.
+          allowanceCad: selection.allowanceCad,
         },
         12,
         finish,

@@ -18,6 +18,9 @@ import type { Product } from "@/lib/types";
 
 const STEPS = ["Area", "Problem", "Help", "Products"];
 
+/** How many parts to show before asking whether they want the rest. */
+const SHORTLIST = 6;
+
 export function RepairFlow() {
   const { toast } = useToast();
   const [submitting, setSubmitting] = React.useState(false);
@@ -28,6 +31,7 @@ export function RepairFlow() {
 
   const [products, setProducts] = React.useState<Product[]>([]);
   const [loaded, setLoaded] = React.useState(false);
+  const [showAll, setShowAll] = React.useState(false);
   const [isPending, startTransition] = React.useTransition();
 
   const area = REPAIR_AREAS.find((a) => a.id === areaId) ?? null;
@@ -43,6 +47,7 @@ export function RepairFlow() {
         const results = await getProductsForRepair(
           area.categoryIds,
           problem?.keywords ?? [],
+          problem?.tags ?? [],
         );
         if (!cancelled) setProducts(results);
       } finally {
@@ -109,6 +114,7 @@ export function RepairFlow() {
                   setAreaId(option.id);
                   setProblemId(null);
                   setLoaded(false);
+                  setShowAll(false);
                 }}
               />
             ))}
@@ -127,6 +133,7 @@ export function RepairFlow() {
                 onSelect={() => {
                   setProblemId(option.id);
                   setLoaded(false);
+                  setShowAll(false);
                 }}
               />
             ))}
@@ -203,7 +210,7 @@ export function RepairFlow() {
               Recommended for {problem?.label.toLowerCase() ?? area.label}
             </h2>
             <p className="text-sm text-muted-foreground">
-              Parts commonly used for this repair.
+              Parts commonly used for this repair, closest match first.
             </p>
           </div>
 
@@ -226,15 +233,30 @@ export function RepairFlow() {
               }
             />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  action={<AddToCartControl product={product} />}
-                />
-              ))}
-            </div>
+            <>
+              {/* Six is a shortlist; the rest are one tap away. The
+                  unbounded grid here used to draw every match — a
+                  thousand cards under the words "commonly used". */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {(showAll ? products : products.slice(0, SHORTLIST)).map(
+                  (product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      action={<AddToCartControl product={product} />}
+                    />
+                  ),
+                )}
+              </div>
+
+              {!showAll && products.length > SHORTLIST ? (
+                <div className="flex justify-center">
+                  <Button variant="outline" onClick={() => setShowAll(true)}>
+                    Show all {products.length} parts
+                  </Button>
+                </div>
+              ) : null}
+            </>
           )}
 
           <Button

@@ -49,6 +49,17 @@ const ALL_CATEGORIES = [
   "adhesives",
   "concrete",
   "metal-framing",
+  // Eight aisles the catalogue has had for a while and this list did
+  // not, so "every category" quietly excluded 286 products — among
+  // them every vanity, every appliance and the whole HVAC department.
+  "cabinetry",
+  "countertops",
+  "appliances",
+  "hvac",
+  "smart-home",
+  "outdoor",
+  "window-coverings",
+  "bath",
 ];
 
 /*
@@ -74,9 +85,9 @@ const SUBTYPE_CATEGORIES: Record<string, string[]> = {
   plumbing: ["plumbing", "hardware"],
   electrical: ["electrical", "hardware"],
   roofing: ["roofing", "lumber"],
-  flooring: ["flooring", "hardware"],
+  flooring: ["flooring", "tile", "adhesives"],
   drywall: ["drywall", "metal-framing", "adhesives", "paint"],
-  hvac: ["hardware", "electrical"],
+  hvac: ["hvac", "electrical"],
 
   // Renovations span trades.
   kitchen: ["plumbing", "electrical", "tile", "flooring", "paint", "hardware"],
