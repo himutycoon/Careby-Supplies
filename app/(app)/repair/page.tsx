@@ -43,7 +43,15 @@ export default function RepairPage() {
 
       {/* Form left, reassurance right — the rail drops under the form on
           anything narrower than a laptop. */}
-      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* grid-cols-[minmax(0,1fr)] is load-bearing on a phone. A single-
+          column grid with no explicit template puts its items in an
+          `auto` track, and an auto track is sized by its items'
+          min-content -- so one wide descendant makes the whole column
+          wider than the screen, and body's overflow-x:hidden clips it
+          rather than scrolling. The lg: track below already says
+          minmax(0,1fr) for exactly this reason; the mobile one never
+          did. */}
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_320px]">
         <RepairFlow />
         <SupplySteps steps={STEPS} variant="rail" />
       </div>

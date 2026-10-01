@@ -37,7 +37,19 @@ export default function MaterialsPage() {
         imageSlot="categoryRenovation"
       />
 
-      <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {/* grid-cols-[minmax(0,1fr)] is load-bearing on a phone. A single-
+          column grid with no explicit template puts its items in an
+          `auto` track, and an auto track is sized by its items'
+          min-content -- so one wide descendant makes the whole column
+          wider than the screen, and body's overflow-x:hidden clips it
+          rather than scrolling. The lg: track below already says
+          minmax(0,1fr) for exactly this reason; the mobile one never
+          did.
+
+          [&>*]:min-w-0 is the other half: a grid ITEM also defaults to
+          min-width:auto, so a constrained track alone still lets the
+          item spill out of it. */}
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] items-start gap-5 [&>*]:min-w-0 lg:grid-cols-[minmax(0,1fr)_320px]">
         <ScopeRequestFlow />
         <SupplySteps steps={STEPS} variant="rail" />
       </div>

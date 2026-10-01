@@ -79,7 +79,7 @@ export default async function DashboardPage({
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-6">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-4 [&>*]:min-w-0 sm:gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:gap-6">
         <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <DashboardHero name={name} />
           <ServiceTiles />
