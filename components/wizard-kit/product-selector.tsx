@@ -272,8 +272,17 @@ export function ProductSelector({
   const browseCategory = categoryId ?? (categoryIds ?? [])[0] ?? null;
   const controls =
     !curated && (products.length > 0 || band !== "any") ? (
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <div className="scroll-row gap-1.5">
+      /*
+       * Stacked on a phone, side by side from sm up.
+       *
+       * These were one flex-wrap row, and a scroll-row inside a flex
+       * row does not scroll: a flex item defaults to min-width:auto, so
+       * it refuses to shrink below the five chips' natural width, and
+       * instead of scrolling them it pushed the whole step wider than
+       * the screen. min-w-0 is what lets the overflow actually happen.
+       */
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <div className="scroll-row min-w-0 gap-1.5 sm:flex-1">
           {BUDGET_BANDS.map((option) => (
             <button
               key={option.id}
@@ -292,12 +301,12 @@ export function ProductSelector({
           ))}
         </div>
 
-        <label className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
           <span className="sr-only sm:not-sr-only">Sort</span>
           <select
             value={sort}
             onChange={(event) => chooseSort(event.target.value as ProductSort)}
-            className="min-h-8 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground"
+            className="min-h-8 max-w-full min-w-0 rounded-md border border-border bg-card px-2 text-xs font-medium text-foreground"
           >
             {SORTS.map((option) => (
               <option key={option.id} value={option.id}>
