@@ -43,11 +43,22 @@ export function calculateDeliveryFee(
 export function calculateOrderTotals(
   lines: { unitPriceCad: number; quantity: number }[],
   method: DeliveryMethod = "standard",
+  /**
+   * A contractor support package on this order, in CAD.
+   *
+   * Taxed and totalled like anything else, but deliberately kept out of
+   * the delivery calculation: free delivery over $500 is a promise
+   * about materials, and a $149 package must not be the thing that
+   * carries a $400 order over the line. `recalculate_order_totals` in
+   * schema-27 applies the same rule, and that one is what bills.
+   */
+  supportPackageCad = 0,
 ): OrderTotals {
-  const subtotal = round2(
+  const items = round2(
     lines.reduce((sum, line) => sum + line.unitPriceCad * line.quantity, 0),
   );
-  const delivery = calculateDeliveryFee(subtotal, method);
+  const delivery = calculateDeliveryFee(items, method);
+  const subtotal = round2(items + Math.max(0, supportPackageCad));
   const tax = round2((subtotal + delivery) * HST_RATE);
   const total = round2(subtotal + delivery + tax);
 

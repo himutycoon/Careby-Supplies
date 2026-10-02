@@ -5,6 +5,7 @@ import type { PersistedStore } from "@/lib/store/create-store";
 import {
   cartStore,
   materialListDraftStore,
+  supportPackageStore,
   userTypeStore,
 } from "@/lib/store/app-store";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +21,7 @@ function useStore<T>(store: PersistedStore<T>): T {
 export const useCartLines = () => useStore(cartStore);
 export const useUserType = () => useStore(userTypeStore);
 export const useMaterialListDraft = () => useStore(materialListDraftStore);
+export const useSupportPackage = () => useStore(supportPackageStore);
 
 export interface AsyncState<T> {
   data: T | null;

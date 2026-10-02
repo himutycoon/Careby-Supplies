@@ -117,6 +117,14 @@ export interface Order {
   tax: number;
   total: number;
   deliveryMethod: string;
+  /**
+   * A contractor support package charged on this order.
+   *
+   * Not an order line — nothing is picked, packed or delivered — so it
+   * sits beside the delivery fee, which is the other thing on an order
+   * that is not a product.
+   */
+  supportPackage?: { name: string; priceCad: number };
   contact: {
     name: string;
     email: string;

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { fail, ok, toUserMessage, type ServiceResult } from "@/services/client";
 import { calculateOrderTotals } from "@/lib/rules/order-totals";
+import { PACKAGE_TIERS } from "@/data/project-flows";
 import type { CartLine, Order, OrderStatus } from "@/lib/types";
 
 export { calculateOrderTotals };
@@ -18,6 +19,10 @@ interface OrderRow {
   delivery_method: string;
   contact: Order["contact"] | null;
   created_at: string;
+  // schema-27. Read defensively so an order placed before the migration
+  // maps to "no package" rather than NaN.
+  support_package?: string | null;
+  support_package_price?: number | null;
   order_items?: OrderItemRow[];
 }
 
@@ -41,6 +46,12 @@ function mapOrder(row: OrderRow): Order {
     tax: Number(row.tax),
     total: Number(row.total),
     deliveryMethod: row.delivery_method,
+    supportPackage: row.support_package
+      ? {
+          name: row.support_package,
+          priceCad: Number(row.support_package_price ?? 0),
+        }
+      : undefined,
     contact: row.contact ?? {
       name: "",
       email: "",
@@ -63,6 +74,7 @@ function mapOrder(row: OrderRow): Order {
 const ORDER_SELECT = `
   id, reference, user_id, status, subtotal, tax, shipping, total,
   delivery_method, contact, created_at,
+  support_package, support_package_price,
   order_items ( product_id, quantity, unit_price, total_price, project_id,
                 products ( name, brand, unit ) )
 `;
@@ -72,6 +84,15 @@ export interface CreateOrderInput {
   deliveryMethod: string;
   contact: Order["contact"];
   projectId?: string;
+  /**
+   * A contractor support package to charge alongside the materials.
+   *
+   * The price is written to the order and the database recomputes every
+   * total from it, the same way it does for product lines — the number
+   * here is what is charged, so it is checked against the published
+   * tiers before it is written rather than trusted from the browser.
+   */
+  supportPackage?: { id: string; name: string; priceCad: number };
 }
 
 function generateReference(): string {
@@ -101,6 +122,22 @@ export async function createOrder(
     return fail("Contact name and email are required.");
   }
 
+  /*
+   * The package price comes from the published tier, not from the
+   * caller. Everything else on an order is priced by the database from
+   * the catalogue; this is the one figure that would otherwise arrive
+   * from a browser, and a browser is not allowed to name its own price.
+   * An unrecognised id is dropped rather than refused — losing an
+   * add-on is better than losing the order.
+   */
+  const tier = input.supportPackage
+    ? PACKAGE_TIERS.find((t) => t.id === input.supportPackage?.id)
+    : undefined;
+  const supportPackage =
+    tier && tier.priceCad
+      ? { name: tier.name, priceCad: tier.priceCad }
+      : undefined;
+
   const { data: created, error: orderError } = await supabase
     .from("orders")
     .insert({
@@ -110,6 +147,8 @@ export async function createOrder(
       order_type: "materials",
       delivery_method: input.deliveryMethod,
       contact: input.contact,
+      support_package: supportPackage?.name ?? "",
+      support_package_price: supportPackage?.priceCad ?? 0,
     })
     .select("id, reference")
     .single();

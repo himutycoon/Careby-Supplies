@@ -17,22 +17,18 @@ import { ScopeMaterials } from "@/components/wizard-kit/scope-materials";
 import { ReviewStep } from "@/components/wizard-kit/review-step";
 import { useToast } from "@/components/shared/toast";
 import { useCart } from "@/components/shop/cart-provider";
+import { supportPackageStore } from "@/lib/store/app-store";
 import { createProject } from "@/services/projects";
 import { createServiceRequest } from "@/services/service-requests";
 import { PACKAGE_TIERS, PROJECT_FLOWS } from "@/data/project-flows";
 import {
   projectScope,
+  repairScope,
   stagesFor,
   type ScopeStage,
 } from "@/data/project-scopes";
 import { formatCad } from "@/lib/format";
 
-/*
- * The checklist steps only exist for jobs the client has written a
- * scope for. A plumbing repair has no "tick every part you need" --
- * there are no parts, there is one broken thing -- so those jobs keep
- * the single suggested-materials step they have always had.
- */
 const STEPS = ["Type", "Details", "Package", "Materials", "Review"];
 const SCOPED_STEPS = [
   "Type",
@@ -50,11 +46,43 @@ const SCOPED_STEPS = [
  * purpose. "whole-house" is the one that does not, and because of that
  * a Full House order was the only renovation getting a generic aisle
  * list instead of the client's own 20-stage list.
+ *
+ * The new build types all answer to one list: a single-family house, a
+ * multi-family block and a commercial shell are bought in the same
+ * order -- footings, framing, sheathing, services, finishes -- and
+ * three copies of that list would only drift apart.
  */
-const SCOPE_ALIASES: Record<string, string> = { "whole-house": "full-home" };
+const SCOPE_ALIASES: Record<string, string> = {
+  "whole-house": "full-home",
+  addition: "new-build",
+  "single-family": "new-build",
+  "multi-family": "new-build",
+  commercial: "new-build",
+  other: "new-build",
+};
 
-function scopeFor(subtype: string | null) {
+/**
+ * Every job type now has a checklist, which is what the client asked
+ * for, but a repair's is a different question.
+ *
+ * A repair has no stages -- there is one broken thing, not twenty parts
+ * of a job -- so it is asked what is WRONG instead, from the same
+ * decision tree the homeowner repair flow uses. Both end in the same
+ * place: a short list of parts for the thing being fixed.
+ */
+/*
+ * Repair subtype -> the area of the repair tree that covers it. Only
+ * one needs saying: the flow calls it "Drywall", the tree calls the
+ * area "Walls & Ceilings", and without this a drywall repair was the
+ * single job type left with no checklist at all.
+ */
+const REPAIR_ALIASES: Record<string, string> = { drywall: "walls" };
+
+function scopeFor(flowId: string | undefined, subtype: string | null) {
   if (!subtype) return undefined;
+  if (flowId === "repair") {
+    return repairScope(REPAIR_ALIASES[subtype] ?? subtype);
+  }
   return projectScope(SCOPE_ALIASES[subtype] ?? subtype);
 }
 
@@ -106,7 +134,7 @@ const ALL_CATEGORIES = [
  * same thing drift, and the client asked for this side to match.
  */
 function scopeCategories(projectId: string): string[] | undefined {
-  const project = scopeFor(projectId);
+  const project = projectScope(SCOPE_ALIASES[projectId] ?? projectId);
   if (!project) return undefined;
   const all = [
     ...project.stages,
@@ -187,7 +215,7 @@ export function CategoryOrderFlow() {
    * -- not a contractor copy of it -- so a Kitchen means the same
    * twenty-odd stages on both sides of the product.
    */
-  const scope = scopeFor(subtype);
+  const scope = scopeFor(flow?.id, subtype);
   const stages: ScopeStage[] = scope ? stagesFor(scope, variantId) : [];
   const chosen = stages.filter((stage) => picked.has(stage.id));
   const steps = scope ? SCOPED_STEPS : STEPS;
@@ -315,10 +343,26 @@ export function CategoryOrderFlow() {
       if (!line.projectId) setProject(line.productId, project.id);
     }
 
-    // A support tier is work for the team, not a product: checkout only
-    // handles catalog lines, and no payment processor is connected. Raise
-    // it as a request so it reaches the admin queue and the contractor can
-    // see it under their own requests.
+    /*
+     * Hand the chosen package to checkout, which charges it.
+     *
+     * It used to end here as a service_request and nothing else: the
+     * tier was recorded against the project, somebody was meant to
+     * action it, and the contractor was never asked to pay for it. The
+     * request is still raised -- that is the team's work item -- but
+     * the money is on the order now.
+     */
+    supportPackageStore.set(() =>
+      selectedTier && selectedTier.id !== "none" && selectedTier.priceCad
+        ? {
+            id: selectedTier.id,
+            name: selectedTier.name,
+            priceCad: selectedTier.priceCad,
+            projectId: project.id,
+          }
+        : null,
+    );
+
     if (selectedTier && selectedTier.id !== "none") {
       const requested = await createServiceRequest({
         serviceType: "support_package",
@@ -541,7 +585,7 @@ export function CategoryOrderFlow() {
             ]}
             note={
               selectedTier && selectedTier.id !== "none"
-                ? `Materials in your cart will be assigned to this project at checkout. The ${selectedTier.name} package isn't charged here — an advisor confirms scope and price with you first.`
+                ? `Materials in your cart will be assigned to this project at checkout, where the ${selectedTier.name} package is added to your total.`
                 : "Materials in your cart will be assigned to this project at checkout."
             }
           >

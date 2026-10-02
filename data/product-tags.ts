@@ -83,6 +83,7 @@ export const STAGE_TAGS: Record<string, string[]> = {
   cabinets: ["cabinet hinge"],
   caulking: ["sealants", "adhesives & sealants accessories"],
   ceiling: ["ceiling tiles", "grid and trim", "drywall grid system"],
+  closet: ["closet door", "shelving"],
   ceilings: ["ceiling tiles", "grid and trim", "drywall grid system"],
   compound: ["compund", "drywall compound"],
   concrete: ["cement", "mix", "foundation", "concrete reinforcement materials"],
@@ -203,6 +204,7 @@ export const STAGE_TAGS: Record<string, string[]> = {
   rails: ["fence and decking accessories"],
   removal: ["blades", "cutting discs", "hammers", "hammer"],
   rollers: ["paint tool"],
+  roofing: ["flashing", "membrane", "pins & nails"],
   sanding: ["hand sander accessories", "power sanding accessories"],
   screws: ["screws", "pins & nails"],
   "shower-system": [
@@ -327,8 +329,27 @@ export const PROJECT_STAGE_TAGS: Record<string, string[]> = {
   "drywall:boards": [],
 };
 
+/**
+ * The project-specific override for a stage, or undefined when there
+ * isn't one.
+ *
+ * Undefined rather than an empty list, and the difference matters:
+ * "drywall:boards" is deliberately empty — a drywall sheet is not an
+ * OSB panel and the aisle answers better than a wrong tag — so a caller
+ * must be able to tell "overridden to nothing" from "not overridden".
+ * Collapsing the two wiped the tags off every repair checklist, which
+ * carries its own and has no entry here at all.
+ */
+export function stageTagOverride(
+  projectId: string,
+  stageId: string,
+): string[] | undefined {
+  return PROJECT_STAGE_TAGS[`${projectId}:${stageId}`];
+}
+
 /** Tags for a stage, preferring the project-specific entry. */
 export function stageTags(projectId: string, stageId: string): string[] {
-  const scoped = PROJECT_STAGE_TAGS[`${projectId}:${stageId}`];
-  return scoped ?? tagsFor(STAGE_TAGS, stageId);
+  return (
+    stageTagOverride(projectId, stageId) ?? tagsFor(STAGE_TAGS, stageId)
+  );
 }

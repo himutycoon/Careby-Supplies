@@ -10,7 +10,8 @@ import { ListRowSkeleton } from "@/components/shared/skeleton";
 import { useCart } from "@/components/shop/cart-provider";
 import { useToast } from "@/components/shared/toast";
 import { OrderSummary } from "@/components/shop/order-summary";
-import { useAsyncData } from "@/lib/store/hooks";
+import { useAsyncData, useSupportPackage } from "@/lib/store/hooks";
+import { supportPackageStore } from "@/lib/store/app-store";
 import { getProductsByIds } from "@/services/products";
 import { getProjects } from "@/services/projects";
 import { getMyRole } from "@/services/profile";
@@ -18,6 +19,7 @@ import { priceForRole } from "@/lib/pricing";
 import { formatCad } from "@/lib/format";
 
 export function CartView() {
+  const supportPackage = useSupportPackage();
   const { lines, setQuantity, setProject, remove, clear } = useCart();
   const { toast } = useToast();
 
@@ -191,6 +193,10 @@ export function CartView() {
       <div className="lg:sticky lg:top-24">
         <OrderSummary
           lines={orderLines}
+          // Shown here too, or the total jumps between the cart and
+          // checkout with no explanation.
+          supportPackage={supportPackage ?? undefined}
+          onRemoveSupportPackage={() => supportPackageStore.set(() => null)}
           action={
             <Button
               size="lg"

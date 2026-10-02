@@ -48,3 +48,29 @@ export const materialListDraftStore = createPersistedStore<MaterialListDraft>(
   "careby.materialListDraft",
   { projectId: "", variantId: "", picked: [], notes: "" },
 );
+
+/**
+ * A support package chosen in the contractor's order-by-category flow,
+ * waiting to be charged at checkout.
+ *
+ * In a store rather than a URL or component state because the flow ends
+ * by routing to /checkout, which is a different page with a different
+ * tree -- and because a contractor who detours to the cart, adds one
+ * more box of screws and comes back must not quietly lose the package
+ * they asked for.
+ *
+ * Cleared when the order is placed, and when they pick "No Package".
+ */
+export interface ChosenSupportPackage {
+  id: string;
+  name: string;
+  priceCad: number;
+  /** The project it was chosen for, so a stale one can be spotted. */
+  projectId?: string;
+}
+
+export const supportPackageStore =
+  createPersistedStore<ChosenSupportPackage | null>(
+    "careby.supportPackage",
+    null,
+  );

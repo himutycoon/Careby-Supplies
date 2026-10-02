@@ -16,7 +16,8 @@
  * can offer real stock instead of a text box.
  */
 
-import { STAGE_TAGS, stageTags, tagsFor } from "@/data/product-tags";
+import { STAGE_TAGS, stageTagOverride, tagsFor } from "@/data/product-tags";
+import { REPAIR_AREAS } from "@/data/repair-flows";
 import { wordForms } from "@/lib/rules/product-fit";
 
 export interface ScopeStage {
@@ -354,6 +355,59 @@ export const PROJECT_SCOPES: ProjectScope[] = [
       s("electrical", "Electrical", ["electrical"]),
     ],
   },
+  {
+    /*
+     * The client wrote nine lists; these last two are mine, and should
+     * be read as a first draft rather than his word. They exist because
+     * the contractor flow now offers a checklist for every job type,
+     * and a Bedroom or a new build with no list would have been the
+     * only two left showing a raw aisle dump.
+     */
+    id: "bedroom",
+    name: "Bedroom",
+    blurb: "A bedroom refresh, from the strip-out to the last coat.",
+    stages: [
+      s("demolition", "Demolition", ["tools", "hardware"]),
+      s("electrical", "Electrical", ["electrical"]),
+      s("drywall", "Drywall", ["drywall"]),
+      s("insulation", "Insulation and sound", ["insulation"]),
+      s("flooring", "Flooring", ["flooring"]),
+      s("closet", "Closet", ["doors-windows", "hardware", "cabinetry"]),
+      s("doors", "Doors", ["doors-windows"]),
+      s("trim", "Trim", ["lumber"]),
+      s("lighting", "Lighting", ["electrical"]),
+      s("paint", "Paint", ["paint"]),
+      s("hardware", "Hardware", ["hardware"]),
+      s("consumables", "Consumables", ["tools", "adhesives", "hardware"]),
+    ],
+  },
+  {
+    id: "new-build",
+    name: "New build",
+    blurb: "Ground up, or an addition onto what is already there.",
+    stages: [
+      s("footings", "Footings and foundation", ["concrete"]),
+      s("framing", "Framing", ["lumber", "metal-framing"]),
+      s("joists", "Joists", ["lumber"]),
+      s("beams", "Beams and headers", ["lumber"]),
+      s("boards", "Sheathing", ["lumber"]),
+      s("moisture", "Weather barrier and flashing", ["insulation", "roofing"]),
+      s("roofing", "Roofing", ["roofing"]),
+      s("doors", "Windows and exterior doors", ["doors-windows"]),
+      s("plumbing-rough", "Plumbing rough-in", ["plumbing"]),
+      s("electrical-rough", "Electrical rough-in", ["electrical"]),
+      s("hvac", "HVAC", ["hvac", "electrical"]),
+      s("insulation", "Insulation", ["insulation"]),
+      s("vapour", "Vapour barrier", ["insulation"]),
+      s("drywall", "Drywall", ["drywall"]),
+      s("flooring", "Flooring", ["flooring", "tile"]),
+      s("doors-trim", "Interior doors and trim", ["doors-windows", "lumber"]),
+      s("paint", "Paint", ["paint"]),
+      s("fasteners", "Fasteners", ["hardware"]),
+      s("consumables", "Consumables", ["tools", "adhesives", "hardware"]),
+      s("cleanup", "Cleanup", ["tools"]),
+    ],
+  },
 ];
 
 export function projectScope(id: string): ProjectScope | undefined {
@@ -375,6 +429,40 @@ export function stagesFor(
   const variant = project.variants?.find((v) => v.id === variantId);
   return [...(variant?.stages ?? []), ...project.stages].map((stage) => ({
     ...stage,
-    tags: stageTags(project.id, stage.id),
+    // Only where this project says something different. A stage that
+    // carries its own tags -- every repair problem does -- keeps them.
+    tags: stageTagOverride(project.id, stage.id) ?? stage.tags,
   }));
+}
+
+
+/**
+ * A repair area, shaped as a project scope.
+ *
+ * A repair has no stages — there is one broken thing, not twenty parts
+ * of a job — so "tick every part you need materials for" would be a
+ * strange question. What a contractor buying repair parts does know is
+ * WHAT IS WRONG, and the repair decision tree already lists that, with
+ * tags that were checked against the catalogue.
+ *
+ * So the checklist for a repair is its problems. Built from
+ * REPAIR_AREAS rather than written again here, because a second copy
+ * of "what can go wrong with a tap" would drift from the first.
+ */
+export function repairScope(areaId: string): ProjectScope | undefined {
+  const area = REPAIR_AREAS.find((a) => a.id === areaId);
+  if (!area) return undefined;
+
+  return {
+    id: `repair-${area.id}`,
+    name: area.label,
+    blurb: `Parts for ${area.label.toLowerCase()} repairs.`,
+    stages: area.problems.map((problem) => ({
+      id: problem.id,
+      label: problem.label,
+      categories: area.categoryIds,
+      tags: problem.tags ?? [],
+      keywords: keywordsFromLabel(problem.label),
+    })),
+  };
 }

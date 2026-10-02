@@ -24,7 +24,8 @@ import { OrderSummary } from "@/components/shop/order-summary";
 import { createOrder, calculateOrderTotals } from "@/services/orders";
 import { getProductsByIds } from "@/services/products";
 import { getMyRole } from "@/services/profile";
-import { useAsyncData } from "@/lib/store/hooks";
+import { useAsyncData, useSupportPackage } from "@/lib/store/hooks";
+import { supportPackageStore } from "@/lib/store/app-store";
 import { priceForRole } from "@/lib/pricing";
 import { DELIVERY_OPTIONS } from "@/lib/delivery";
 import { formatCad } from "@/lib/format";
@@ -99,6 +100,14 @@ export function CheckoutFlow() {
   );
   const { data: role } = useAsyncData(getMyRole);
 
+  /*
+   * A support package chosen back in the order-by-category flow. It is
+   * read here rather than passed, because that flow ends by routing to
+   * this page -- and because a contractor who detours to the cart and
+   * comes back must not lose it.
+   */
+  const supportPackage = useSupportPackage();
+
   const orderLines = React.useMemo(
     () =>
       lines.flatMap((line) => {
@@ -128,8 +137,13 @@ export function CheckoutFlow() {
    * what is billed.
    */
   const payableTotal = React.useMemo(
-    () => calculateOrderTotals(orderLines, delivery).total,
-    [orderLines, delivery],
+    () =>
+      calculateOrderTotals(
+        orderLines,
+        delivery,
+        supportPackage?.priceCad ?? 0,
+      ).total,
+    [orderLines, delivery, supportPackage],
   );
 
   if (lines.length === 0 && !placedOrder) {
@@ -207,6 +221,9 @@ export function CheckoutFlow() {
       // to decide whether the delivery fee applies.
       deliveryMethod: delivery,
       contact,
+      // The id is what matters: createOrder re-reads the price from the
+      // published tiers rather than trusting the figure this page holds.
+      supportPackage: supportPackage ?? undefined,
     });
 
     if (!result.ok) {
@@ -227,6 +244,8 @@ export function CheckoutFlow() {
      * order is safely stored.
      */
     clear();
+    // Spent. Leaving it would charge the next order for it too.
+    supportPackageStore.set(() => null);
 
     if (!paymentsLive) {
       setSubmitting(false);
@@ -488,7 +507,12 @@ export function CheckoutFlow() {
           </button>
 
           <div className={cn("mt-3 lg:mt-0", !summaryOpen && "hidden lg:block")}>
-            <OrderSummary lines={orderLines} deliveryMethod={delivery} />
+            <OrderSummary
+              lines={orderLines}
+              deliveryMethod={delivery}
+              supportPackage={supportPackage ?? undefined}
+              onRemoveSupportPackage={() => supportPackageStore.set(() => null)}
+            />
           </div>
         </div>
       </div>

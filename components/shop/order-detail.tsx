@@ -126,9 +126,26 @@ export function OrderDetail({ orderId }: { orderId: string }) {
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Subtotal</dt>
                 <dd className="font-medium tabular-nums">
-                  {formatCad(order.subtotal)}
+                  {formatCad(
+                    order.subtotal - (order.supportPackage?.priceCad ?? 0),
+                  )}
                 </dd>
               </div>
+
+              {/* Itemised on the receipt for the same reason it is
+                  itemised at checkout: a charge nobody can name is a
+                  charge somebody will query. */}
+              {order.supportPackage ? (
+                <div className="flex justify-between gap-3">
+                  <dt className="min-w-0 text-muted-foreground">
+                    {order.supportPackage.name} package
+                  </dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatCad(order.supportPackage.priceCad)}
+                  </dd>
+                </div>
+              ) : null}
+
               <div className="flex justify-between">
                 <dt className="text-muted-foreground">Delivery</dt>
                 <dd className="font-medium tabular-nums">
