@@ -3,27 +3,26 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Paperclip, ShoppingCart, X } from "lucide-react";
+import { Paperclip, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { OptionCard } from "@/components/wizard-kit/option-card";
 import { WizardFrame } from "@/components/wizard-kit/wizard-frame";
-import { ProductSelector } from "@/components/wizard-kit/product-selector";
+import { ScopeChecklist } from "@/components/wizard-kit/scope-checklist";
+import { ScopeMaterials } from "@/components/wizard-kit/scope-materials";
 import { useCart } from "@/components/shop/cart-provider";
 import { useMaterialListDraft } from "@/lib/store/hooks";
 import { materialListDraftStore } from "@/lib/store/app-store";
 import { useToast } from "@/components/shared/toast";
 import { createServiceRequest } from "@/services/service-requests";
 import { uploadDrawing, validateDrawingFile } from "@/services/drawings";
-import { stageSlot } from "@/services/curated-products";
 import {
   PROJECT_SCOPES,
   projectScope,
   stagesFor,
   type ScopeStage,
 } from "@/data/project-scopes";
-import { cn } from "@/lib/utils";
 
 const STEPS = ["Project", "What you need", "Materials", "Send"];
 
@@ -73,7 +72,6 @@ export function ScopeRequestFlow() {
     }));
   const [files, setFiles] = React.useState<File[]>([]);
   const [submitting, setSubmitting] = React.useState(false);
-  const [openStage, setOpenStage] = React.useState("");
   const { itemCount } = useCart();
 
   const project = projectId ? projectScope(projectId) : undefined;
@@ -128,14 +126,6 @@ export function ScopeRequestFlow() {
   const canContinue =
     step === 0 ? Boolean(project) && !needsVariant : step === 1 ? picked.size > 0 : true;
 
-  // Open the first ticked stage on arrival rather than an empty grid.
-  const stageView = `${projectId}|${variantId}|${[...picked].sort().join(",")}`;
-  const [lastStageView, setLastStageView] = React.useState(stageView);
-  if (stageView !== lastStageView) {
-    setLastStageView(stageView);
-    setOpenStage(chosen[0]?.id ?? "");
-  }
-  const activeStage = chosen.find((s) => s.id === openStage) ?? chosen[0];
 
   async function submit() {
     if (!project) return;
@@ -226,112 +216,21 @@ export function ScopeRequestFlow() {
       ) : null}
 
       {step === 1 && project ? (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
-              Tick every part you need materials for. {picked.size} of {stages.length} selected.
-            </p>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setPicked(new Set(stages.map((s) => s.id)))}
-              >
-                Select all
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setPicked(new Set())}
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {stages.map((s) => {
-              const on = picked.has(s.id);
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggle(s.id)}
-                  className={cn(
-                    "flex min-w-0 items-start gap-2 rounded-xl border px-3 py-2.5 text-left transition-colors",
-                    "focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
-                    on
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40 hover:bg-muted/50",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border",
-                      on ? "border-primary bg-primary text-primary-foreground" : "border-border",
-                    )}
-                  >
-                    {on ? <Check className="size-3" /> : null}
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm leading-tight font-medium">{s.label}</span>
-                    {s.note ? (
-                      <span className="mt-0.5 block text-xs text-muted-foreground">{s.note}</span>
-                    ) : null}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ScopeChecklist
+          stages={stages}
+          picked={picked}
+          onToggle={toggle}
+          onSelectAll={() => setPicked(new Set(stages.map((s) => s.id)))}
+          onClear={() => setPicked(new Set())}
+        />
       ) : null}
 
       {step === 2 && project ? (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-muted-foreground">
-            What we stock for each part you ticked. Add what you need and
-            check out — nothing here has to wait on a phone call.
-          </p>
-
-          {/* One stage open at a time: a bathroom can carry 29 of them,
-              and fetching a grid for every one would be 29 requests to
-              fill a screen nobody has scrolled to yet. */}
-          <div className="scroll-row gap-2 pb-1">
-            {chosen.map((stage) => {
-              const on = stage.id === activeStage?.id;
-              return (
-                <button
-                  key={stage.id}
-                  type="button"
-                  onClick={() => setOpenStage(stage.id)}
-                  aria-pressed={on}
-                  className={cn(
-                    "press flex min-h-9 items-center rounded-full border px-3 text-sm font-medium whitespace-nowrap",
-                    on
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {stage.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {activeStage ? (
-            <ProductSelector
-              key={activeStage.id}
-              slot={stageSlot(project.id, activeStage.id)}
-              tags={activeStage.tags}
-              keywords={activeStage.keywords}
-              categoryIds={activeStage.categories}
-              emptyMessage={`We don't stock ${activeStage.label.toLowerCase()} online yet — leave it ticked and we'll price it with your request.`}
-            />
-          ) : null}
-        </div>
+        <ScopeMaterials
+          projectId={project.id}
+          stages={chosen}
+          helper="What we stock for each part you ticked. Add what you need and check out — nothing here has to wait on a phone call."
+        />
       ) : null}
 
       {step === 3 && project ? (

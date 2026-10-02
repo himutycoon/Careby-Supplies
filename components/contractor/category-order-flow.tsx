@@ -12,16 +12,51 @@ import { OptionCard } from "@/components/wizard-kit/option-card";
 import { WizardFrame, WizardStep } from "@/components/wizard-kit/wizard-frame";
 import { PackageSelector } from "@/components/wizard-kit/package-selector";
 import { ProductSelector } from "@/components/wizard-kit/product-selector";
+import { ScopeChecklist } from "@/components/wizard-kit/scope-checklist";
+import { ScopeMaterials } from "@/components/wizard-kit/scope-materials";
 import { ReviewStep } from "@/components/wizard-kit/review-step";
 import { useToast } from "@/components/shared/toast";
 import { useCart } from "@/components/shop/cart-provider";
 import { createProject } from "@/services/projects";
 import { createServiceRequest } from "@/services/service-requests";
 import { PACKAGE_TIERS, PROJECT_FLOWS } from "@/data/project-flows";
-import { projectScope } from "@/data/project-scopes";
+import {
+  projectScope,
+  stagesFor,
+  type ScopeStage,
+} from "@/data/project-scopes";
 import { formatCad } from "@/lib/format";
 
+/*
+ * The checklist steps only exist for jobs the client has written a
+ * scope for. A plumbing repair has no "tick every part you need" --
+ * there are no parts, there is one broken thing -- so those jobs keep
+ * the single suggested-materials step they have always had.
+ */
 const STEPS = ["Type", "Details", "Package", "Materials", "Review"];
+const SCOPED_STEPS = [
+  "Type",
+  "Details",
+  "Package",
+  "What you need",
+  "Materials",
+  "Review",
+];
+
+/**
+ * Contractor subtype -> the project scope of the same job.
+ *
+ * Almost all of them share an id with the homeowner's checklist on
+ * purpose. "whole-house" is the one that does not, and because of that
+ * a Full House order was the only renovation getting a generic aisle
+ * list instead of the client's own 20-stage list.
+ */
+const SCOPE_ALIASES: Record<string, string> = { "whole-house": "full-home" };
+
+function scopeFor(subtype: string | null) {
+  if (!subtype) return undefined;
+  return projectScope(SCOPE_ALIASES[subtype] ?? subtype);
+}
 
 /**
  * Catalog categories worth suggesting for a project subtype.
@@ -71,7 +106,7 @@ const ALL_CATEGORIES = [
  * same thing drift, and the client asked for this side to match.
  */
 function scopeCategories(projectId: string): string[] | undefined {
-  const project = projectScope(projectId);
+  const project = scopeFor(projectId);
   if (!project) return undefined;
   const all = [
     ...project.stages,
@@ -133,11 +168,57 @@ export function CategoryOrderFlow() {
   const [notes, setNotes] = React.useState("");
   const [tier, setTier] = React.useState("none");
   const [submitting, setSubmitting] = React.useState(false);
+  /*
+   * Which parts of the job they need materials for, and which variant
+   * of it — the same two answers the homeowner's checklist asks, kept
+   * here so the contractor can be sent down the same two screens.
+   */
+  const [picked, setPicked] = React.useState<Set<string>>(new Set());
+  const [variantId, setVariantId] = React.useState("");
 
   const flow = PROJECT_FLOWS.find((f) => f.id === flowId) ?? null;
   const selectedTier = PACKAGE_TIERS.find((t) => t.id === tier);
   const subtypeLabel =
     flow?.subtypes.find((s) => s.id === subtype)?.label ?? "";
+
+  /*
+   * The client's own stage list for this job, when there is one. This
+   * is the same data the homeowner's material checklist is built from
+   * -- not a contractor copy of it -- so a Kitchen means the same
+   * twenty-odd stages on both sides of the product.
+   */
+  const scope = scopeFor(subtype);
+  const stages: ScopeStage[] = scope ? stagesFor(scope, variantId) : [];
+  const chosen = stages.filter((stage) => picked.has(stage.id));
+  const steps = scope ? SCOPED_STEPS : STEPS;
+  const current = steps[step];
+  const needsVariant = Boolean(scope?.variants?.length) && !variantId;
+
+  function chooseSubtype(id: string) {
+    setSubtype(id);
+    // A different job is a different stage list; ticks cannot carry over.
+    setPicked(new Set());
+    setVariantId("");
+  }
+
+  function chooseVariant(id: string) {
+    setVariantId(id);
+    // A variant's own stages change with it, so a tick against
+    // "Laminate boards" must not survive a switch to carpet.
+    const variantStages = new Set(
+      (scope?.variants ?? []).flatMap((v) => v.stages.map((s) => s.id)),
+    );
+    setPicked((prev) => new Set([...prev].filter((id) => !variantStages.has(id))));
+  }
+
+  function toggleStage(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   // Project-type selection sits before the stepper.
   if (!flow) {
@@ -172,12 +253,16 @@ export function CategoryOrderFlow() {
   const activeFlow = flow;
 
   const canContinue =
-    (step === 0 && Boolean(subtype)) ||
-    (step === 1 && projectName.trim() !== "") ||
-    step >= 2;
+    (current === "Type" && Boolean(subtype) && !needsVariant) ||
+    (current === "Details" && projectName.trim() !== "") ||
+    // Nothing ticked means nothing to shop for on the next screen.
+    (current === "What you need" ? picked.size > 0 : false) ||
+    current === "Package" ||
+    current === "Materials" ||
+    current === "Review";
 
   async function handleNext() {
-    if (step < STEPS.length - 1) {
+    if (step < steps.length - 1) {
       setStep((s) => s + 1);
       return;
     }
@@ -193,7 +278,21 @@ export function CategoryOrderFlow() {
           : activeFlow.id,
       subtype: subtypeLabel,
       location,
-      notes,
+      /*
+       * The ticked stages go onto the project itself, so whoever picks
+       * this order up knows what the job covers rather than only what
+       * ended up in the cart. Folded into the description because that
+       * is a column that already exists -- a dedicated one would mean a
+       * migration for something a line of text says perfectly well.
+       */
+      notes: [
+        notes.trim(),
+        chosen.length > 0
+          ? `Scope: ${chosen.map((stage) => stage.label).join(" · ")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
       supportPackage:
         selectedTier && selectedTier.id !== "none"
           ? { name: selectedTier.name, priceCad: selectedTier.priceCad }
@@ -250,11 +349,13 @@ export function CategoryOrderFlow() {
 
   return (
     <WizardFrame
-      steps={STEPS}
+      steps={steps}
       current={step}
       canContinue={canContinue}
       submitting={submitting}
-      nextLabel={step === STEPS.length - 1 ? "Create project & checkout" : "Continue"}
+      nextLabel={
+        step === steps.length - 1 ? "Create project & checkout" : "Continue"
+      }
       onBack={() => setStep((s) => Math.max(0, s - 1))}
       onNext={handleNext}
       header={
@@ -277,23 +378,45 @@ export function CategoryOrderFlow() {
         </div>
       }
     >
-      {step === 0 ? (
+      {current === "Type" ? (
         <WizardStep title={flow.subtypeLabel}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {flow.subtypes.map((option) => (
-              <OptionCard
-                key={option.id}
-                label={option.label}
-                icon={option.icon}
-                selected={subtype === option.id}
-                onSelect={() => setSubtype(option.id)}
-              />
-            ))}
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {flow.subtypes.map((option) => (
+                <OptionCard
+                  key={option.id}
+                  label={option.label}
+                  icon={option.icon}
+                  selected={subtype === option.id}
+                  onSelect={() => chooseSubtype(option.id)}
+                />
+              ))}
+            </div>
+
+            {/* Some jobs come in more than one form, and the form
+                changes the stage list — a laminate floor and a carpet
+                are not bought the same way. Asked here because the
+                checklist two steps later depends on the answer. */}
+            {scope?.variants?.length ? (
+              <div className="flex flex-col gap-2.5">
+                <Label>{scope.variantLabel}</Label>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {scope.variants.map((variant) => (
+                    <OptionCard
+                      key={variant.id}
+                      label={variant.label}
+                      selected={variantId === variant.id}
+                      onSelect={() => chooseVariant(variant.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </WizardStep>
       ) : null}
 
-      {step === 1 ? (
+      {current === "Details" ? (
         <WizardStep
           title="Project details"
           helper="Name the job so materials and orders can be grouped against it."
@@ -331,7 +454,7 @@ export function CategoryOrderFlow() {
         </WizardStep>
       ) : null}
 
-      {step === 2 ? (
+      {current === "Package" ? (
         <WizardStep
           title="Optional packages"
           helper="Add support beyond materials — or skip it entirely."
@@ -344,19 +467,45 @@ export function CategoryOrderFlow() {
         </WizardStep>
       ) : null}
 
-      {step === 3 ? (
+      {current === "What you need" && scope ? (
         <WizardStep
-          title="Suggested materials"
-          helper="Add what you need — quantities stay editable in the cart."
+          title={`What does this ${scope.name.toLowerCase()} need?`}
+          helper="The same checklist your customer sees. Tick the parts you're buying for."
         >
-          <ProductSelector
-            categoryIds={subtype ? categoriesFor(subtype) : null}
-            showContractorPrice
+          <ScopeChecklist
+            stages={stages}
+            picked={picked}
+            onToggle={toggleStage}
+            onSelectAll={() => setPicked(new Set(stages.map((s) => s.id)))}
+            onClear={() => setPicked(new Set())}
           />
         </WizardStep>
       ) : null}
 
-      {step === 4 ? (
+      {current === "Materials" ? (
+        <WizardStep
+          title="Suggested materials"
+          helper="Add what you need — quantities stay editable in the cart."
+        >
+          {scope ? (
+            <ScopeMaterials
+              projectId={scope.id}
+              stages={chosen}
+              showContractorPrice
+              helper="What we stock for each part you ticked, at your trade price."
+            />
+          ) : (
+            /* No scope for this job, so there is no checklist to work
+               through — a plumbing repair gets the aisles, as before. */
+            <ProductSelector
+              categoryIds={subtype ? categoriesFor(subtype) : null}
+              showContractorPrice
+            />
+          )}
+        </WizardStep>
+      ) : null}
+
+      {current === "Review" ? (
         <WizardStep title="Review your project">
           <ReviewStep
             rows={[
@@ -367,6 +516,18 @@ export function CategoryOrderFlow() {
               },
               { label: "Project name", value: projectName },
               { label: "Location", value: location },
+              // Only where there was a checklist to tick.
+              ...(scope
+                ? [
+                    {
+                      label: "Parts of the job",
+                      value:
+                        chosen.length > 0
+                          ? chosen.map((stage) => stage.label).join(" · ")
+                          : "—",
+                    },
+                  ]
+                : []),
               {
                 label: "Package",
                 value: selectedTier
