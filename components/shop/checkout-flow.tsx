@@ -26,6 +26,7 @@ import { getProductsByIds } from "@/services/products";
 import { getMyRole } from "@/services/profile";
 import { useAsyncData, useSupportPackage } from "@/lib/store/hooks";
 import { supportPackageStore } from "@/lib/store/app-store";
+import { ReportAdsConversion } from "@/components/shared/ads-conversion";
 import { priceForRole } from "@/lib/pricing";
 import { DELIVERY_OPTIONS } from "@/lib/delivery";
 import { formatCad } from "@/lib/format";
@@ -160,6 +161,13 @@ export function CheckoutFlow() {
   if (placedOrder) {
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center gap-4 rounded-xl border border-border bg-card px-6 py-16 text-center">
+        {/* The payments-off path ends here and may never visit the order
+            page, so the conversion is reported from both. Deduped on the
+            reference, so going on to "View order" is not a second sale. */}
+        <ReportAdsConversion
+          reference={placedOrder.id}
+          valueCad={placedOrder.subtotal + placedOrder.delivery}
+        />
         <span className="flex size-14 items-center justify-center rounded-full bg-success/12 text-success">
           <CircleCheck className="size-7" aria-hidden="true" />
         </span>

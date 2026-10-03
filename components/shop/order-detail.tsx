@@ -12,6 +12,7 @@ import { StepIndicator } from "@/components/shared/step-indicator";
 import { getOrderByReference } from "@/services/orders";
 import { deliveryMethodLabel } from "@/lib/delivery";
 import { formatCad, formatDate } from "@/lib/format";
+import { ReportAdsConversion } from "@/components/shared/ads-conversion";
 import type { Order } from "@/lib/types";
 
 const FULFILMENT_STAGES = ["Processing", "Confirmed", "Shipped", "Delivered"];
@@ -23,7 +24,30 @@ const STAGE_INDEX: Record<Order["status"], number> = {
   cancelled: 0,
 };
 
-export function OrderDetail({ orderId }: { orderId: string }) {
+export function OrderDetail({
+  orderId,
+  justPaid = false,
+}: {
+  orderId: string;
+  /*
+   * True only on the hop back from Stripe, which sends the shopper to
+   * /orders/REF?paid=1 when the session completes. That is the one
+   * moment on this path where we know a sale just happened — the page
+   * is also what they reopen from their email a week later, and that
+   * must not report a second conversion.
+   *
+   * Read by the server page and passed down, rather than sniffed from
+   * the URL here: a hook would need a Suspense boundary and an effect
+   * would set state during render, which the compiler rejects for good
+   * reason. The page already knows.
+   *
+   * Deliberately NOT gated on the order's payment_status. Stripe
+   * redirects the instant the session completes and the webhook that
+   * marks the row paid arrives separately, so checking the status here
+   * would miss every fast redirect.
+   */
+  justPaid?: boolean;
+}) {
   const [order, setOrder] = React.useState<Order | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -40,6 +64,14 @@ export function OrderDetail({ orderId }: { orderId: string }) {
       cancelled = true;
     };
   }, [orderId]);
+
+  const conversion =
+    justPaid && order ? (
+      <ReportAdsConversion
+        reference={order.id}
+        valueCad={order.subtotal + order.delivery}
+      />
+    ) : null;
 
   if (loading) {
     return (
@@ -63,6 +95,7 @@ export function OrderDetail({ orderId }: { orderId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
+      {conversion}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl">{order.id}</h1>
