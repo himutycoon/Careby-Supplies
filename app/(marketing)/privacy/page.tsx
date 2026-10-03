@@ -77,13 +77,14 @@ export default function PrivacyPage() {
           {
             heading: "Who we share it with",
             body: [
-              "We do not sell your personal information, and we do not share it for anyone else's advertising.",
+              "We do not sell your personal information, and we do not share it for anyone else's advertising. We do advertise on Google, which means Google can tell that a browser which saw one of our ads later visited this site — see Cookies and advertising below.",
               "We use service providers to run the business. They may only process your information to provide their service to us:",
             ],
             list: [
               "Supabase — database, file storage and authentication.",
               "Anthropic — automated analysis of uploaded photos, where that feature is enabled.",
               "Stripe — payment processing. Card numbers are entered on Stripe's systems and never reach ours; we receive only the outcome and the last digits.",
+              "Google — advertising measurement and remarketing, through the Google Ads tag on our pages.",
               "Our web host, for serving the site and its logs.",
               "Delivery partners, who receive the address and contact details needed to deliver your order.",
             ],
@@ -127,9 +128,15 @@ export default function PrivacyPage() {
             ],
           },
           {
-            heading: "Cookies",
+            // This section used to say we use no advertising cookies.
+            // That stopped being true the day the Google Ads tag went
+            // into the root layout, and a privacy policy that describes
+            // a site you no longer run is worse than not having one.
+            heading: "Cookies and advertising",
             body: [
-              "We use cookies that are necessary for the site to work — keeping you signed in, remembering your cart and your light or dark theme preference. We do not use advertising or cross-site tracking cookies. Blocking necessary cookies will stop sign-in and checkout from working.",
+              "We use cookies that are necessary for the site to work — keeping you signed in, remembering your cart and your light or dark theme preference. Blocking these will stop sign-in and checkout from working.",
+              "We also run Google Ads. Google sets its own cookies on this site so it can tell whether someone who clicked one of our ads went on to buy, and so it can show our ads to people who have visited before. This is advertising and cross-site tracking, and you can refuse it: Google's own controls are at adssettings.google.com, and blocking third-party cookies in your browser stops it without affecting anything else here.",
+              "We do not give Google your name, email address or anything you typed into a form.",
             ],
           },
           {

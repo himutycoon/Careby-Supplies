@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/components/shop/cart-provider";
 import { ToastProvider } from "@/components/shared/toast";
+import { GoogleAdsTag } from "@/components/shared/google-ads-tag";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -61,6 +62,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </CartProvider>
           </ToastProvider>
         </ThemeProvider>
+        <GoogleAdsTag />
       </body>
     </html>
   );
