@@ -24,7 +24,39 @@ const STORAGE_KEY = "careby.adsConversions";
 declare global {
   interface Window {
     gtag?: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
   }
+}
+
+/**
+ * The gtag queue, whether or not Google's script has loaded yet.
+ *
+ * This is a race, and losing it loses a sale from the report. The base
+ * tag loads with strategy="afterInteractive"; the Stripe path lands
+ * straight on /orders/REF?paid=1, fetches the order, and reports the
+ * moment it arrives. On a slow connection that can happen before
+ * gtag.js has finished downloading, and the first version of this bailed
+ * out when window.gtag was missing — silently, on the one path that
+ * matters, with nothing anywhere to say a conversion had been dropped.
+ *
+ * Queueing is the fix, and it is how the tag is designed to work:
+ * gtag('js') and gtag('config') in Google's own snippet both run before
+ * the async script exists. Everything pushed to dataLayer is replayed
+ * when gtag.js loads, so an event queued early is sent late rather than
+ * lost. This shim is the same four lines the base tag writes, and
+ * defining it twice is harmless.
+ */
+function gtagQueue(): (...args: unknown[]) => void {
+  if (typeof window.gtag === "function") return window.gtag;
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function gtag() {
+    // The arguments object, not an array: gtag.js reads what Google's
+    // own shim pushes, and the two are not interchangeable.
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer!.push(arguments);
+  };
+  return window.gtag;
 }
 
 function alreadyReported(reference: string): boolean {
@@ -77,18 +109,23 @@ export function ReportAdsConversion({
 }) {
   React.useEffect(() => {
     if (!reference) return;
-    if (typeof window === "undefined" || typeof window.gtag !== "function") {
-      return;
-    }
+    if (typeof window === "undefined") return;
+    /*
+     * The base tag only renders in production, so in development there
+     * is nothing to send to and queueing would just fill a dataLayer
+     * nobody reads — and mark the order reported, so the same browser
+     * would stay quiet about it afterwards.
+     */
+    if (process.env.NODE_ENV !== "production") return;
     if (alreadyReported(reference)) return;
 
-    // Remember first. If gtag throws, we have still recorded that this
-    // order was attempted, which is the safer failure: a missed
+    // Remember first. If the push throws, we have still recorded that
+    // this order was attempted, which is the safer failure: a missed
     // conversion is a reporting gap, a duplicated one is a wrong number
     // someone makes a budget decision on.
     remember(reference);
 
-    window.gtag("event", "conversion", {
+    gtagQueue()("event", "conversion", {
       send_to: SEND_TO,
       value: Number(valueCad.toFixed(2)),
       currency: "CAD",
