@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/shared/icon";
-import { PREMIUM_TIMELINE } from "@/data/platform";
+import { PREMIUM_SERVICE_NAME, PREMIUM_TIMELINE } from "@/data/platform";
 import { PREMIUM_TIERS } from "@/data/guided-flows";
 import {
   CONSULTATION_FEE_CAD,
@@ -29,7 +29,7 @@ export function PremiumSection() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
         <div className="flex flex-col items-start gap-4 sm:items-center sm:gap-5 sm:text-center">
           <span className="w-fit rounded-full border border-hi-vis/30 bg-hi-vis/10 px-3.5 py-1.5 text-xs font-semibold tracking-[0.14em] text-hi-vis uppercase">
-            Project Takeoff & DIY Support
+            {PREMIUM_SERVICE_NAME}
           </span>
 
           <h2 className="max-w-3xl text-balance text-ink-foreground">

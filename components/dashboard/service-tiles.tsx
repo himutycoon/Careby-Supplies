@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PREMIUM_SERVICE_NAME } from "@/data/platform";
 
 interface Tile {
   title: string;
@@ -75,7 +76,7 @@ const SECONDARY: Tile[] = [
     tone: "bg-warning/15 text-warning-foreground dark:text-warning",
   },
   {
-    title: "Project Takeoff & DIY Support",
+    title: PREMIUM_SERVICE_NAME,
     description:
       "Upload your drawings, get a materials estimate, and build with on-demand contractor guidance.",
     href: "/premium-request",

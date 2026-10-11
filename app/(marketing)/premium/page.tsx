@@ -3,15 +3,15 @@ import { PremiumSection } from "@/components/home/premium-section";
 import { Section, SectionHeading } from "@/components/shared/section";
 import { Icon } from "@/components/shared/icon";
 import { CtaBand } from "@/components/home/cta-band";
-import { PREMIUM_TIMELINE } from "@/data/platform";
+import { PREMIUM_SERVICE_NAME, PREMIUM_SERVICE_TITLE, PREMIUM_TIMELINE } from "@/data/platform";
 
 export const metadata: Metadata = {
-  title: "Premium Supply / DIY Support — CareBy Supplies",
+  title: `${PREMIUM_SERVICE_TITLE} — CareBy Supplies`,
 };
 
 const FAQS = [
   {
-    question: "Who is Premium Supply for?",
+    question: `Who is ${PREMIUM_SERVICE_NAME} for?`,
     answer:
       "Anyone ordering material for a big job — a whole-home renovation, an addition, a new build — who would rather hand over a set of drawings than build the order line by line.",
   },

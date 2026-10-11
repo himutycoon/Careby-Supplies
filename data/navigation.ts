@@ -1,3 +1,4 @@
+import { PREMIUM_SERVICE_NAME } from "@/data/platform";
 /**
  * Role-scoped application navigation. Icon names are strings so these
  * stay serializable from server layouts into client nav components.
@@ -116,7 +117,7 @@ export const HOMEOWNER_SIDEBAR_NAV: AppNavItem[] = [
   { label: "Repair parts", href: "/repair", icon: "Wrench" },
   { label: "Project cost guide", href: "/new-construction", icon: "Building2" },
   {
-    label: "Premium takeoff & DIY",
+    label: PREMIUM_SERVICE_NAME,
     href: "/premium-request",
     icon: "Crown",
     premium: true,

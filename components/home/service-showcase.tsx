@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { Icon } from "@/components/shared/icon";
 import { BlueprintGrid } from "@/components/shared/blueprint-texture";
 import { cn } from "@/lib/utils";
+import { PREMIUM_SERVICE_NAME } from "@/data/platform";
 
 /**
  * The four service flows that are fully built and database-backed.
@@ -43,7 +44,7 @@ const FLOWS = [
   {
     icon: "Crown",
     audience: "Homeowners",
-    title: "Premium supply / DIY support",
+    title: PREMIUM_SERVICE_NAME,
     body: "A takeoff from your drawings, trade pricing and delivery booked around your dates.",
     steps: ["Choose a tier", "Project profile", "We contact you"],
     href: "/premium-request",

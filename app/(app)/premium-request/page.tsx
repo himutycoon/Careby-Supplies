@@ -4,9 +4,10 @@ import { FileUp, HardHat, ListChecks } from "lucide-react";
 import { PremiumRequestWizard } from "@/components/homeowner/premium-request-wizard";
 import { FlowPageHeader } from "@/components/app-shell/flow-page-header";
 import { SupplySteps } from "@/components/shared/supply-steps";
+import { PREMIUM_SERVICE_NAME, PREMIUM_SERVICE_TITLE } from "@/data/platform";
 
 export const metadata: Metadata = {
-  title: "Project Takeoff & DIY Support — CareBy Supplies",
+  title: `${PREMIUM_SERVICE_TITLE} — CareBy Supplies`,
 };
 
 /*
@@ -39,7 +40,7 @@ export default function PremiumRequestPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
       <FlowPageHeader
-        eyebrow="Premium · Project takeoff"
+        eyebrow={PREMIUM_SERVICE_NAME}
         tone="premium"
         title="Upload your drawings,"
         accent="get the materials"

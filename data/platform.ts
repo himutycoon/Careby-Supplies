@@ -264,3 +264,25 @@ export const TRUST_POINTS: TrustPoint[] = [
       "Assign materials to a project so nothing gets ordered twice.",
   },
 ];
+
+/**
+ * What we call the drawings-takeoff-and-support service.
+ *
+ * One constant because it had become four names for one thing:
+ * "Premium supply" on /get-started, "Premium takeoff & DIY" in the
+ * homeowner sidebar, "Project Takeoff & DIY Support" on the dashboard
+ * tile and the home page badge, and "Premium" in the phone tab bar.
+ * A customer reading two of those has no way to know they are the same
+ * service.
+ *
+ * The client settled it: Premium supply, and DIY support after it.
+ * Sentence case, because the nav and tile labels around it are. Where
+ * the design upper-cases it -- the home page badge -- CSS does that,
+ * not a second copy of the string.
+ *
+ * The phone tab bar is the one exception and stays "Premium": six tabs
+ * share a 390px row and the full name cannot fit. TITLE is for page
+ * <title> metadata, where title case is conventional.
+ */
+export const PREMIUM_SERVICE_NAME = "Premium supply / DIY support";
+export const PREMIUM_SERVICE_TITLE = "Premium Supply / DIY Support";

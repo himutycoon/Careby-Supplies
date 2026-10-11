@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/types";
+import { PREMIUM_SERVICE_NAME } from "@/data/platform";
 
 /**
  * The client's guided-flow map: pick a user type, pick an option, land in
@@ -101,7 +102,7 @@ export const GUIDED_FLOWS: Record<
     },
     {
       id: "premium-package",
-      label: "Premium supply / DIY support",
+      label: PREMIUM_SERVICE_NAME,
       description:
         "Material lists, quantity takeoffs, trade pricing and delivery booked around your schedule.",
       steps: ["Choose a tier", "Project profile", "We contact you"],
