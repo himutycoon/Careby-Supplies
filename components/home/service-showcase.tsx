@@ -43,7 +43,7 @@ const FLOWS = [
   {
     icon: "Crown",
     audience: "Homeowners",
-    title: "Premium supply",
+    title: "Premium supply / DIY support",
     body: "A takeoff from your drawings, trade pricing and delivery booked around your dates.",
     steps: ["Choose a tier", "Project profile", "We contact you"],
     href: "/premium-request",

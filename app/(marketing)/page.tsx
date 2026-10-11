@@ -1,6 +1,5 @@
 import { Hero } from "@/components/home/hero";
 import { DepartmentBar } from "@/components/home/department-bar";
-import { RoleChooserCard } from "@/components/home/role-chooser-card";
 import { ExpertBanner } from "@/components/home/expert-banner";
 import { ShopPromiseStrip } from "@/components/home/shop-promise-strip";
 import { ShopByCategory } from "@/components/home/shop-by-category";
@@ -30,10 +29,6 @@ export default function HomePage() {
           that fades its own aisles in reads as slow rather than polished. */}
       <DepartmentBar />
       <ShopPromiseStrip />
-
-      {/* Phone only. The fork belongs above the fold on a small screen;
-          desktop already has the hero pills and the section below. */}
-      <RoleChooserCard />
 
       {/*
         Storefront first, story second.
@@ -68,8 +63,10 @@ export default function HomePage() {
         // product rails nobody scrolled far enough to find it.
         <PremiumSection key="premium" />,
         <ExpertBanner key="expert" />,
-        // Phones have RoleChooserCard above; this is the fuller version
-        // for the screens with room for it.
+        // Desktop only. The phone version of this fork was removed at
+        // the client's request: the role is chosen at sign-up and read
+        // back from the profile at log-in, so the home page asking
+        // again was a question we already knew the answer to.
         <div key="user-type" className="hidden lg:block">
           <UserTypeSection />
         </div>,

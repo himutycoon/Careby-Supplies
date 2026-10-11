@@ -113,8 +113,11 @@ export function Hero() {
             source the section further down the page uses, so the two
             can never drift apart.
           */}
-          {/* Phones get RoleChooserCard directly below the hero, so
-              these pills would be the same choice twice. */}
+          {/* Desktop only. Phones used to get this same fork as a card
+              below the hero; the client had that removed, because the
+              role is chosen at sign-up and read back at log-in. The
+              phone path to it is the hero button above, which lands on
+              /get-started where the fork still lives. */}
           <div className="hidden lg:block">
             {/* Visually hidden rather than deleted: the group still needs
                 naming for a screen reader, but the printed "I'M A" cost a

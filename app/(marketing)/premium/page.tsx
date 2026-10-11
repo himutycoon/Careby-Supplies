@@ -6,7 +6,7 @@ import { CtaBand } from "@/components/home/cta-band";
 import { PREMIUM_TIMELINE } from "@/data/platform";
 
 export const metadata: Metadata = {
-  title: "Premium Supply — CareBy Supplies",
+  title: "Premium Supply / DIY Support — CareBy Supplies",
 };
 
 const FAQS = [

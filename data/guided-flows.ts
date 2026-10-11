@@ -101,7 +101,7 @@ export const GUIDED_FLOWS: Record<
     },
     {
       id: "premium-package",
-      label: "Premium supply",
+      label: "Premium supply / DIY support",
       description:
         "Material lists, quantity takeoffs, trade pricing and delivery booked around your schedule.",
       steps: ["Choose a tier", "Project profile", "We contact you"],
