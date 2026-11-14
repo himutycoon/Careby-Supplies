@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/components/shop/cart-provider";
 import { ToastProvider } from "@/components/shared/toast";
 import { GoogleAdsTag } from "@/components/shared/google-ads-tag";
+import { ChatWidget } from "@/components/shared/chat-widget";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </CartProvider>
           </ToastProvider>
         </ThemeProvider>
+        <ChatWidget />
         <GoogleAdsTag />
       </body>
     </html>
