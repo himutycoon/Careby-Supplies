@@ -68,6 +68,7 @@ export function ChatWidget() {
       if (raw) {
         const saved = JSON.parse(raw);
         if (Array.isArray(saved) && saved.length) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
           setMsgs(saved);
           nudged.current = saved.some((m: Msg) => m.wa);
         }
@@ -94,6 +95,7 @@ export function ChatWidget() {
   // home page teaser bubble
   React.useEffect(() => {
     if (open || pathname !== "/") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeaser(false);
       return;
     }
@@ -134,6 +136,14 @@ export function ChatWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      if (res.status === 429) {
+        nudged.current = true;
+        await botSay({
+          content: "You've sent a few requests already. Please chat with our expert on WhatsApp for faster help.",
+          wa: true,
+        });
+        return;
+      }
       if (!res.ok) throw new Error();
       nudged.current = true;
       await botSay({
@@ -282,7 +292,7 @@ export function ChatWidget() {
               }}
               className="text-left"
             >
-              <span className="block font-semibold">Hi! 👋 I'm your Supplies Assistant</span>
+              <span className="block font-semibold">Hi! 👋 I&apos;m your Supplies Assistant</span>
               <span className="text-muted-foreground">Talk to me for quotes, delivery and product help.</span>
             </button>
           </div>

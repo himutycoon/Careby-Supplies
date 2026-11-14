@@ -27,7 +27,7 @@ export async function POST(req: Request) {
       max_tokens: 250,
       messages: [
         { role: "system", content: SYSTEM },
-        ...messages.slice(-10).map((m: any) => ({
+        ...messages.slice(-10).map((m: { role: string; content: unknown }) => ({
           role: m.role === "user" ? ("user" as const) : ("assistant" as const),
           content: String(m.content).slice(0, 1000),
         })),
