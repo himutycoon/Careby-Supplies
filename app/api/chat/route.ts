@@ -1,6 +1,8 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { clientIp, rateLimit } from "@/lib/chatbot/rate-limit";
+import { loadChatbotConfig } from "@/lib/chatbot/load";
+import { chatbotAllowed } from "@/lib/chatbot/billing";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -21,12 +23,20 @@ export async function POST(req: Request) {
   if (!Array.isArray(messages) || messages.length === 0 || messages.length > 30) {
     return NextResponse.json({ error: "bad request" }, { status: 400 });
   }
+  if (!(await chatbotAllowed())) {
+    return NextResponse.json({ error: "paused" }, { status: 503 });
+  }
+  const { aiInstructions } = await loadChatbotConfig();
+  const system = aiInstructions
+    ? `${SYSTEM}\n\nBusiness facts and instructions from the store (follow these):\n${aiInstructions.slice(0, 4000)}`
+    : SYSTEM;
+
   try {
     const res = await client.chat.completions.create({
       model: "gpt-4o-mini",
       max_tokens: 250,
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: system },
         ...messages.slice(-10).map((m: { role: string; content: unknown }) => ({
           role: m.role === "user" ? ("user" as const) : ("assistant" as const),
           content: String(m.content).slice(0, 1000),

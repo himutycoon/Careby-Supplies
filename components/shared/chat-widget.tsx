@@ -5,7 +5,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { MessageCircle, X, Send, RotateCcw } from "lucide-react";
 import { answer } from "@/lib/chatbot/engine";
-import { GREETING, WELCOME_CHIPS, waLink } from "@/lib/chatbot/config";
+import { FAQS, GREETING, WELCOME_CHIPS, WHATSAPP, type Faq } from "@/lib/chatbot/config";
+
+type BotConfig = {
+  enabled: boolean;
+  rules: Faq[];
+  greeting: string;
+  welcomeChips: string[];
+  whatsapp: string;
+};
+
+// Used until /api/chat/config answers, and if it never does.
+const BUILT_IN: BotConfig = {
+  enabled: true,
+  rules: FAQS,
+  greeting: GREETING,
+  welcomeChips: WELCOME_CHIPS,
+  whatsapp: WHATSAPP,
+};
+
+const waLink = (number: string, text: string) =>
+  `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 
 type Msg = {
   role: "user" | "assistant";
@@ -60,6 +80,28 @@ export function ChatWidget() {
   const aiCalls = React.useRef(0);
   const nudged = React.useRef(false);
   const endRef = React.useRef<HTMLDivElement>(null);
+  const [cfg, setCfg] = React.useState<BotConfig>(BUILT_IN);
+
+  // rules, greeting and WhatsApp number are edited in /admin/chatbot
+  React.useEffect(() => {
+    let live = true;
+    fetch("/api/chat/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((c: BotConfig | null) => {
+        if (!live || !c || !Array.isArray(c.rules)) return;
+        setCfg(c);
+        // swap in the admin greeting if the visitor hasn't started chatting
+        setMsgs((p) =>
+          p.length === 1 && p[0] === FIRST
+            ? [{ role: "assistant", content: c.greeting, chips: c.welcomeChips }]
+            : p,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // restore saved chat
   React.useEffect(() => {
@@ -196,7 +238,7 @@ export function ChatWidget() {
       const f = flowRef.current;
       if (/^(cancel|stop|exit|quit)$/i.test(text)) {
         setFlow(null);
-        return botSay({ content: "No problem, cancelled. Anything else?", chips: WELCOME_CHIPS });
+        return botSay({ content: "No problem, cancelled. Anything else?", chips: cfg.welcomeChips });
       }
       const s = STEPS[f.step];
       if ("validate" in s && !s.validate(text)) {
@@ -225,7 +267,7 @@ export function ChatWidget() {
     }
 
     // rules
-    const hit = answer(text);
+    const hit = answer(text, cfg.rules);
     if (hit) {
       if (hit.action === "quote") {
         await botSay({ content: hit.answer });
@@ -259,7 +301,7 @@ export function ChatWidget() {
   }
 
   function reset() {
-    setMsgs([FIRST]);
+    setMsgs([{ role: "assistant", content: cfg.greeting, chips: cfg.welcomeChips }]);
     setFlow(null);
     aiCalls.current = 0;
     nudged.current = false;
@@ -270,7 +312,10 @@ export function ChatWidget() {
 
   const last = msgs[msgs.length - 1];
   const chips = !typing && last?.role === "assistant" ? last.chips : undefined;
-  const wa = waLink(waText(msgs));
+  const wa = waLink(cfg.whatsapp, waText(msgs));
+
+  // chatbot plan lapsed (only when CHATBOT_ENFORCE_BILLING=1)
+  if (!cfg.enabled) return null;
 
   // ---------- closed state: floating button + teaser ----------
   if (!open) {

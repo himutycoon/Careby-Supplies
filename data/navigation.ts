@@ -164,4 +164,6 @@ export const ADMIN_NAV: AppNavItem[] = [
 
   { label: "Customers", href: "/admin/users", icon: "UserCheck", group: "People" },
   { label: "Contractors", href: "/admin/contractors", icon: "HardHat", group: "People" },
+
+  { label: "Chatbot", href: "/admin/chatbot", icon: "MessageSquare", group: "Settings" },
 ];

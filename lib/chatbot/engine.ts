@@ -33,19 +33,34 @@ function lev(a: string, b: string) {
   return dp[a.length][b.length];
 }
 
-const INDEX = FAQS.map((f) => ({
-  faq: f,
-  words: new Set(f.keywords.filter((k) => !k.includes(" ")).map((k) => canon(normalize(k)))),
-  phrases: f.keywords.filter((k) => k.includes(" ")).map(normalize),
-}));
+type Entry = { faq: Faq; words: Set<string>; phrases: string[] };
 
-export function answer(input: string): Faq | null {
+function buildIndex(rules: Faq[]): Entry[] {
+  return rules.map((f) => {
+    const kws = f.keywords.map((k) => k.trim()).filter(Boolean);
+    return {
+      faq: f,
+      words: new Set(kws.filter((k) => !k.includes(" ")).map((k) => canon(normalize(k)))),
+      phrases: kws.filter((k) => k.includes(" ")).map(normalize),
+    };
+  });
+}
+
+// Rules now come from the admin panel, so the index is rebuilt whenever
+// a different list is passed in, and reused while it stays the same.
+let cache: { rules: Faq[]; index: Entry[] } | null = null;
+function indexFor(rules: Faq[]) {
+  if (cache?.rules !== rules) cache = { rules, index: buildIndex(rules) };
+  return cache.index;
+}
+
+export function answer(input: string, rules: Faq[] = FAQS): Faq | null {
   const text = normalize(input);
   if (!text) return null;
   const toks = tokens(input);
   let best: { score: number; faq: Faq } | null = null;
 
-  for (const e of INDEX) {
+  for (const e of indexFor(rules)) {
     let score = 0;
     for (const p of e.phrases) if (text.includes(p)) score += 3;
     for (const t of toks) {
