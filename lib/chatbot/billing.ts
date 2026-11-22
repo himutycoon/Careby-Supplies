@@ -6,9 +6,12 @@ import Stripe from "stripe";
  * Stripe account — not the store's STRIPE_SECRET_KEY, which takes shoppers'
  * money for the client. Everything here is optional:
  *
+ *   CHATBOT_RAZORPAY_KEY_ID      rzp_live_... from the developer's Razorpay
+ *   CHATBOT_RAZORPAY_KEY_SECRET  its secret (checked before Stripe)
+ *
  *   CHATBOT_BILLING_STRIPE_KEY   restricted key (rk_live_...) from the
  *                                developer's Stripe, Subscriptions: Read only
- *   CHATBOT_SUBSCRIPTION_ID      sub_... created when the client paid
+ *   CHATBOT_SUBSCRIPTION_ID      sub_... (Razorpay or Stripe subscription)
  *   CHATBOT_PAYMENT_LINK         Stripe Payment Link for the 65 CAD/month price
  *   CHATBOT_BILLING_PORTAL_URL   Stripe customer portal login link
  *   CHATBOT_PAID_UNTIL           YYYY-MM-DD, manual fallback (e-transfer etc.)
@@ -22,7 +25,7 @@ export type ChatbotPlan = {
   amountLabel: string;
   /** ISO date the current paid period ends. */
   paidThrough: string | null;
-  source: "stripe" | "manual" | "none";
+  source: "razorpay" | "stripe" | "manual" | "none";
   payUrl: string | null;
   manageUrl: string | null;
 };
@@ -65,6 +68,55 @@ async function fromStripe(key: string, subId: string): Promise<ChatbotPlan> {
   };
 }
 
+async function fromRazorpay(keyId: string, keySecret: string, subId: string): Promise<ChatbotPlan> {
+  const auth = "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+  const get = async (path: string) => {
+    const res = await fetch(`https://api.razorpay.com/v1/${path}`, {
+      headers: { Authorization: auth },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`Razorpay ${path} -> ${res.status}`);
+    return res.json();
+  };
+
+  const sub = await get(`subscriptions/${encodeURIComponent(subId)}`);
+  let amountLabel = "65.00 CAD / month";
+  try {
+    const plan = await get(`plans/${encodeURIComponent(sub.plan_id)}`);
+    const unit = plan.period === "monthly" ? "month" : plan.period?.replace(/ly$/, "") || "month";
+    amountLabel = `${(plan.item.amount / 100).toFixed(2)} ${String(plan.item.currency).toUpperCase()} / ${unit}`;
+  } catch {}
+
+  // https://razorpay.com/docs/payments/subscriptions/states/
+  let status: PlanStatus;
+  switch (sub.status) {
+    case "active":
+    case "authenticated":
+      status = "active";
+      break;
+    case "pending": // a charge failed, Razorpay is retrying
+      status = "past_due";
+      break;
+    case "created": // link sent, client hasn't paid yet
+      status = "not_set_up";
+      break;
+    default: // halted, cancelled, paused, completed, expired
+      status = "unpaid";
+  }
+
+  const end = sub.current_end ?? sub.charge_at;
+  const { payUrl, manageUrl } = links();
+  return {
+    status,
+    amountLabel,
+    paidThrough: end ? new Date(end * 1000).toISOString() : null,
+    source: "razorpay",
+    // Razorpay's own subscription page doubles as the "pay now" link.
+    payUrl: payUrl || sub.short_url || null,
+    manageUrl,
+  };
+}
+
 function fromManual(paidUntil: string): ChatbotPlan {
   const end = new Date(`${paidUntil}T23:59:59`);
   const now = Date.now();
@@ -89,9 +141,13 @@ export async function getChatbotPlan(): Promise<ChatbotPlan> {
   const subId = process.env.CHATBOT_SUBSCRIPTION_ID;
   const manual = process.env.CHATBOT_PAID_UNTIL;
 
+  const rzpId = process.env.CHATBOT_RAZORPAY_KEY_ID;
+  const rzpSecret = process.env.CHATBOT_RAZORPAY_KEY_SECRET;
+
   let plan: ChatbotPlan;
   try {
-    if (key && subId) plan = await fromStripe(key, subId);
+    if (rzpId && rzpSecret && subId) plan = await fromRazorpay(rzpId, rzpSecret, subId);
+    else if (key && subId) plan = await fromStripe(key, subId);
     else if (manual) plan = fromManual(manual);
     else plan = { status: "not_set_up", amountLabel: "65.00 CAD / month", paidThrough: null, source: "none", ...links() };
   } catch (e) {
