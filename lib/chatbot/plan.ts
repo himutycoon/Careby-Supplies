@@ -21,6 +21,13 @@ export const CHATBOT_PLAN = {
   paidUntil: "2026-12-24",
   /** What the client sees on Admin > Chatbot. */
   amountLabel: "65.00 CAD / month",
-  /** Optional: a Razorpay / PayPal payment link shown as "Pay now". */
-  payUrl: "",
+  /** Razorpay subscription link, shown to the client on Admin > Chatbot. */
+  payUrl: "https://rzp.io/rzp/wiGyRk7t",
+  /**
+   * The client's Razorpay subscription. Once Razorpay approves the website,
+   * set CHATBOT_RAZORPAY_KEY_ID and CHATBOT_RAZORPAY_KEY_SECRET on the host
+   * and the bot follows this subscription's status automatically; paidUntil
+   * above stops being used.
+   */
+  subscriptionId: "sub_U3ZnhJlKxxBj0D",
 };

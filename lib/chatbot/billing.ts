@@ -139,7 +139,7 @@ export async function getChatbotPlan(): Promise<ChatbotPlan> {
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.plan;
 
   const key = process.env.CHATBOT_BILLING_STRIPE_KEY;
-  const subId = process.env.CHATBOT_SUBSCRIPTION_ID;
+  const subId = process.env.CHATBOT_SUBSCRIPTION_ID || CHATBOT_PLAN.subscriptionId;
   // the host's setting wins; otherwise the date kept in lib/chatbot/plan.ts
   const manual = process.env.CHATBOT_PAID_UNTIL || CHATBOT_PLAN.paidUntil;
 

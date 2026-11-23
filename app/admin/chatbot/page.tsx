@@ -49,9 +49,11 @@ export default async function AdminChatbotPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          {plan.status !== "active" && plan.payUrl ? (
+          {plan.payUrl ? (
             <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
-              Pay now
+              {/* While billing is by date, the link is the client's way to
+                  start the monthly Razorpay auto-pay before anything is due. */}
+              {plan.status === "active" ? "Set up auto-pay" : "Pay now"}
             </a>
           ) : null}
           {plan.manageUrl ? (
