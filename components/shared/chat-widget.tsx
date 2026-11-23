@@ -137,6 +137,13 @@ export function ChatWidget() {
   const [typing, setTyping] = React.useState(false);
   const [flow, setFlow] = React.useState<Flow>(null);
   const [teaser, setTeaser] = React.useState(false);
+  // the teaser "types" for a moment before the greeting appears
+  const [teaserTyped, setTeaserTyped] = React.useState(false);
+  React.useEffect(() => {
+    if (!teaser) return;
+    const t = setTimeout(() => setTeaserTyped(true), 1100);
+    return () => clearTimeout(t);
+  }, [teaser]);
   const msgsRef = React.useRef<Msg[]>([FIRST]);
   const flowRef = React.useRef<Flow>(null);
   const aiCalls = React.useRef(0);
@@ -274,12 +281,8 @@ export function ChatWidget() {
     try {
       if (sessionStorage.getItem(TEASER_KEY)) return;
     } catch {}
-    const show = setTimeout(() => setTeaser(true), pathname === "/" ? 2500 : 6000);
-    const hide = setTimeout(() => setTeaser(false), 20000);
-    return () => {
-      clearTimeout(show);
-      clearTimeout(hide);
-    };
+    const show = setTimeout(() => setTeaser(true), pathname === "/" ? 1500 : 3500);
+    return () => clearTimeout(show);
   }, [open, pathname]);
 
   function closeTeaser() {
@@ -485,9 +488,11 @@ export function ChatWidget() {
   // ---------- closed state: launcher + teaser ----------
   if (!open) {
     return (
-      <div className={cn(corner, "flex flex-col items-end gap-3")}>
+      // Desktop: the greeting sits beside the launcher, so it never covers
+      // the Expert button stacked above it. Phones: above the launcher.
+      <div className={cn(corner, "flex flex-col items-end gap-3 lg:flex-row lg:items-end")}>
         {teaser && (
-          <div className="relative w-[272px] rounded-2xl border border-border bg-background p-3.5 text-sm text-foreground shadow-2xl duration-300 animate-in fade-in slide-in-from-bottom-3">
+          <div className="relative w-[288px] max-w-[calc(100vw-2rem)] rounded-2xl rounded-br-md border border-border bg-background p-3.5 text-sm text-foreground shadow-2xl duration-300 animate-in fade-in slide-in-from-bottom-3 lg:mb-1 lg:rounded-br-2xl">
             <button
               onClick={closeTeaser}
               aria-label="Dismiss"
@@ -495,29 +500,49 @@ export function ChatWidget() {
             >
               <X className="size-3.5" />
             </button>
-            <div className="flex items-center gap-2.5 pr-6">
+            <div className="flex items-start gap-2.5 pr-6">
               <BotAvatar size="sm" />
-              <div>
-                <p className="font-semibold leading-tight">Need a hand? 👋</p>
-                <p className="text-xs text-muted-foreground">Ask about products, prices or delivery</p>
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
+                  CareBy AI Assistant
+                  <span className="rounded bg-hi-vis px-1 py-px text-[9px] text-hi-vis-foreground">AI</span>
+                </p>
+                {teaserTyped ? (
+                  <div className="duration-300 animate-in fade-in">
+                    <p className="mt-1 font-semibold leading-snug">Hi! 👋 I&apos;m your CareBy assistant.</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      I can find products, check prices &amp; stock, and get you a quote in seconds.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex w-fit gap-1 rounded-full bg-muted px-3 py-2" aria-label="Assistant is typing">
+                    {[0, 150, 300].map((d) => (
+                      <span key={d} className="size-1.5 animate-bounce rounded-full bg-primary/60" style={{ animationDelay: `${d}ms` }} />
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {STARTERS.slice(0, 3).map((st) => (
-                <button
-                  key={st.label}
-                  onClick={() => {
-                    closeTeaser();
-                    pendingRef.current = st.ask;
-                    setOpen(true);
-                  }}
-                  className="rounded-full border border-primary/25 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary transition hover:bg-primary/10"
-                >
-                  {st.label}
-                </button>
-              ))}
-            </div>
-            <span className="absolute -bottom-1.5 right-6 size-3 rotate-45 border-b border-r border-border bg-background" aria-hidden="true" />
+            {teaserTyped && (
+              <div className="mt-3 flex flex-wrap gap-1.5 duration-300 animate-in fade-in">
+                {STARTERS.slice(0, 3).map((st) => (
+                  <button
+                    key={st.label}
+                    onClick={() => {
+                      closeTeaser();
+                      pendingRef.current = st.ask;
+                      setOpen(true);
+                    }}
+                    className="rounded-full border border-primary/25 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary transition hover:bg-primary/10"
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* pointer: down at the launcher on phones, right at it on desktop */}
+            <span className="absolute -bottom-1.5 right-6 size-3 rotate-45 border-b border-r border-border bg-background lg:hidden" aria-hidden="true" />
+            <span className="absolute -right-1.5 bottom-5 hidden size-3 -rotate-45 border-b border-r border-border bg-background lg:block" aria-hidden="true" />
           </div>
         )}
         <button
@@ -526,7 +551,7 @@ export function ChatWidget() {
             setOpen(true);
           }}
           aria-label="Open chat assistant"
-          className="careby-chat-glow group relative flex h-14 items-center gap-2.5 rounded-full bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] pl-2 pr-2 text-primary-foreground shadow-xl transition-transform hover:scale-[1.04] active:scale-95 sm:pr-5"
+          className="careby-chat-glow group relative flex h-14 shrink-0 items-center gap-2 rounded-full bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] pl-2 pr-4 text-primary-foreground shadow-xl transition-transform hover:scale-[1.04] active:scale-95 sm:gap-2.5 sm:pr-5"
         >
           <span className="relative flex size-10 items-center justify-center rounded-full bg-white/15">
             <Sparkles className="size-5 transition-transform group-hover:rotate-12" />
@@ -536,9 +561,12 @@ export function ChatWidget() {
               </span>
             )}
           </span>
-          <span className="hidden text-left leading-tight sm:block">
-            <span className="block text-sm font-semibold">Ask CareBy AI</span>
-            <span className="flex items-center gap-1 text-[11px] opacity-80">
+          <span className="text-left leading-tight">
+            <span className="block text-sm font-semibold">
+              <span className="sm:hidden">AI Assistant</span>
+              <span className="hidden sm:inline">Ask CareBy AI</span>
+            </span>
+            <span className="hidden items-center gap-1 text-[11px] opacity-80 sm:flex">
               <span className="size-1.5 rounded-full bg-emerald-400" /> Online · instant answers
             </span>
           </span>
