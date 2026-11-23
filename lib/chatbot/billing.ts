@@ -1,5 +1,6 @@
 import "server-only";
 import Stripe from "stripe";
+import { CHATBOT_PLAN } from "./plan";
 
 /**
  * The chatbot is a paid add-on (65 CAD/month) billed from the DEVELOPER's
@@ -36,7 +37,7 @@ let cached: { at: number; plan: ChatbotPlan } | null = null;
 
 function links() {
   return {
-    payUrl: process.env.CHATBOT_PAYMENT_LINK || null,
+    payUrl: process.env.CHATBOT_PAYMENT_LINK || CHATBOT_PLAN.payUrl || null,
     manageUrl: process.env.CHATBOT_BILLING_PORTAL_URL || null,
   };
 }
@@ -53,7 +54,7 @@ async function fromStripe(key: string, subId: string): Promise<ChatbotPlan> {
   const amountLabel =
     price?.unit_amount != null
       ? `${(price.unit_amount / 100).toFixed(2)} ${price.currency.toUpperCase()} / ${price.recurring?.interval ?? "month"}`
-      : "65.00 CAD / month";
+      : CHATBOT_PLAN.amountLabel;
 
   let status: PlanStatus = "unpaid";
   if (sub.status === "active" || sub.status === "trialing") status = "active";
@@ -80,7 +81,7 @@ async function fromRazorpay(keyId: string, keySecret: string, subId: string): Pr
   };
 
   const sub = await get(`subscriptions/${encodeURIComponent(subId)}`);
-  let amountLabel = "65.00 CAD / month";
+  let amountLabel = CHATBOT_PLAN.amountLabel;
   try {
     const plan = await get(`plans/${encodeURIComponent(sub.plan_id)}`);
     const unit = plan.period === "monthly" ? "month" : plan.period?.replace(/ly$/, "") || "month";
@@ -127,7 +128,7 @@ function fromManual(paidUntil: string): ChatbotPlan {
   }
   return {
     status,
-    amountLabel: "65.00 CAD / month",
+    amountLabel: CHATBOT_PLAN.amountLabel,
     paidThrough: Number.isNaN(end.getTime()) ? null : end.toISOString(),
     source: "manual",
     ...links(),
@@ -139,7 +140,8 @@ export async function getChatbotPlan(): Promise<ChatbotPlan> {
 
   const key = process.env.CHATBOT_BILLING_STRIPE_KEY;
   const subId = process.env.CHATBOT_SUBSCRIPTION_ID;
-  const manual = process.env.CHATBOT_PAID_UNTIL;
+  // the host's setting wins; otherwise the date kept in lib/chatbot/plan.ts
+  const manual = process.env.CHATBOT_PAID_UNTIL || CHATBOT_PLAN.paidUntil;
 
   const rzpId = process.env.CHATBOT_RAZORPAY_KEY_ID;
   const rzpSecret = process.env.CHATBOT_RAZORPAY_KEY_SECRET;
@@ -149,11 +151,11 @@ export async function getChatbotPlan(): Promise<ChatbotPlan> {
     if (rzpId && rzpSecret && subId) plan = await fromRazorpay(rzpId, rzpSecret, subId);
     else if (key && subId) plan = await fromStripe(key, subId);
     else if (manual) plan = fromManual(manual);
-    else plan = { status: "not_set_up", amountLabel: "65.00 CAD / month", paidThrough: null, source: "none", ...links() };
+    else plan = { status: "not_set_up", amountLabel: CHATBOT_PLAN.amountLabel, paidThrough: null, source: "none", ...links() };
   } catch (e) {
     console.error("[chatbot billing] lookup failed:", e);
     // Never switch the bot off because Stripe had a bad minute.
-    plan = { status: "active", amountLabel: "65.00 CAD / month", paidThrough: null, source: "stripe", ...links() };
+    plan = { status: "active", amountLabel: CHATBOT_PLAN.amountLabel, paidThrough: null, source: "stripe", ...links() };
     cached = { at: Date.now() - CACHE_MS + 60_000, plan }; // retry in a minute
     return plan;
   }
@@ -163,7 +165,9 @@ export async function getChatbotPlan(): Promise<ChatbotPlan> {
 
 /** False only when enforcement is switched on and the plan has lapsed. */
 export async function chatbotAllowed(): Promise<boolean> {
-  if (process.env.CHATBOT_ENFORCE_BILLING !== "1") return true;
+  const env = process.env.CHATBOT_ENFORCE_BILLING;
+  const enforce = env === "1" || (env !== "0" && CHATBOT_PLAN.enforce);
+  if (!enforce) return true;
   const plan = await getChatbotPlan();
   return plan.status === "active" || plan.status === "past_due" || plan.status === "not_set_up";
 }

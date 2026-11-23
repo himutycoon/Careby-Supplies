@@ -1,0 +1,26 @@
+/**
+ * The chatbot subscription, as the developer bills it.
+ *
+ * EDIT THIS EACH MONTH: when the client pays, move `paidUntil` forward one
+ * month and push to main. The site redeploys and the admin page updates.
+ *
+ * How it behaves (lib/chatbot/billing.ts):
+ *   - up to paidUntil            → bot on,  admin shows "Active"
+ *   - up to 7 days after it      → bot on,  admin shows "Payment due"
+ *   - more than 7 days after it  → bot off, admin shows "Unpaid"
+ *
+ * Server environment variables override these values, so a Razorpay
+ * subscription (CHATBOT_RAZORPAY_*) or CHATBOT_PAID_UNTIL set on the host
+ * takes over without a code change. CHATBOT_ENFORCE_BILLING=0 on the host
+ * switches enforcement off.
+ */
+export const CHATBOT_PLAN = {
+  /** Switch the bot off once the plan lapses. */
+  enforce: true,
+  /** Last day of the paid period, YYYY-MM-DD. */
+  paidUntil: "2026-12-24",
+  /** What the client sees on Admin > Chatbot. */
+  amountLabel: "65.00 CAD / month",
+  /** Optional: a Razorpay / PayPal payment link shown as "Pay now". */
+  payUrl: "",
+};

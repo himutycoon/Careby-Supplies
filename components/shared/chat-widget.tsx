@@ -479,7 +479,7 @@ export function ChatWidget() {
   const welcome = msgs.length === 1 && msgs[0].role === "assistant";
   const hasWa = cfg.whatsapp.length >= 10;
 
-  // chatbot plan lapsed (only when CHATBOT_ENFORCE_BILLING=1)
+  // chatbot plan lapsed (see lib/chatbot/plan.ts)
   if (!cfg.enabled) return null;
 
   // Phones: above the tab bar when there is one. Desktop: normal corner inset.
