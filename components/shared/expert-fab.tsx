@@ -50,11 +50,11 @@ export function ExpertFab() {
          class wins. The override has to come after the base, or the
          base's `inline-flex` would cancel the `hidden`. */
       className={cn(
-        "glow-hi-vis press bottom-tabbar fixed left-4 z-30 inline-flex items-center gap-2 rounded-full bg-hi-vis px-4 py-3 text-sm font-semibold text-hi-vis-foreground transition-transform hover:scale-[1.03] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:px-5 lg:left-auto lg:right-6 lg:bottom-[6.25rem]",
+        "glow-hi-vis press bottom-tabbar fixed left-4 z-30 inline-flex h-11 items-center gap-1.5 rounded-full bg-hi-vis px-3.5 text-[13px] font-semibold text-hi-vis-foreground transition-transform hover:scale-[1.03] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:px-4 lg:left-auto lg:right-6 lg:bottom-20",
         homePageOnPhone,
       )}
     >
-      <Headset className="size-5 shrink-0" aria-hidden="true" />
+      <Headset className="size-4 shrink-0" aria-hidden="true" />
       Talk to an Expert
     </Link>
   );

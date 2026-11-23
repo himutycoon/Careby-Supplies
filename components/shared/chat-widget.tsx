@@ -551,10 +551,10 @@ export function ChatWidget() {
             setOpen(true);
           }}
           aria-label="Open chat assistant"
-          className="careby-chat-glow group relative flex h-14 shrink-0 items-center gap-2 rounded-full bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] pl-2 pr-4 text-primary-foreground shadow-xl transition-transform hover:scale-[1.04] active:scale-95 sm:gap-2.5 sm:pr-5"
+          className="careby-chat-glow group relative flex h-11 shrink-0 items-center gap-2 rounded-full bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] pl-1.5 pr-3.5 text-primary-foreground shadow-xl transition-transform hover:scale-[1.04] active:scale-95 sm:pr-4"
         >
-          <span className="relative flex size-10 items-center justify-center rounded-full bg-white/15">
-            <Sparkles className="size-5 transition-transform group-hover:rotate-12" />
+          <span className="relative flex size-8 items-center justify-center rounded-full bg-white/15">
+            <Sparkles className="size-4 transition-transform group-hover:rotate-12" />
             {!seen && (
               <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-hi-vis text-[10px] font-bold text-hi-vis-foreground ring-2 ring-primary">
                 1
@@ -562,11 +562,11 @@ export function ChatWidget() {
             )}
           </span>
           <span className="text-left leading-tight">
-            <span className="block text-sm font-semibold">
+            <span className="block text-[13px] font-semibold">
               <span className="sm:hidden">AI Assistant</span>
               <span className="hidden sm:inline">Ask CareBy AI</span>
             </span>
-            <span className="hidden items-center gap-1 text-[11px] opacity-80 sm:flex">
+            <span className="hidden items-center gap-1 text-[10px] opacity-80 sm:flex">
               <span className="size-1.5 rounded-full bg-emerald-400" /> Online · instant answers
             </span>
           </span>
