@@ -18,6 +18,10 @@ const SUPPRESSED = ["/contact", "/get-started"];
  * of that bar (and the iOS home indicator) on phones; desktop drops it
  * back to a normal inset since the bar is lg:hidden.
  *
+ * The chat assistant owns the bottom-right corner, so on phones this sits
+ * bottom-left (both clear of the tab bar) and on desktop it stacks above
+ * the chat launcher instead of on top of it.
+ *
  * z-30 deliberately sits under the sticky header, the tab bar and any
  * dialog or sheet (z-40+). Nothing overlaps it spatially, but a modal
  * must always win.
@@ -46,7 +50,7 @@ export function ExpertFab() {
          class wins. The override has to come after the base, or the
          base's `inline-flex` would cancel the `hidden`. */
       className={cn(
-        "glow-hi-vis press bottom-tabbar fixed right-4 z-30 inline-flex items-center gap-2 rounded-full bg-hi-vis px-4 py-3 text-sm font-semibold text-hi-vis-foreground transition-transform hover:scale-[1.03] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:px-5 lg:right-6 lg:bottom-6",
+        "glow-hi-vis press bottom-tabbar fixed left-4 z-30 inline-flex items-center gap-2 rounded-full bg-hi-vis px-4 py-3 text-sm font-semibold text-hi-vis-foreground transition-transform hover:scale-[1.03] focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:px-5 lg:left-auto lg:right-6 lg:bottom-[6.25rem]",
         homePageOnPhone,
       )}
     >

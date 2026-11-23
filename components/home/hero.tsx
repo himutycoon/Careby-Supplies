@@ -6,6 +6,7 @@ import { Icon } from "@/components/shared/icon";
 import { HERO_CARDS, USER_TYPES } from "@/data/platform";
 import { HeroPanel } from "@/components/shared/hero-panel";
 import { CatalogSearch } from "@/components/shop/catalog-search";
+import { AskAssistant } from "@/components/home/ask-assistant";
 
 export function Hero() {
   return (
@@ -94,6 +95,11 @@ export function Hero() {
               }
             />
           </div>
+
+          {/* The assistant answers product, SKU and delivery questions
+              from the live catalogue; this makes it findable in the hero
+              rather than only as a corner bubble. */}
+          <AskAssistant />
 
           {/*
             Role chooser, above the fold.

@@ -795,7 +795,7 @@ export const FAQS: FaqItem[] = [
   {
     question: "Which areas do you serve?",
     answer:
-      "We're currently serving Mississauga, Ontario, with more municipalities coming soon.",
+      "We're based in Mississauga and deliver across Mississauga and the surrounding GTA, with more areas coming soon.",
   },
   {
     question: "Do you supply new builds?",

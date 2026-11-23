@@ -1,5 +1,7 @@
 import { ChatbotRulesTable } from "@/components/admin/chatbot-rules-table";
 import { ChatbotSettingsForm } from "@/components/admin/chatbot-settings-form";
+import { ChatbotKnowledgeHub } from "@/components/admin/chatbot-knowledge";
+import { aiConfigured } from "@/lib/chatbot/ai";
 import { getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
 import { Badge } from "@/components/ui/badge";
 
@@ -60,10 +62,19 @@ export default async function AdminChatbotPage() {
         </div>
       </section>
 
+      {!aiConfigured() ? (
+        <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <b>AI is off:</b> OPENAI_API_KEY isn&apos;t set on the server, so only the keyword rules answer. The knowledge
+          base and product search start working as soon as the key is added.
+        </p>
+      ) : null}
+
+      <ChatbotKnowledgeHub />
+
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl">Rules</h2>
+        <h2 className="text-xl">Quick-answer rules</h2>
         <p className="-mt-2 text-sm text-muted-foreground">
-          If a customer&apos;s message contains a rule&apos;s keywords, the bot gives that answer. Anything else goes to the AI assistant.
+          Instant canned answers for button taps and short questions (&quot;delivery?&quot;, &quot;hours&quot;). Longer questions, product names and SKUs go to the AI, which also reads these answers.
         </p>
         <ChatbotRulesTable />
       </section>

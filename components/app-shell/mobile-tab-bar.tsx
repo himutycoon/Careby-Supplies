@@ -45,6 +45,7 @@ export function MobileTabBar({ items }: { items: AppNavItem[] }) {
 
   return (
     <nav
+      data-slot="mobile-tab-bar"
       className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur-md lg:hidden"
       aria-label="Primary"
     >

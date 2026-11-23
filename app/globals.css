@@ -548,3 +548,13 @@
 @media (prefers-reduced-motion: reduce) {
   .careby-float { animation: none; }
 }
+/* Chat launcher: a slow navy halo so the assistant is easy to find
+   without blinking. Same breathing idea as .glow-hi-vis. */
+@keyframes careby-chat-breathe {
+  0%, 100% { box-shadow: 0 10px 28px color-mix(in oklch, var(--primary), transparent 55%), 0 0 0 0 color-mix(in oklch, var(--primary), transparent 60%); }
+  50% { box-shadow: 0 10px 28px color-mix(in oklch, var(--primary), transparent 55%), 0 0 0 10px color-mix(in oklch, var(--primary), transparent 100%); }
+}
+.careby-chat-glow { animation: careby-chat-breathe 2.6s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .careby-chat-glow { animation: none; }
+}

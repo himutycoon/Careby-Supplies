@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { loadChatbotConfig } from "@/lib/chatbot/load";
 import { chatbotAllowed } from "@/lib/chatbot/billing";
+import { aiConfigured } from "@/lib/chatbot/ai";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET() {
   const { aiInstructions: _omit, ...publicConfig } = config;
   void _omit;
   return NextResponse.json(
-    { enabled, ...publicConfig },
+    { enabled, aiEnabled: aiConfigured(), ...publicConfig },
     { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=300" } },
   );
 }

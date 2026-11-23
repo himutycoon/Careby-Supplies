@@ -8,7 +8,7 @@ export const BUSINESS = {
 };
 
 // EDIT: WhatsApp number, digits only with country code, no + or spaces (e.g. Canada: "14165551234")
-export const WHATSAPP = "";
+export const WHATSAPP = "14375224606"; // same number as CONTACT_INFO in data/mock.ts
 
 export function waLink(text: string) {
   return `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(text)}`;
@@ -67,13 +67,13 @@ export const FAQS: Faq[] = [
     keywords: ["delivery", "deliver", "shipping", "ship", "courier", "drop off"],
     // EDIT: real delivery areas, fees, timing
     answer:
-      "Yes, we deliver across the GTA, and free delivery applies on orders over $500. Timing depends on your items and site, and the team confirms it with your quote.",
+      "We deliver across Mississauga and the GTA. Delivery is free on orders of $500+, otherwise $79, and branch pickup is free. The team confirms the delivery day with your order.",
     chips: ["Get a quote", "Pickup"],
   },
   {
     id: "pickup",
     keywords: ["pickup", "pick up", "collect", "location", "address", "where are you", "visit", "store"],
-    answer: `Pickup details are confirmed with your order.${BUSINESS.address ? " Address: " + BUSINESS.address : ""}`,
+    answer: `Branch pickup is free. Pickup details are confirmed with your order.${BUSINESS.address ? " Address: " + BUSINESS.address : ""}`,
     chips: ["Get a quote", "Hours"],
   },
   {

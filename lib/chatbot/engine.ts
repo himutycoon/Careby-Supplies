@@ -54,6 +54,25 @@ function indexFor(rules: Faq[]) {
   return cache.index;
 }
 
+/**
+ * True when the message says more than the rule's keywords, e.g.
+ * "price of 1/2 drywall" matches the quote rule on "price" but is really a
+ * product question. Those go to the AI (which has the catalogue) instead.
+ */
+export function saysMoreThan(input: string, faq: Faq): boolean {
+  const text = normalize(input);
+  let rest = text;
+  for (const k of faq.keywords) {
+    const p = normalize(k);
+    if (p.includes(" ")) rest = rest.replace(p, " ");
+  }
+  const words = new Set(faq.keywords.filter((k) => !k.includes(" ")).map((k) => canon(normalize(k))));
+  return tokens(rest).some((t) => !words.has(t) && !GENERIC.has(t));
+}
+
+// Filler that doesn't change what's being asked.
+const GENERIC = new Set(["much", "about", "tell", "info", "information", "know", "like", "would", "just", "ok", "okay", "yes", "no", "sure", "hi", "hello", "hey", "thank", "thanks", "pls", "plz", "more", "some", "where", "when", "which", "who", "why", "is", "am", "be", "will", "could", "should"]);
+
 export function answer(input: string, rules: Faq[] = FAQS): Faq | null {
   const text = normalize(input);
   if (!text) return null;

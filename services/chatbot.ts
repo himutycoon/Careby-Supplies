@@ -125,3 +125,157 @@ export async function saveChatSettings(s: ChatSettings): Promise<ServiceResult<n
   if (error) return fail(toUserMessage(error, "We couldn't save the settings."));
   return ok(null);
 }
+
+// ---------------------------------------------------------------------------
+// Knowledge base (schema-29). What the AI assistant knows beyond the rules.
+// Products and SKUs aren't stored here: the bot searches the live catalogue.
+// ---------------------------------------------------------------------------
+
+export interface KnowledgeRow {
+  id: string;
+  title: string;
+  category: string;
+  content: string;
+  keywords: string[];
+  enabled: boolean;
+  sortOrder: number;
+  updatedAt: string;
+}
+
+const NEED_29 = "Couldn't load the knowledge base. Has schema-29-chatbot-knowledge.sql been run?";
+
+export async function getKnowledge(): Promise<KnowledgeRow[]> {
+  const { data, error } = await createClient()
+    .from("chatbot_knowledge")
+    .select("id, title, category, content, keywords, enabled, sort_order, updated_at")
+    .order("sort_order");
+  if (error) {
+    console.error("[getKnowledge]", error);
+    throw new Error(toUserMessage(error, NEED_29));
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    title: r.title as string,
+    category: (r.category as string) || "General",
+    content: r.content as string,
+    keywords: (r.keywords as string[]) ?? [],
+    enabled: Boolean(r.enabled),
+    sortOrder: Number(r.sort_order ?? 0),
+    updatedAt: r.updated_at as string,
+  }));
+}
+
+export async function saveKnowledge(input: Omit<KnowledgeRow, "updatedAt" | "id"> & { id?: string }): Promise<ServiceResult<null>> {
+  const title = input.title.trim();
+  const content = input.content.trim();
+  if (!title) return fail("Give the entry a title.");
+  if (!content) return fail("Write what the bot should know.");
+  if (content.length > 6000) return fail("Keep one entry under 6,000 characters; split it into topics.");
+
+  const row = {
+    title,
+    category: input.category.trim() || "General",
+    content,
+    keywords: list(input.keywords).map((k) => k.toLowerCase()),
+    enabled: input.enabled,
+    sort_order: input.sortOrder,
+    updated_at: new Date().toISOString(),
+  };
+  const sb = createClient();
+  const { error } = input.id
+    ? await sb.from("chatbot_knowledge").update(row).eq("id", input.id)
+    : await sb.from("chatbot_knowledge").insert(row);
+  if (error) {
+    console.error("[saveKnowledge]", error);
+    return fail(toUserMessage(error, "We couldn't save that entry."));
+  }
+  return ok(null);
+}
+
+export async function setKnowledgeEnabled(id: string, enabled: boolean): Promise<ServiceResult<null>> {
+  const { error } = await createClient()
+    .from("chatbot_knowledge")
+    .update({ enabled, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't update that entry."));
+  return ok(null);
+}
+
+export async function deleteKnowledge(id: string): Promise<ServiceResult<null>> {
+  const { error } = await createClient().from("chatbot_knowledge").delete().eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't delete that entry."));
+  return ok(null);
+}
+
+// ---------------------------------------------------------------------------
+// Question log: what visitors asked the AI.
+// ---------------------------------------------------------------------------
+
+export interface ChatQuestionRow {
+  id: string;
+  question: string;
+  reply: string;
+  answered: boolean;
+  productsShown: string[];
+  page: string;
+  resolved: boolean;
+  createdAt: string;
+}
+
+export async function getChatQuestions(): Promise<ChatQuestionRow[]> {
+  const { data, error } = await createClient()
+    .from("chatbot_questions")
+    .select("id, question, reply, answered, products_shown, page, resolved, created_at")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    console.error("[getChatQuestions]", error);
+    throw new Error(toUserMessage(error, NEED_29));
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    question: r.question as string,
+    reply: r.reply as string,
+    answered: Boolean(r.answered),
+    productsShown: (r.products_shown as string[]) ?? [],
+    page: (r.page as string) ?? "",
+    resolved: Boolean(r.resolved),
+    createdAt: r.created_at as string,
+  }));
+}
+
+export async function setQuestionResolved(id: string, resolved: boolean): Promise<ServiceResult<null>> {
+  const { error } = await createClient().from("chatbot_questions").update({ resolved }).eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't update that question."));
+  return ok(null);
+}
+
+export async function deleteQuestion(id: string): Promise<ServiceResult<null>> {
+  const { error } = await createClient().from("chatbot_questions").delete().eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't delete that question."));
+  return ok(null);
+}
+
+export type PreviewReply = {
+  reply: string;
+  products: { id: string; name: string; sku: string | null; price: number; unit: string; stock: string; url: string }[];
+  startQuote: boolean;
+  unsure: boolean;
+};
+
+/** Ask the live AI as an admin: same knowledge and catalogue, not logged. */
+export async function previewBot(question: string): Promise<ServiceResult<PreviewReply>> {
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ preview: true, messages: [{ role: "user", content: question }], page: "/admin/chatbot" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 503 && data.error === "ai not configured") return fail("OPENAI_API_KEY isn't set, so only the rules can answer.");
+    if (!res.ok || !data.reply) return fail("The AI didn't answer. Try again in a moment.");
+    return ok(data as PreviewReply);
+  } catch {
+    return fail("The AI didn't answer. Try again in a moment.");
+  }
+}

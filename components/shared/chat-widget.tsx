@@ -3,12 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageCircle, X, Send, RotateCcw } from "lucide-react";
-import { answer } from "@/lib/chatbot/engine";
+import { ArrowUp, Headset, Package, ReceiptText, RotateCcw, Sparkles, Truck, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { answer, saysMoreThan } from "@/lib/chatbot/engine";
 import { FAQS, GREETING, WELCOME_CHIPS, WHATSAPP, type Faq } from "@/lib/chatbot/config";
 
 type BotConfig = {
   enabled: boolean;
+  aiEnabled?: boolean;
   rules: Faq[];
   greeting: string;
   welcomeChips: string[];
@@ -27,13 +29,62 @@ const BUILT_IN: BotConfig = {
 const waLink = (number: string, text: string) =>
   `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 
+type CardProduct = {
+  id: string;
+  name: string;
+  sku: string | null;
+  price: number;
+  unit: string;
+  stock: string;
+  imageUrl: string | null;
+  url: string;
+};
+
 type Msg = {
   role: "user" | "assistant";
   content: string;
   chips?: string[];
   link?: { label: string; href: string };
   wa?: boolean;
+  products?: CardProduct[];
 };
+
+const STOCK_LABEL: Record<string, string> = {
+  "in-stock": "In stock",
+  "low-stock": "Low stock",
+  "out-of-stock": "Out of stock",
+};
+
+const safeHref = (h: string) => (h.startsWith("/") && !h.startsWith("//")) || /^https:\/\//.test(h);
+
+/** Renders [label](href) links and **bold** from AI replies; everything else is plain text. */
+function RichText({ text, onNavigate }: { text: string; onNavigate: () => void }) {
+  const parts: React.ReactNode[] = [];
+  const re = /\[([^\]]{1,120})\]\(([^)\s]{1,300})\)|\*\*([^*]{1,200})\*\*/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  let k = 0;
+  while ((m = re.exec(text))) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    if (m[3]) parts.push(<strong key={k++}>{m[3]}</strong>);
+    else if (safeHref(m[2])) {
+      parts.push(
+        m[2].startsWith("/") ? (
+          <Link key={k++} href={m[2]} onClick={onNavigate} className="font-medium underline underline-offset-2">
+            {m[1]}
+          </Link>
+        ) : (
+          <a key={k++} href={m[2]} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-2">
+            {m[1]}
+          </a>
+        ),
+      );
+    } else parts.push(m[1]);
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return <>{parts}</>;
+}
 
 type Flow = { step: number; data: Record<string, string> } | null;
 
@@ -52,6 +103,17 @@ const STEPS = [
 const FIRST: Msg = { role: "assistant", content: GREETING, chips: WELCOME_CHIPS };
 const STORE = "careby-chat-v1";
 const TEASER_KEY = "careby-teaser-off";
+const SEEN_KEY = "careby-chat-seen";
+const HIDDEN_TEASER = ["/admin", "/login", "/signup", "/forgot-password", "/reset-password", "/checkout"];
+
+/** Example questions on the teaser and welcome screen. */
+const STARTERS = [
+  { icon: Package, label: "Find a product", ask: "Help me find a product" },
+  { icon: Truck, label: "Delivery & pickup", ask: "Delivery" },
+  { icon: ReceiptText, label: "Get a quote", ask: "Get a quote" },
+  { icon: Sparkles, label: "Plans & pricing", ask: "What services and plans do you offer?" },
+];
+const MAX_AI_CALLS = 25; // per chat session; the server rate-limits too
 const NUDGE_AFTER = 3; // user messages before suggesting an expert
 const EXPERT_RE = /\b(expert|human|agent|whatsapp|real person|representative|talk to someone)\b/i;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -81,6 +143,27 @@ export function ChatWidget() {
   const nudged = React.useRef(false);
   const endRef = React.useRef<HTMLDivElement>(null);
   const [cfg, setCfg] = React.useState<BotConfig>(BUILT_IN);
+  const [hasTabBar, setHasTabBar] = React.useState(false);
+  const [seen, setSeen] = React.useState(true);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const pendingRef = React.useRef<string | null>(null);
+  const handleSendRef = React.useRef<((t: string) => Promise<void>) | null>(null);
+
+  // unread dot on the launcher until the visitor opens the chat once
+  React.useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSeen(Boolean(sessionStorage.getItem(SEEN_KEY)));
+    } catch {}
+  }, []);
+  React.useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSeen(true);
+    try {
+      sessionStorage.setItem(SEEN_KEY, "1");
+    } catch {}
+  }, [open]);
 
   // rules, greeting and WhatsApp number are edited in /admin/chatbot
   React.useEffect(() => {
@@ -134,9 +217,56 @@ export function ChatWidget() {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, typing, open]);
 
-  // home page teaser bubble
+  // The phone tab bar (Home / Shop / Services / Cart) sits along the
+  // bottom on most layouts; the launcher has to clear it, not cover Cart.
   React.useEffect(() => {
-    if (open || pathname !== "/") {
+    const check = () => setHasTabBar(Boolean(document.querySelector('[data-slot="mobile-tab-bar"]')));
+    check();
+    const t = setTimeout(check, 300); // layouts can mount after the widget
+    return () => clearTimeout(t);
+  }, [pathname]);
+
+  // Any button on the site can open the chat, optionally with a question:
+  // window.dispatchEvent(new CustomEvent("careby:open-chat", { detail: { message } }))
+  React.useEffect(() => {
+    function onOpen(e: Event) {
+      const message = (e as CustomEvent<{ message?: string }>).detail?.message;
+      setTeaser(false);
+      if (message) pendingRef.current = message;
+      setOpen(true);
+    }
+    window.addEventListener("careby:open-chat", onOpen);
+    return () => window.removeEventListener("careby:open-chat", onOpen);
+  }, []);
+
+  // send a question that arrived with the open event, once the panel is up
+  React.useEffect(() => {
+    if (!open || !pendingRef.current) return;
+    const m = pendingRef.current;
+    pendingRef.current = null;
+    const t = setTimeout(() => void handleSendRef.current?.(m), 50);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  // Esc closes; on phones the panel is full screen, so lock the page behind it
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    const phone = window.matchMedia("(max-width: 639px)").matches;
+    const prev = document.body.style.overflow;
+    if (phone) document.body.style.overflow = "hidden";
+    const f = phone ? undefined : setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 150);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+      clearTimeout(f);
+    };
+  }, [open]);
+
+  // teaser bubble on public pages, once per visit
+  React.useEffect(() => {
+    if (open || HIDDEN_TEASER.some((p) => pathname.startsWith(p))) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTeaser(false);
       return;
@@ -144,8 +274,8 @@ export function ChatWidget() {
     try {
       if (sessionStorage.getItem(TEASER_KEY)) return;
     } catch {}
-    const show = setTimeout(() => setTeaser(true), 2000);
-    const hide = setTimeout(() => setTeaser(false), 14000);
+    const show = setTimeout(() => setTeaser(true), pathname === "/" ? 2500 : 6000);
+    const hide = setTimeout(() => setTeaser(false), 20000);
     return () => {
       clearTimeout(show);
       clearTimeout(hide);
@@ -198,8 +328,15 @@ export function ChatWidget() {
     }
   }
 
-  async function askAI(text: string) {
-    if (aiCalls.current >= 5) {
+  async function askAI(text: string, fallback?: Faq | null) {
+    const showRule = (hit: Faq) =>
+      hit.action === "quote"
+        ? botSay({ content: hit.answer }).then(startFlow)
+        : botSay({ content: hit.answer, chips: hit.chips, link: hit.link });
+
+    if (!cfg.aiEnabled && fallback) return showRule(fallback);
+    if (aiCalls.current >= MAX_AI_CALLS) {
+      if (fallback) return showRule(fallback);
       nudged.current = true;
       return botSay({
         content: "I'm not sure about that one. An expert can answer you directly on WhatsApp.",
@@ -210,20 +347,35 @@ export function ChatWidget() {
     aiCalls.current += 1;
     setTyping(true);
     try {
-      const history = [...msgsRef.current, { role: "user" as const, content: text }]
-        .slice(-10)
+      // msgsRef already holds the user's message (handleSend added it)
+      const history = msgsRef.current
+        .slice(-12)
         .map((m) => ({ role: m.role, content: m.content }));
+      if (history.at(-1)?.content !== text) history.push({ role: "user", content: text });
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ messages: history, page: pathname }),
       });
       const data = await res.json();
       setTyping(false);
       if (!res.ok || !data.reply) throw new Error();
-      setMsgs((p) => [...p, { role: "assistant", content: data.reply, chips: ["Get a quote", "Talk to expert"] }]);
+      const unsure = Boolean(data.unsure);
+      if (unsure) nudged.current = true;
+      setMsgs((p) => [
+        ...p,
+        {
+          role: "assistant",
+          content: data.reply,
+          products: Array.isArray(data.products) ? data.products.slice(0, 4) : undefined,
+          wa: unsure,
+          chips: data.startQuote ? undefined : ["Get a quote", "Talk to expert"],
+        },
+      ]);
+      if (data.startQuote && !flowRef.current) await startFlow();
     } catch {
       setTyping(false);
+      if (fallback) return showRule(fallback);
       nudged.current = true;
       setMsgs((p) => [
         ...p,
@@ -232,7 +384,7 @@ export function ChatWidget() {
     }
   }
 
-  async function processMessage(text: string) {
+  async function processMessage(text: string, fromChip = false) {
     // quote flow
     if (flowRef.current) {
       const f = flowRef.current;
@@ -266,9 +418,12 @@ export function ChatWidget() {
       });
     }
 
-    // rules
+    // rules answer quick questions and button taps instantly; anything that
+    // asks more than a rule's keywords (a product, a size, a SKU) goes to
+    // the AI, which has the knowledge base and the live catalogue.
     const hit = answer(text, cfg.rules);
-    if (hit) {
+    const useRule = hit && (fromChip || !cfg.aiEnabled || !saysMoreThan(text, hit));
+    if (hit && useRule) {
       if (hit.action === "quote") {
         await botSay({ content: hit.answer });
         return startFlow();
@@ -276,16 +431,16 @@ export function ChatWidget() {
       return botSay({ content: hit.answer, chips: hit.chips, link: hit.link });
     }
 
-    return askAI(text);
+    return askAI(text, hit);
   }
 
-  async function handleSend(raw: string) {
+  async function handleSend(raw: string, fromChip = false) {
     const text = raw.trim();
     if (!text || typing) return;
     setInput("");
     setMsgs((p) => [...p, { role: "user", content: text }]);
 
-    await processMessage(text);
+    await processMessage(text, fromChip);
 
     // after a few messages, suggest an expert (once, never mid-quote)
     if (!nudged.current && !flowRef.current) {
@@ -310,36 +465,59 @@ export function ChatWidget() {
     } catch {}
   }
 
+  // the open-with-question effect calls the latest handleSend through this
+  React.useEffect(() => {
+    handleSendRef.current = (t: string) => handleSend(t);
+  });
+
   const last = msgs[msgs.length - 1];
   const chips = !typing && last?.role === "assistant" ? last.chips : undefined;
   const wa = waLink(cfg.whatsapp, waText(msgs));
+  const welcome = msgs.length === 1 && msgs[0].role === "assistant";
+  const hasWa = cfg.whatsapp.length >= 10;
 
   // chatbot plan lapsed (only when CHATBOT_ENFORCE_BILLING=1)
   if (!cfg.enabled) return null;
 
-  // ---------- closed state: floating button + teaser ----------
+  // Phones: above the tab bar when there is one. Desktop: normal corner inset.
+  const corner = cn("fixed right-4 z-50 lg:right-6 lg:bottom-6", hasTabBar ? "bottom-tabbar" : "bottom-4");
+
+  // ---------- closed state: launcher + teaser ----------
   if (!open) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 flex items-end gap-3">
+      <div className={cn(corner, "flex flex-col items-end gap-3")}>
         {teaser && (
-          <div className="careby-float relative mb-2 max-w-[230px] rounded-2xl rounded-br-sm border bg-background px-4 py-3 text-sm text-foreground shadow-xl">
+          <div className="relative w-[272px] rounded-2xl border border-border bg-background p-3.5 text-sm text-foreground shadow-2xl duration-300 animate-in fade-in slide-in-from-bottom-3">
             <button
               onClick={closeTeaser}
               aria-label="Dismiss"
-              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-muted text-xs hover:bg-border"
+              className="absolute right-2 top-2 flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
             >
-              ×
+              <X className="size-3.5" />
             </button>
-            <button
-              onClick={() => {
-                closeTeaser();
-                setOpen(true);
-              }}
-              className="text-left"
-            >
-              <span className="block font-semibold">Hi! 👋 I&apos;m your Supplies Assistant</span>
-              <span className="text-muted-foreground">Talk to me for quotes, delivery and product help.</span>
-            </button>
+            <div className="flex items-center gap-2.5 pr-6">
+              <BotAvatar size="sm" />
+              <div>
+                <p className="font-semibold leading-tight">Need a hand? 👋</p>
+                <p className="text-xs text-muted-foreground">Ask about products, prices or delivery</p>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {STARTERS.slice(0, 3).map((st) => (
+                <button
+                  key={st.label}
+                  onClick={() => {
+                    closeTeaser();
+                    pendingRef.current = st.ask;
+                    setOpen(true);
+                  }}
+                  className="rounded-full border border-primary/25 bg-primary/5 px-2.5 py-1 text-xs font-medium text-primary transition hover:bg-primary/10"
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+            <span className="absolute -bottom-1.5 right-6 size-3 rotate-45 border-b border-r border-border bg-background" aria-hidden="true" />
           </div>
         )}
         <button
@@ -347,96 +525,178 @@ export function ChatWidget() {
             closeTeaser();
             setOpen(true);
           }}
-          className="careby-float relative flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
-          aria-label="Open chat"
+          aria-label="Open chat assistant"
+          className="careby-chat-glow group relative flex h-14 items-center gap-2.5 rounded-full bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] pl-2 pr-2 text-primary-foreground shadow-xl transition-transform hover:scale-[1.04] active:scale-95 sm:pr-5"
         >
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-30" />
-          <MessageCircle className="relative h-6 w-6" />
+          <span className="relative flex size-10 items-center justify-center rounded-full bg-white/15">
+            <Sparkles className="size-5 transition-transform group-hover:rotate-12" />
+            {!seen && (
+              <span className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center rounded-full bg-hi-vis text-[10px] font-bold text-hi-vis-foreground ring-2 ring-primary">
+                1
+              </span>
+            )}
+          </span>
+          <span className="hidden text-left leading-tight sm:block">
+            <span className="block text-sm font-semibold">Ask CareBy AI</span>
+            <span className="flex items-center gap-1 text-[11px] opacity-80">
+              <span className="size-1.5 rounded-full bg-emerald-400" /> Online · instant answers
+            </span>
+          </span>
         </button>
       </div>
     );
   }
 
-  // ---------- open state: chat window ----------
+  // ---------- open state: full screen on phones, floating panel on desktop ----------
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex h-[70vh] max-h-[560px] w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border bg-background text-foreground shadow-2xl sm:w-[380px]">
-      <div className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
-        <div>
-          <div className="text-sm font-semibold">CareBy Assistant</div>
-          <div className="text-xs opacity-80">Typically replies instantly</div>
-        </div>
-        <div className="flex items-center gap-3">
-          <a
-            href={wa}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full bg-[#25D366] px-2.5 py-1 text-xs font-semibold text-white"
-          >
-            WhatsApp
-          </a>
-          <button onClick={reset} aria-label="Restart chat" title="Restart">
-            <RotateCcw className="h-4 w-4" />
+    <div
+      role="dialog"
+      aria-label="CareBy assistant"
+      className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-background text-foreground duration-200 animate-in fade-in slide-in-from-bottom-4 sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(680px,calc(100dvh-3rem))] sm:w-[400px] sm:rounded-3xl sm:border sm:border-border sm:shadow-2xl"
+    >
+      {/* header */}
+      <div className="pt-safe relative shrink-0 overflow-hidden bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] text-primary-foreground">
+        <div className="pointer-events-none absolute -right-10 -top-16 size-44 rounded-full bg-hi-vis/20 blur-2xl" aria-hidden="true" />
+        <div className="relative flex items-center gap-3 px-4 py-3.5">
+          <BotAvatar />
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] font-semibold leading-tight">CareBy Assistant</div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-xs opacity-85">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+                <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+              </span>
+              Online · replies in seconds
+            </div>
+          </div>
+          <button onClick={reset} aria-label="Restart chat" title="Start over" className="flex size-9 items-center justify-center rounded-full hover:bg-white/15">
+            <RotateCcw className="size-4" />
           </button>
-          <button onClick={() => setOpen(false)} aria-label="Close chat">
-            <X className="h-5 w-5" />
+          <button onClick={() => setOpen(false)} aria-label="Close chat" className="flex size-9 items-center justify-center rounded-full hover:bg-white/15">
+            <X className="size-5" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-3 text-sm">
-        {msgs.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start gap-2"}>
-            <div
-              className={
-                m.role === "user"
-                  ? "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-primary-foreground"
-                  : "max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-sm bg-muted px-3 py-2"
-              }
-            >
-              {m.content}
+      {/* messages */}
+      <div className="flex-1 space-y-4 overflow-y-auto overscroll-contain bg-surface-muted/60 px-3 py-4 text-sm">
+        {msgs.map((m, i) =>
+          m.role === "user" ? (
+            <div key={i} className="flex justify-end duration-200 animate-in fade-in slide-in-from-bottom-1">
+              <div className="max-w-[82%] whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-primary px-3.5 py-2.5 text-primary-foreground shadow-sm">
+                {m.content}
+              </div>
             </div>
-            {m.link && (
-              <Link
-                href={m.link.href}
-                onClick={() => setOpen(false)}
-                className="rounded-full border px-3 py-1 text-xs font-medium hover:bg-muted"
-              >
-                {m.link.label} →
-              </Link>
-            )}
-            {m.wa && (
-              <a
-                href={wa}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full bg-[#25D366] px-4 py-2 text-xs font-semibold text-white shadow hover:opacity-90"
-              >
-                Continue on WhatsApp →
-              </a>
-            )}
-          </div>
-        ))}
+          ) : (
+            <div key={i} className="flex items-end gap-2 duration-200 animate-in fade-in slide-in-from-bottom-1">
+              <BotAvatar size="xs" />
+              <div className="flex min-w-0 max-w-[85%] flex-col items-start gap-2">
+                <div className="whitespace-pre-wrap break-words rounded-2xl rounded-bl-md border border-border bg-background px-3.5 py-2.5 shadow-sm">
+                  <RichText text={m.content} onNavigate={() => setOpen(false)} />
+                </div>
+
+                {welcome && i === 0 && (
+                  <div className="grid w-full grid-cols-2 gap-2">
+                    {STARTERS.map((st) => (
+                      <button
+                        key={st.label}
+                        onClick={() => handleSend(st.ask, true)}
+                        className="flex flex-col items-start gap-1.5 rounded-xl border border-border bg-background p-2.5 text-left text-xs font-medium shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow"
+                      >
+                        <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <st.icon className="size-4" />
+                        </span>
+                        {st.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {m.products && m.products.length > 0 && (
+                  <div className="flex w-full flex-col gap-1.5">
+                    {m.products.map((p) => (
+                      <Link
+                        key={p.id}
+                        href={p.url}
+                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl border border-border bg-background p-2 shadow-sm transition hover:border-primary/40 hover:shadow"
+                      >
+                        {p.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.imageUrl} alt="" className="size-12 shrink-0 rounded-lg bg-muted object-cover" />
+                        ) : (
+                          <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                            <Package className="size-5" />
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="line-clamp-2 text-xs font-semibold leading-snug">{p.name}</span>
+                          <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-muted-foreground">
+                            <span className="font-semibold text-foreground">${p.price.toFixed(2)}</span>/ {p.unit}
+                            {p.sku ? <span className="truncate">· {p.sku}</span> : null}
+                          </span>
+                        </span>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                            p.stock === "out-of-stock"
+                              ? "bg-destructive/10 text-destructive"
+                              : p.stock === "low-stock"
+                                ? "bg-warning/15 text-warning-foreground dark:text-warning"
+                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                          )}
+                        >
+                          {STOCK_LABEL[p.stock] ?? p.stock}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                {m.link && (
+                  <Link
+                    href={m.link.href}
+                    onClick={() => setOpen(false)}
+                    className="rounded-full border border-primary/30 bg-background px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/5"
+                  >
+                    {m.link.label} →
+                  </Link>
+                )}
+                {m.wa && hasWa && (
+                  <a
+                    href={wa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:opacity-90"
+                  >
+                    <Headset className="size-3.5" /> Continue with an expert on WhatsApp
+                  </a>
+                )}
+              </div>
+            </div>
+          ),
+        )}
         {typing && (
-          <div className="flex w-fit gap-1 rounded-2xl rounded-bl-sm bg-muted px-3 py-3">
-            {[0, 150, 300].map((d) => (
-              <span
-                key={d}
-                className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
-                style={{ animationDelay: `${d}ms` }}
-              />
-            ))}
+          <div className="flex items-end gap-2">
+            <BotAvatar size="xs" />
+            <div className="flex gap-1 rounded-2xl rounded-bl-md border border-border bg-background px-3.5 py-3 shadow-sm">
+              {[0, 150, 300].map((d) => (
+                <span key={d} className="size-1.5 animate-bounce rounded-full bg-primary/60" style={{ animationDelay: `${d}ms` }} />
+              ))}
+            </div>
           </div>
         )}
         <div ref={endRef} />
       </div>
 
-      {chips && chips.length > 0 && (
-        <div className="flex flex-wrap gap-2 px-3 pb-2">
+      {/* quick replies */}
+      {chips && chips.length > 0 && !welcome && (
+        <div className="flex shrink-0 gap-2 overflow-x-auto border-t border-border bg-background px-3 py-2 [scrollbar-width:none]">
           {chips.map((c) => (
             <button
               key={c}
-              onClick={() => handleSend(c)}
-              className="rounded-full border px-3 py-1 text-xs font-medium transition hover:bg-muted"
+              onClick={() => handleSend(c, true)}
+              className="shrink-0 rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary/10"
             >
               {c}
             </button>
@@ -444,24 +704,61 @@ export function ChatWidget() {
         </div>
       )}
 
-      <div className="flex gap-2 border-t p-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend(input)}
-          placeholder={flow ? "Type your answer..." : "Type your question..."}
-          maxLength={500}
-          className="h-9 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-        />
-        <button
-          onClick={() => handleSend(input)}
-          disabled={typing || !input.trim()}
-          className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground disabled:opacity-50"
-          aria-label="Send"
+      {/* composer */}
+      <div className="pb-safe shrink-0 border-t border-border bg-background">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSend(input);
+          }}
+          className="flex items-center gap-2 px-3 pt-3"
         >
-          <Send className="h-4 w-4" />
-        </button>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={flow ? "Type your answer…" : "Ask about a product, SKU or delivery…"}
+            maxLength={500}
+            enterKeyHint="send"
+            className="h-11 min-w-0 flex-1 rounded-full border border-input bg-surface-muted px-4 text-[16px] outline-none transition placeholder:text-muted-foreground focus:border-primary/50 focus:bg-background focus:ring-3 focus:ring-primary/15 sm:text-sm"
+          />
+          <button
+            type="submit"
+            disabled={typing || !input.trim()}
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition hover:scale-105 disabled:scale-100 disabled:opacity-40"
+            aria-label="Send"
+          >
+            <ArrowUp className="size-5" />
+          </button>
+        </form>
+        <p className="px-4 pb-2.5 pt-1.5 text-center text-[11px] text-muted-foreground">
+          AI assistant · prices and stock are live from our catalogue
+          {hasWa ? (
+            <>
+              {" · "}
+              <a href={wa} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground underline-offset-2 hover:underline">
+                Talk to a person
+              </a>
+            </>
+          ) : null}
+        </p>
       </div>
     </div>
+  );
+}
+
+function BotAvatar({ size = "md" }: { size?: "xs" | "sm" | "md" }) {
+  const box = size === "xs" ? "size-7" : size === "sm" ? "size-9" : "size-10";
+  const icon = size === "xs" ? "size-3.5" : "size-5";
+  return (
+    <span
+      className={cn(
+        box,
+        "relative flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-hi-vis to-[oklch(0.8_0.17_80)] text-hi-vis-foreground shadow-sm",
+      )}
+      aria-hidden="true"
+    >
+      <Sparkles className={icon} />
+    </span>
   );
 }

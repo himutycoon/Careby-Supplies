@@ -62,13 +62,13 @@ export function ChatbotSettingsForm() {
         <p className="text-xs text-muted-foreground">Digits only, with country code (1 for Canada).</p>
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="cb-ai">Facts for the AI assistant</Label>
+        <Label htmlFor="cb-ai">Extra instructions for the AI</Label>
         <Textarea
           id="cb-ai"
           rows={6}
           value={ai}
           onChange={(e) => setAi(e.target.value)}
-          placeholder={"Used when no rule matches. e.g.\n- We deliver within 50 km of Mississauga.\n- Closed on statutory holidays.\n- We don't sell appliances."}
+          placeholder={"Tone and behaviour, not facts (facts go in the knowledge base). e.g.\n- Always suggest the free estimate for renovation questions.\n- Mention the contractor account when someone says they are a builder."}
         />
       </div>
       <div className="flex justify-end">
