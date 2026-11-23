@@ -19,10 +19,18 @@ export const CHATBOT_PLAN = {
   enforce: true,
   /** Last day of the paid period, YYYY-MM-DD. */
   paidUntil: "2026-12-24",
+  /** Monthly price in INR, as charged by Razorpay. CAD/USD are shown converted. */
+  priceInr: 4000,
   /** What the client sees on Admin > Chatbot. */
-  amountLabel: "65.00 CAD / month",
-  /** Razorpay subscription link, shown to the client on Admin > Chatbot. */
+  amountLabel: "₹4,000 / month",
+  /** Razorpay subscription link: the Subscribe button on Admin > Chatbot. */
   payUrl: "https://rzp.io/rzp/wiGyRk7t",
+  /**
+   * Set to true once the client has subscribed: the Subscribe button is
+   * replaced by "Auto-pay is on" (it still shows "Pay now" if a payment
+   * is overdue).
+   */
+  autoPayActive: false,
   /**
    * The client's Razorpay subscription. Once Razorpay approves the website,
    * set CHATBOT_RAZORPAY_KEY_ID and CHATBOT_RAZORPAY_KEY_SECRET on the host

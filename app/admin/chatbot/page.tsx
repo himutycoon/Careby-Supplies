@@ -4,6 +4,9 @@ import { ChatbotKnowledgeHub } from "@/components/admin/chatbot-knowledge";
 import { aiConfigured } from "@/lib/chatbot/ai";
 import { getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
 import { Badge } from "@/components/ui/badge";
+import { Check, CreditCard, ShieldCheck, Sparkles } from "lucide-react";
+import { CHATBOT_PLAN } from "@/lib/chatbot/plan";
+import { inrRates } from "@/lib/chatbot/fx";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +23,28 @@ function fmt(iso: string | null) {
     : null;
 }
 
+const INCLUDED = [
+  "AI answers from your live catalogue",
+  "Knowledge base & question inbox",
+  "Quote capture with email alerts",
+  "Hosting, AI usage, updates & support",
+];
+
+function money(amount: number, currency: "INR" | "CAD" | "USD") {
+  return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-CA", {
+    style: "currency",
+    currency,
+    currencyDisplay: currency === "INR" ? "symbol" : "code",
+    maximumFractionDigits: currency === "INR" ? 0 : 2,
+  }).format(amount);
+}
+
 export default async function AdminChatbotPage() {
-  const plan = await getChatbotPlan();
+  const [plan, fx] = await Promise.all([getChatbotPlan(), inrRates()]);
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
+  const overdue = plan.status === "past_due" || plan.status === "unpaid";
+  const priceInr = CHATBOT_PLAN.priceInr;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -34,33 +55,69 @@ export default async function AdminChatbotPage() {
         </p>
       </div>
 
-      <section className="flex flex-col gap-3 rounded-xl border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="flex items-center gap-2 text-sm font-semibold">
-            Chatbot plan <Badge variant={s.variant}>{s.label}</Badge>
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {plan.amountLabel}
-            {date
-              ? plan.status === "active"
-                ? ` · paid through ${date}, renews automatically`
-                : ` · last paid period ended ${date}`
-              : ""}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {plan.payUrl ? (
-            <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground">
-              {/* While billing is by date, the link is the client's way to
-                  start the monthly Razorpay auto-pay before anything is due. */}
-              {plan.status === "active" ? "Set up auto-pay" : "Pay now"}
-            </a>
-          ) : null}
-          {plan.manageUrl ? (
-            <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-border px-3 py-2 text-sm font-medium">
-              Invoices &amp; card
-            </a>
-          ) : null}
+      <section className="overflow-hidden rounded-2xl border border-border bg-background">
+        <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-[1fr_auto] md:items-center">
+          <div className="min-w-0">
+            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+              <Sparkles className="size-4 text-primary" aria-hidden="true" />
+              CareBy AI Assistant · Monthly plan <Badge variant={s.variant}>{s.label}</Badge>
+            </p>
+
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-3xl font-semibold tracking-tight">{money(priceInr, "INR")}</span>
+              <span className="text-sm text-muted-foreground">/ month</span>
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              ≈ <b className="text-foreground">{money(priceInr * fx.CAD, "CAD")}</b> · ≈{" "}
+              <b className="text-foreground">{money(priceInr * fx.USD, "USD")}</b>
+              <span className="mt-0.5 block text-xs">
+                Charged in INR; your bank converts it at its own rate{fx.live ? "" : " (approximate)"}.
+              </span>
+            </p>
+
+            <p className="mt-3 text-sm">
+              {date
+                ? plan.status === "active"
+                  ? `Paid through ${date}.`
+                  : `The last paid period ended ${date}. Pay now to keep the assistant on your site.`
+                : "Subscribe to keep the assistant running on your site."}
+            </p>
+
+            <ul className="mt-3 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">
+              {INCLUDED.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex flex-col gap-2 md:w-64">
+            {plan.payUrl && (overdue || !CHATBOT_PLAN.autoPayActive) ? (
+              <a
+                href={plan.payUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
+              >
+                <CreditCard className="size-4" aria-hidden="true" />
+                {overdue ? "Pay now" : "Subscribe · auto-pay monthly"}
+              </a>
+            ) : CHATBOT_PLAN.autoPayActive ? (
+              <p className="flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                <Check className="size-4" aria-hidden="true" /> Auto-pay is on
+              </p>
+            ) : null}
+            {plan.manageUrl ? (
+              <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium">
+                Invoices &amp; card
+              </a>
+            ) : null}
+            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+              <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by Razorpay · cancel anytime
+            </p>
+          </div>
         </div>
       </section>
 
