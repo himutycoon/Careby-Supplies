@@ -1,35 +1,27 @@
 /**
  * The chatbot subscription, as the developer bills it.
  *
- * EDIT THIS EACH MONTH: when the client's payment arrives, move `paidUntil`
- * forward one month and push to main. The site redeploys and the admin
- * page updates.
- *
- * How it behaves (lib/chatbot/billing.ts):
- *   - up to paidUntil            → bot on,  admin shows "Active"
- *   - up to 7 days after it      → bot on,  admin shows "Payment due"
- *   - more than 7 days after it  → bot off, admin shows "Unpaid"
- *
- * Server environment variables override these values (CHATBOT_PAID_UNTIL,
- * CHATBOT_RAZORPAY_*). CHATBOT_ENFORCE_BILLING=0 on the host switches
- * enforcement off.
+ * Normally nothing here needs editing. The admin picks a plan on
+ * Admin > Chatbot and pays with PayPal; the site confirms the payment with
+ * PayPal (lib/chatbot/billing.ts) and switches the assistant on. It stays on
+ * while PayPal reports the subscription active, and goes off once it is
+ * cancelled or payments stop (7 days' grace after a missed payment).
  */
 export const CHATBOT_PLAN = {
   /**
-   * MASTER ON/OFF SWITCH for the chat assistant on the public site.
-   *   false → bot hidden for visitors; Admin > Chatbot shows "Not set up"
-   *           with the PayPal subscribe button (the admin playground
-   *           still works so the client can try it).
-   *   true  → bot follows the paidUntil date below.
-   * Turn on after the first real PayPal payment: set true, set paidUntil
-   * one month after the payment date, then push.
+   * ON/OFF SWITCH for the chat assistant on the public site.
+   *   "auto" → on only while a plan is paid (the normal setting)
+   *   "on"   → always on, paid or not
+   *   "off"  → always off, paid or not
+   * The admin playground works in every mode.
    */
-  botOn: false,
+  bot: "auto" as "auto" | "on" | "off",
 
-  /** Switch the bot off once the plan lapses. */
-  enforce: true,
-  /** Last day of the paid period, YYYY-MM-DD. */
-  paidUntil: "2026-12-24",
+  /**
+   * Manual fallback, YYYY-MM-DD: treat the plan as paid through this date
+   * (e.g. paid by e-transfer). Leave "" to rely on PayPal.
+   */
+  paidUntil: "",
 
   /** Plan name shown on Admin > Chatbot. */
   name: "CareBy AI Pro",
@@ -50,17 +42,11 @@ export const CHATBOT_PLAN = {
   },
 
   /**
-   * Set to true once the client has subscribed: the PayPal button is
-   * replaced by "Auto-pay is on" (a "Pay now" link still shows if a
-   * payment is overdue and payUrl is set).
-   */
-  autoPayActive: false,
-
-  /**
-   * The upgrade offer (Premium, above Pro) shown on Admin > Chatbot. Until `paypalPlanId` is set
-   * (a CAD 99 plan created in PayPal), the button sends an upgrade request
-   * by email instead of taking payment. Premium features are sold, not yet
-   * built: deliver them when the client upgrades.
+   * The Premium plan (above Pro), offered on Admin > Chatbot. Until
+   * `paypalPlanId` is set (a CAD 99 plan created in PayPal), its button sends
+   * a request by email instead of taking payment. Premium features are sold,
+   * not yet built: deliver them when the client upgrades.
+   * `requestEmail` also gets a note whenever someone subscribes.
    */
   upgrade: {
     name: "CareBy AI Premium",

@@ -49,6 +49,29 @@ export function PayPalSubscribe({ clientId, planId }: { clientId: string; planId
   const ref = React.useRef<HTMLDivElement>(null);
   const [state, setState] = React.useState<"loading" | "ready" | "error">("loading");
   const [subId, setSubId] = React.useState<string | null>(null);
+  const [saved, setSaved] = React.useState<"saving" | "ok" | "failed">("saving");
+
+  // Tell the site about the new subscription; it confirms with PayPal and
+  // switches the assistant on, then the page reloads to show the plan.
+  const save = React.useCallback(
+    async (id: string) => {
+      setSubId(id);
+      try {
+        const res = await fetch("/api/chatbot/subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subscriptionID: id, planId }),
+        });
+        if (!res.ok) throw new Error(`save -> ${res.status}`);
+        setSaved("ok");
+        setTimeout(() => window.location.reload(), 2500);
+      } catch (e) {
+        console.error("[paypal] subscription save failed", e);
+        setSaved("failed");
+      }
+    },
+    [planId],
+  );
 
   React.useEffect(() => {
     let cancelled = false;
@@ -60,7 +83,9 @@ export function PayPalSubscribe({ clientId, planId }: { clientId: string; planId
           .Buttons({
             style: { shape: "rect", color: "blue", layout: "vertical", label: "subscribe" },
             createSubscription: (_data, actions) => actions.subscription.create({ plan_id: planId }),
-            onApprove: (data) => setSubId(data.subscriptionID ?? "confirmed"),
+            onApprove: (data) => {
+              if (data.subscriptionID) void save(data.subscriptionID);
+            },
             onError: (err) => {
               console.error("[paypal]", err);
               setState("error");
@@ -76,15 +101,24 @@ export function PayPalSubscribe({ clientId, planId }: { clientId: string; planId
     return () => {
       cancelled = true;
     };
-  }, [clientId, planId]);
+  }, [clientId, planId, save]);
 
   if (subId) {
     return (
       <div className="flex flex-col items-center gap-1.5 rounded-lg border border-emerald-600/30 bg-emerald-600/10 p-3 text-center text-sm">
-        <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
-        <p className="font-semibold text-emerald-700 dark:text-emerald-400">Thank you, auto-pay is set up</p>
+        {saved === "saving" ? (
+          <Loader2 className="size-5 animate-spin text-emerald-600" aria-hidden="true" />
+        ) : (
+          <CheckCircle2 className="size-5 text-emerald-600" aria-hidden="true" />
+        )}
+        <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+          {saved === "saving" ? "Payment approved, activating your plan…" : "Thank you, your plan is set up"}
+        </p>
         <p className="text-xs text-muted-foreground">
-          PayPal will email your receipt. Subscription ID: <span className="font-mono">{subId}</span>
+          {saved === "failed"
+            ? "Paid, but we couldn't switch the assistant on automatically. Send this ID to support and we'll turn it on. "
+            : "PayPal will email your receipt. "}
+          Subscription ID: <span className="font-mono">{subId}</span>
         </p>
       </div>
     );

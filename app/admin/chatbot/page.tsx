@@ -31,6 +31,7 @@ const STATUS: Record<PlanStatus, { label: string; tone: string }> = {
   active: { label: "Active", tone: "bg-emerald-500/12 text-emerald-700 ring-emerald-600/25 dark:text-emerald-400" },
   past_due: { label: "Payment due", tone: "bg-amber-500/15 text-amber-700 ring-amber-600/25 dark:text-amber-400" },
   unpaid: { label: "Unpaid", tone: "bg-destructive/10 text-destructive ring-destructive/25" },
+  pending: { label: "Activating", tone: "bg-sky-500/12 text-sky-700 ring-sky-600/25 dark:text-sky-400" },
   not_set_up: { label: "Not set up", tone: "bg-muted text-muted-foreground ring-border" },
 };
 
@@ -143,12 +144,242 @@ export default async function AdminChatbotPage() {
   const [plan, fx, stats, enabled] = await Promise.all([getChatbotPlan(), fxFrom(currency), getStats(), chatbotAllowed()]);
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
-  const overdue = plan.status === "past_due" || plan.status === "unpaid";
   const ai = aiConfigured();
   const online = enabled && ai;
   const others = (["CAD", "USD"] as const).filter((c) => c !== currency);
   const answerRate = stats.asked && stats.answered !== null ? Math.round((stats.answered / stats.asked) * 100) : null;
   const up = CHATBOT_PLAN.upgrade;
+  const subscribed = plan.status === "active" || plan.status === "past_due";
+  const premium = plan.tier === "premium";
+  const tierName = premium ? up.name : CHATBOT_PLAN.name;
+  const tierPrice = premium ? up.price : price;
+  const fxLine = (amount: number) =>
+    `${others.map((c) => `≈ ${money(amount * fx.rates[c], c)}`).join(" · ")} · charged in ${currency}${fx.live ? "" : " (approx.)"}`;
+
+  const requestPremium = (label: string, className: string) => (
+    <a
+      href={`mailto:${up.requestEmail}?subject=${encodeURIComponent(`${up.name} plan`)}&body=${encodeURIComponent(
+        `Hi, we'd like the ${up.name} plan for the CareBy Supplies assistant (CAD ${up.price}/month). Please send the next steps.`,
+      )}`}
+      className={className}
+    >
+      <Crown className="size-4" aria-hidden="true" /> {label}
+    </a>
+  );
+
+  /* Not paid yet (or lapsed): both plans side by side to choose from. */
+  const choosePlan = (
+    <section id="plan" className="scroll-mt-28">
+      <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Choose a plan</h2>
+          <p className="text-sm text-muted-foreground">
+            {plan.status === "unpaid" && date ? (
+              <>
+                Your plan ended on <b className="text-foreground">{date}</b>. Pick a plan to switch the assistant back on.
+              </>
+            ) : (
+              "The assistant goes live on your site as soon as your first payment goes through."
+            )}
+          </p>
+        </div>
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Pro */}
+        <div className="flex flex-col rounded-xl border-2 border-primary/30 bg-background p-5 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="size-4.5" aria-hidden="true" />
+            </span>
+            <p className="font-semibold">{CHATBOT_PLAN.name}</p>
+          </div>
+          <p className="mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-semibold tracking-tight">{money(price, currency)}</span>
+            <span className="text-sm text-muted-foreground">/ month</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">{fxLine(price)}</p>
+          {setupFee > 0 ? (
+            <div className="mt-3 grid gap-1 rounded-lg bg-muted/60 px-3 py-2 text-sm">
+              <p className="flex justify-between">
+                <span className="text-muted-foreground">One-time setup fee</span>
+                <span>{money(setupFee, currency)}</span>
+              </p>
+              <p className="flex justify-between font-semibold">
+                <span>First payment today</span>
+                <span>{money(price + setupFee, currency)}</span>
+              </p>
+            </div>
+          ) : null}
+          <ul className="mt-4 grid gap-1.5 text-sm text-muted-foreground">
+            {INCLUDED.map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" /> {item}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-auto pt-5">
+            <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
+          </div>
+        </div>
+
+        {/* Premium */}
+        <div className="relative flex flex-col overflow-hidden rounded-xl bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] p-5 text-primary-foreground shadow-sm">
+          <div className="pointer-events-none absolute -top-16 right-10 size-40 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
+          <div className="relative flex items-center gap-2">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-hi-vis text-hi-vis-foreground">
+              <Crown className="size-4.5" aria-hidden="true" />
+            </span>
+            <p className="font-semibold">{up.name}</p>
+          </div>
+          <p className="relative mt-3 flex items-baseline gap-1.5">
+            <span className="text-3xl font-semibold tracking-tight">{money(up.price, currency)}</span>
+            <span className="text-sm text-primary-foreground/70">/ month</span>
+          </p>
+          <p className="relative text-[11px] text-primary-foreground/70">{fxLine(up.price)}</p>
+          <p className="relative mt-4 text-sm font-medium">Everything in {CHATBOT_PLAN.name}, plus</p>
+          <ul className="relative mt-1.5 grid gap-1.5 text-sm text-primary-foreground/80">
+            {PREMIUM_FEATURES.map((f) => (
+              <li key={f.title} title={f.body} className="flex items-start gap-2">
+                <Sparkles className="mt-0.5 size-4 shrink-0 text-hi-vis" aria-hidden="true" /> {f.title}
+              </li>
+            ))}
+          </ul>
+          <div className="relative mt-auto pt-5">
+            {up.paypalPlanId ? (
+              <div className="rounded-lg bg-background p-1.5">
+                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
+              </div>
+            ) : (
+              requestPremium(
+                `Request ${up.name}`,
+                "inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95",
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  /* Paid on Pro: offer Premium above the current plan. */
+  const upgradeBanner = (
+    <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-[oklch(0.28_0.09_262)] px-4 py-3.5 text-primary-foreground shadow-sm sm:px-5">
+      <div className="pointer-events-none absolute -top-16 right-24 size-40 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
+      <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-hi-vis text-hi-vis-foreground">
+            <Crown className="size-4.5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">
+              Upgrade to {up.name} <span className="font-normal text-primary-foreground/70">· everything in {CHATBOT_PLAN.name}, plus</span>
+            </p>
+            <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-primary-foreground/75">
+              {PREMIUM_FEATURES.map((f) => (
+                <li key={f.title} title={f.body} className="flex items-center gap-1">
+                  <Sparkles className="size-3 text-hi-vis" aria-hidden="true" /> {f.title}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <p className="leading-tight">
+            <span className="text-lg font-semibold">{money(up.price, currency)}</span>
+            <span className="text-xs text-primary-foreground/70"> / mo</span>
+          </p>
+          {up.paypalPlanId ? (
+            <div className="w-56 rounded-lg bg-background p-1.5">
+              <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
+            </div>
+          ) : (
+            requestPremium(
+              "Upgrade",
+              "inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95",
+            )
+          )}
+        </div>
+      </div>
+    </section>
+  );
+
+  /* Paid (or payment just approved): the plan in one line. */
+  const currentPlan = (
+    <section id="plan" className="scroll-mt-28 rounded-xl border border-border bg-background px-4 py-3 shadow-xs sm:px-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ReceiptText className="size-4.5" aria-hidden="true" />
+              </span>
+              <div>
+                <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Current plan</p>
+                <p className="text-sm font-semibold">{tierName} · Monthly</p>
+              </div>
+              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium ring-1", s.tone)}>{s.label}</span>
+            </div>
+            <p className="leading-tight">
+              <span className="text-lg font-semibold">{money(tierPrice, currency)}</span>
+              <span className="text-xs text-muted-foreground"> / month</span>
+              <span className="block text-[11px] text-muted-foreground">{fxLine(tierPrice)}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {plan.status === "pending" ? (
+                "Payment approved. Confirming with PayPal, the assistant switches on within a few minutes."
+              ) : plan.status === "past_due" ? (
+                "PayPal couldn't take the last payment. Update your card in PayPal to keep the assistant on."
+              ) : date ? (
+                plan.renewing ? (
+                  <>
+                    Next payment <b className="text-foreground">{date}</b>
+                  </>
+                ) : (
+                  <>
+                    Paid through <b className="text-foreground">{date}</b> · auto-pay is off
+                  </>
+                )
+              ) : (
+                "Paid"
+              )}
+            </p>
+          </div>
+          <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+            {(premium ? [`Everything in ${CHATBOT_PLAN.name}`, ...PREMIUM_FEATURES.map((f) => f.title)] : INCLUDED).map((item) => (
+              <li key={item} className="flex items-center gap-1">
+                <Check className="size-3 text-emerald-600" aria-hidden="true" /> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex shrink-0 flex-col gap-1.5 lg:w-60">
+          {plan.renewing ? (
+            <>
+              <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                <Check className="size-4" aria-hidden="true" /> Auto-pay is on
+              </p>
+              <a
+                href="https://www.paypal.com/myaccount/autopay/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted"
+              >
+                Manage in PayPal <ExternalLink className="size-3" aria-hidden="true" />
+              </a>
+            </>
+          ) : null}
+          <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+            <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
+          </p>
+        </div>
+      </div>
+    </section>
+  );
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 font-sans sm:px-6 lg:py-8">
@@ -191,121 +422,15 @@ export default async function AdminChatbotPage() {
         </div>
       </header>
 
-      {/* ── upgrade (compact) ────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-[oklch(0.28_0.09_262)] px-4 py-3.5 text-primary-foreground shadow-sm sm:px-5">
-        <div className="pointer-events-none absolute -top-16 right-24 size-40 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
-        <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-hi-vis text-hi-vis-foreground">
-              <Crown className="size-4.5" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">
-                Upgrade to {up.name} <span className="font-normal text-primary-foreground/70">· everything in {CHATBOT_PLAN.name}, plus</span>
-              </p>
-              <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-primary-foreground/75">
-                {PREMIUM_FEATURES.map((f) => (
-                  <li key={f.title} title={f.body} className="flex items-center gap-1">
-                    <Sparkles className="size-3 text-hi-vis" aria-hidden="true" /> {f.title}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <p className="leading-tight">
-              <span className="text-lg font-semibold">{money(up.price, currency)}</span>
-              <span className="text-xs text-primary-foreground/70"> / mo</span>
-            </p>
-            {up.paypalPlanId ? (
-              <div className="w-52 rounded-lg bg-background p-1.5">
-                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
-              </div>
-            ) : (
-              <a
-                href={`mailto:${up.requestEmail}?subject=${encodeURIComponent(`Upgrade to ${up.name}`)}&body=${encodeURIComponent(
-                  `Hi, we'd like to upgrade the CareBy Supplies assistant to ${up.name} (CAD ${up.price}/month). Please send the next steps.`,
-                )}`}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95"
-              >
-                <Crown className="size-4" aria-hidden="true" /> Upgrade
-              </a>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ── current plan (one-line banner) ───────────────────── */}
-      <section id="plan" className="scroll-mt-28 rounded-xl border border-border bg-background px-4 py-3 shadow-xs sm:px-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <div className="flex items-center gap-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <ReceiptText className="size-4.5" aria-hidden="true" />
-                </span>
-                <div>
-                  <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Current plan</p>
-                  <p className="text-sm font-semibold">{CHATBOT_PLAN.name} · Monthly</p>
-                </div>
-                <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium ring-1", s.tone)}>{s.label}</span>
-              </div>
-              <p className="leading-tight">
-                <span className="text-lg font-semibold">{money(price, currency)}</span>
-                <span className="text-xs text-muted-foreground"> / month</span>
-                {setupFee > 0 && !CHATBOT_PLAN.autoPayActive ? (
-                  <span className="text-xs text-muted-foreground">
-                    {" "}+ {money(setupFee, currency)} one-time setup · <b className="font-semibold text-foreground">{money(price + setupFee, currency)} today</b>
-                  </span>
-                ) : null}
-                <span className="block text-[11px] text-muted-foreground">
-                  {others.map((c) => `≈ ${money(price * fx.rates[c], c)}`).join(" · ")} · charged in {currency}
-                  {fx.live ? "" : " (approx.)"}
-                </span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {date
-                  ? plan.status === "active"
-                    ? <>Paid through <b className="text-foreground">{date}</b></>
-                    : <>Last period ended <b className="text-foreground">{date}</b>. Pay now to keep the assistant on.</>
-                  : "Subscribe to switch the assistant on for your site."}
-              </p>
-            </div>
-            <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-              {INCLUDED.map((item) => (
-                <li key={item} className="flex items-center gap-1">
-                  <Check className="size-3 text-emerald-600" aria-hidden="true" /> {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="flex shrink-0 flex-col gap-1.5 lg:w-72">
-            {CHATBOT_PLAN.autoPayActive && !overdue ? (
-              <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                <Check className="size-4" aria-hidden="true" /> Auto-pay is on
-              </p>
-            ) : (
-              <>
-                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
-                {overdue && plan.payUrl ? (
-                  <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
-                    Or pay by link
-                  </a>
-                ) : null}
-              </>
-            )}
-            {plan.manageUrl ? (
-              <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center rounded-lg border border-border text-xs font-medium hover:bg-muted">
-                Invoices &amp; card
-              </a>
-            ) : null}
-            <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-              <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* ── plan ─────────────────────────────────────────────── */}
+      {subscribed || plan.status === "pending" ? (
+        <>
+          {!premium && subscribed ? upgradeBanner : null}
+          {currentPlan}
+        </>
+      ) : (
+        choosePlan
+      )}
 
       {/* section jump bar */}
       <nav aria-label="Chatbot sections" className="sticky top-18 z-30 -mx-4 overflow-x-auto border-b border-border bg-muted/80 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:bg-background/90">
