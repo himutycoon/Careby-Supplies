@@ -182,6 +182,52 @@ export default async function AdminChatbotPage() {
         </div>
       </header>
 
+      {/* ── upgrade ──────────────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] p-6 text-primary-foreground shadow-sm sm:p-8">
+        <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
+        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-hi-vis px-2.5 py-0.5 text-xs font-semibold text-hi-vis-foreground">
+              <Crown className="size-3.5" aria-hidden="true" /> Upgrade available
+            </p>
+            <h2 className="mt-3 font-sans text-2xl font-semibold tracking-tight">{up.name}: turn chats into sales on every channel</h2>
+            <p className="mt-1 max-w-2xl text-sm text-primary-foreground/80">Everything in your current plan, plus:</p>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {PRO_FEATURES.map((f) => (
+                <li key={f.title} className="rounded-lg bg-white/8 p-3 ring-1 ring-white/12">
+                  <p className="flex items-center gap-1.5 text-sm font-semibold">
+                    <Sparkles className="size-3.5 text-hi-vis" aria-hidden="true" /> {f.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-primary-foreground/75">{f.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-2 rounded-xl bg-background p-5 text-foreground shadow-lg lg:w-72">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{up.name}</p>
+            <p className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-semibold tracking-tight">{money(up.price, currency)}</span>
+              <span className="text-sm text-muted-foreground">/ month</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {money(up.price - price, currency)} more than your current plan · cancel anytime
+            </p>
+            {up.paypalPlanId ? (
+              <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
+            ) : (
+              <a
+                href={`mailto:${up.requestEmail}?subject=${encodeURIComponent(`Upgrade to ${up.name}`)}&body=${encodeURIComponent(
+                  `Hi, we'd like to upgrade the CareBy Supplies assistant to ${up.name} (CAD ${up.price}/month). Please send the next steps.`,
+                )}`}
+                className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95"
+              >
+                <Crown className="size-4" aria-hidden="true" /> Upgrade to Pro
+              </a>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* section jump bar */}
       <nav aria-label="Chatbot sections" className="sticky top-18 z-30 -mx-4 overflow-x-auto border-b border-border bg-muted/80 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:bg-background/90">
         <ul className="flex gap-1 whitespace-nowrap">
@@ -197,8 +243,7 @@ export default async function AdminChatbotPage() {
 
       {!ai ? (
         <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          <b>AI is off:</b> OPENAI_API_KEY isn&apos;t set on the server, so only the quick-answer rules reply. The knowledge base and product
-          search start working as soon as the key is added.
+          <b>AI is temporarily off.</b> The assistant is replying with quick answers only. Contact Codevera support at {up.requestEmail} to turn it back on.
         </p>
       ) : null}
 
@@ -284,52 +329,6 @@ export default async function AdminChatbotPage() {
           </section>
         </div>
       </div>
-
-      {/* ── upgrade ──────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] p-6 text-primary-foreground shadow-sm sm:p-8">
-        <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
-        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-hi-vis px-2.5 py-0.5 text-xs font-semibold text-hi-vis-foreground">
-              <Crown className="size-3.5" aria-hidden="true" /> Upgrade available
-            </p>
-            <h2 className="mt-3 font-sans text-2xl font-semibold tracking-tight">{up.name}: turn chats into sales on every channel</h2>
-            <p className="mt-1 max-w-2xl text-sm text-primary-foreground/80">Everything in your current plan, plus:</p>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {PRO_FEATURES.map((f) => (
-                <li key={f.title} className="rounded-lg bg-white/8 p-3 ring-1 ring-white/12">
-                  <p className="flex items-center gap-1.5 text-sm font-semibold">
-                    <Sparkles className="size-3.5 text-hi-vis" aria-hidden="true" /> {f.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-primary-foreground/75">{f.body}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col gap-2 rounded-xl bg-background p-5 text-foreground shadow-lg lg:w-72">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{up.name}</p>
-            <p className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-semibold tracking-tight">{money(up.price, currency)}</span>
-              <span className="text-sm text-muted-foreground">/ month</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {money(up.price - price, currency)} more than your current plan · cancel anytime
-            </p>
-            {up.paypalPlanId ? (
-              <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
-            ) : (
-              <a
-                href={`mailto:${up.requestEmail}?subject=${encodeURIComponent(`Upgrade to ${up.name}`)}&body=${encodeURIComponent(
-                  `Hi, we'd like to upgrade the CareBy Supplies assistant to ${up.name} (CAD ${up.price}/month). Please send the next steps.`,
-                )}`}
-                className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95"
-              >
-                <Crown className="size-4" aria-hidden="true" /> Upgrade to Pro
-              </a>
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* ── knowledge + inbox ────────────────────────────────── */}
       <ChatbotKnowledgeHub />

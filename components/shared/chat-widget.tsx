@@ -480,7 +480,8 @@ export function ChatWidget() {
   const hasWa = cfg.whatsapp.length >= 10;
 
   // chatbot plan lapsed (see lib/chatbot/plan.ts)
-  if (!cfg.enabled) return null;
+  // admins test in the playground; the floating launcher would cover it
+  if (!cfg.enabled || pathname.startsWith("/admin")) return null;
 
   // Phones: above the tab bar when there is one. Desktop: normal corner inset.
   const corner = cn("fixed right-4 z-50 lg:right-6 lg:bottom-6", hasTabBar ? "bottom-tabbar" : "bottom-4");

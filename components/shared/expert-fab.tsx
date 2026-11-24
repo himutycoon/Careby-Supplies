@@ -31,7 +31,7 @@ export function ExpertFab() {
 
   // On the contact form itself the button would scroll the user to the
   // form they are already filling in.
-  if (SUPPRESSED.includes(pathname)) return null;
+  if (SUPPRESSED.includes(pathname) || pathname.startsWith("/admin")) return null;
 
   /*
    * The home page carries an inline "Talk to a CareBy Expert" row, so on
