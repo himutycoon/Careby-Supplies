@@ -4,9 +4,10 @@ import { ChatbotKnowledgeHub } from "@/components/admin/chatbot-knowledge";
 import { aiConfigured } from "@/lib/chatbot/ai";
 import { getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
 import { Badge } from "@/components/ui/badge";
-import { Check, CreditCard, ShieldCheck, Sparkles } from "lucide-react";
+import { Check, ShieldCheck, Sparkles } from "lucide-react";
 import { CHATBOT_PLAN } from "@/lib/chatbot/plan";
-import { inrRates } from "@/lib/chatbot/fx";
+import { fxFrom, type Currency } from "@/lib/chatbot/fx";
+import { PayPalSubscribe } from "@/components/admin/paypal-subscribe";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ const INCLUDED = [
   "Hosting, AI usage, updates & support",
 ];
 
-function money(amount: number, currency: "INR" | "CAD" | "USD") {
+function money(amount: number, currency: Currency) {
   return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-CA", {
     style: "currency",
     currency,
@@ -40,11 +41,12 @@ function money(amount: number, currency: "INR" | "CAD" | "USD") {
 }
 
 export default async function AdminChatbotPage() {
-  const [plan, fx] = await Promise.all([getChatbotPlan(), inrRates()]);
+  const { amount: price, currency } = CHATBOT_PLAN.price;
+  const [plan, fx] = await Promise.all([getChatbotPlan(), fxFrom(currency)]);
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
   const overdue = plan.status === "past_due" || plan.status === "unpaid";
-  const priceInr = CHATBOT_PLAN.priceInr;
+  const others = (["CAD", "USD", "INR"] as const).filter((c) => c !== currency);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -64,14 +66,17 @@ export default async function AdminChatbotPage() {
             </p>
 
             <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-3xl font-semibold tracking-tight">{money(priceInr, "INR")}</span>
+              <span className="text-3xl font-semibold tracking-tight">{money(price, currency)}</span>
               <span className="text-sm text-muted-foreground">/ month</span>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              ≈ <b className="text-foreground">{money(priceInr * fx.CAD, "CAD")}</b> · ≈{" "}
-              <b className="text-foreground">{money(priceInr * fx.USD, "USD")}</b>
+              {others.map((c, i) => (
+                <span key={c}>
+                  {i ? " · " : ""}≈ <b className="text-foreground">{money(price * fx.rates[c], c)}</b>
+                </span>
+              ))}
               <span className="mt-0.5 block text-xs">
-                Charged in INR; your bank converts it at its own rate{fx.live ? "" : " (approximate)"}.
+                Charged in {currency} by PayPal{fx.live ? "" : " · conversions approximate"}.
               </span>
             </p>
 
@@ -93,29 +98,31 @@ export default async function AdminChatbotPage() {
             </ul>
           </div>
 
-          <div className="flex flex-col gap-2 md:w-64">
-            {plan.payUrl && (overdue || !CHATBOT_PLAN.autoPayActive) ? (
-              <a
-                href={plan.payUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90"
-              >
-                <CreditCard className="size-4" aria-hidden="true" />
-                {overdue ? "Pay now" : "Subscribe · auto-pay monthly"}
-              </a>
-            ) : CHATBOT_PLAN.autoPayActive ? (
+          <div className="flex flex-col gap-2 md:w-72">
+            {CHATBOT_PLAN.autoPayActive && !overdue ? (
               <p className="flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
                 <Check className="size-4" aria-hidden="true" /> Auto-pay is on
               </p>
-            ) : null}
+            ) : (
+              <>
+                <p className="text-center text-sm font-semibold">
+                  {overdue ? "Pay now to keep the assistant on" : "Subscribe: auto-pay monthly"}
+                </p>
+                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
+                {overdue && plan.payUrl ? (
+                  <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
+                    Or pay by link
+                  </a>
+                ) : null}
+              </>
+            )}
             {plan.manageUrl ? (
               <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium">
                 Invoices &amp; card
               </a>
             ) : null}
             <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-              <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by Razorpay · cancel anytime
+              <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
             </p>
           </div>
         </div>
