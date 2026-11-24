@@ -46,7 +46,8 @@ export default async function AdminChatbotPage() {
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
   const overdue = plan.status === "past_due" || plan.status === "unpaid";
-  const others = (["CAD", "USD", "INR"] as const).filter((c) => c !== currency);
+  // Equivalents shown under the price (INR deliberately left out).
+  const others = (["CAD", "USD"] as const).filter((c) => c !== currency);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
