@@ -15,15 +15,30 @@
  * enforcement off.
  */
 export const CHATBOT_PLAN = {
+  /**
+   * MASTER ON/OFF SWITCH for the chat assistant on the public site.
+   *   false → bot hidden for visitors; Admin > Chatbot shows "Not set up"
+   *           with the PayPal subscribe button (the admin playground
+   *           still works so the client can try it).
+   *   true  → bot follows the paidUntil date below.
+   * Turn on after the first real PayPal payment: set true, set paidUntil
+   * one month after the payment date, then push.
+   */
+  botOn: false,
+
   /** Switch the bot off once the plan lapses. */
   enforce: true,
   /** Last day of the paid period, YYYY-MM-DD. */
   paidUntil: "2026-12-24",
 
+  /** Plan name shown on Admin > Chatbot. */
+  name: "CareBy AI Pro",
   /** Monthly price, in the currency the PayPal plan charges. */
-  price: { amount: 65, currency: "CAD" as const },
+  price: { amount: 60, currency: "CAD" as const },
+  /** One-time setup fee PayPal charges with the first payment (0 hides it). */
+  setupFee: 5,
   /** What the client sees as the plan amount on Admin > Chatbot. */
-  amountLabel: "CAD 65 / month",
+  amountLabel: "CAD 60 / month",
 
   /**
    * PayPal subscription button on Admin > Chatbot (from PayPal's button
@@ -31,7 +46,7 @@ export const CHATBOT_PLAN = {
    */
   paypal: {
     clientId: "BAABRB6RAvs9wEFMtypSkKM-wWS9LtYr5GQDe7PuDpKG7rCx7LumVoct5UH3lH1zTnSy24M_HvC5w6pCgM",
-    planId: "P-8XE49204SF9761708NMCSELA",
+    planId: "P-4ND65054CE1605522NMC5DMY",
   },
 
   /**
@@ -42,13 +57,13 @@ export const CHATBOT_PLAN = {
   autoPayActive: false,
 
   /**
-   * The upgrade offer shown on Admin > Chatbot. Until `paypalPlanId` is set
+   * The upgrade offer (Premium, above Pro) shown on Admin > Chatbot. Until `paypalPlanId` is set
    * (a CAD 99 plan created in PayPal), the button sends an upgrade request
-   * by email instead of taking payment. Pro features are sold, not yet
+   * by email instead of taking payment. Premium features are sold, not yet
    * built: deliver them when the client upgrades.
    */
   upgrade: {
-    name: "CareBy AI Pro",
+    name: "CareBy AI Premium",
     price: 99,
     paypalPlanId: "",
     requestEmail: "codeverasolutions@gmail.com",

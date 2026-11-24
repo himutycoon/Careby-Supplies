@@ -41,8 +41,8 @@ const INCLUDED = [
   "Hosting, AI usage, updates & support",
 ];
 
-// Pro plan: marketed here, delivered when the client upgrades.
-const PRO_FEATURES = [
+// Premium plan (the upgrade above Pro): marketed here, delivered when the client upgrades.
+const PREMIUM_FEATURES = [
   { title: "WhatsApp AI agent", body: "The same assistant answers customers on your WhatsApp Business number." },
   { title: "Lead CRM & follow-ups", body: "Every quote request in one list, with reminders and CSV export." },
   { title: "Monthly insights report", body: "Top questions, products asked about and missed sales, emailed monthly." },
@@ -139,6 +139,7 @@ function Stat({
 
 export default async function AdminChatbotPage() {
   const { amount: price, currency } = CHATBOT_PLAN.price;
+  const setupFee = CHATBOT_PLAN.setupFee;
   const [plan, fx, stats, enabled] = await Promise.all([getChatbotPlan(), fxFrom(currency), getStats(), chatbotAllowed()]);
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
@@ -200,10 +201,10 @@ export default async function AdminChatbotPage() {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold">
-                Upgrade to {up.name} <span className="font-normal text-primary-foreground/70">· turn chats into sales on every channel</span>
+                Upgrade to {up.name} <span className="font-normal text-primary-foreground/70">· everything in {CHATBOT_PLAN.name}, plus</span>
               </p>
               <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-primary-foreground/75">
-                {PRO_FEATURES.map((f) => (
+                {PREMIUM_FEATURES.map((f) => (
                   <li key={f.title} title={f.body} className="flex items-center gap-1">
                     <Sparkles className="size-3 text-hi-vis" aria-hidden="true" /> {f.title}
                   </li>
@@ -230,6 +231,78 @@ export default async function AdminChatbotPage() {
                 <Crown className="size-4" aria-hidden="true" /> Upgrade
               </a>
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* ── current plan (one-line banner) ───────────────────── */}
+      <section id="plan" className="scroll-mt-28 rounded-xl border border-border bg-background px-4 py-3 shadow-xs sm:px-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <div className="flex items-center gap-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <ReceiptText className="size-4.5" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Current plan</p>
+                  <p className="text-sm font-semibold">{CHATBOT_PLAN.name} · Monthly</p>
+                </div>
+                <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium ring-1", s.tone)}>{s.label}</span>
+              </div>
+              <p className="leading-tight">
+                <span className="text-lg font-semibold">{money(price, currency)}</span>
+                <span className="text-xs text-muted-foreground"> / month</span>
+                {setupFee > 0 && !CHATBOT_PLAN.autoPayActive ? (
+                  <span className="text-xs text-muted-foreground">
+                    {" "}+ {money(setupFee, currency)} one-time setup · <b className="font-semibold text-foreground">{money(price + setupFee, currency)} today</b>
+                  </span>
+                ) : null}
+                <span className="block text-[11px] text-muted-foreground">
+                  {others.map((c) => `≈ ${money(price * fx.rates[c], c)}`).join(" · ")} · charged in {currency}
+                  {fx.live ? "" : " (approx.)"}
+                </span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {date
+                  ? plan.status === "active"
+                    ? <>Paid through <b className="text-foreground">{date}</b></>
+                    : <>Last period ended <b className="text-foreground">{date}</b>. Pay now to keep the assistant on.</>
+                  : "Subscribe to switch the assistant on for your site."}
+              </p>
+            </div>
+            <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+              {INCLUDED.map((item) => (
+                <li key={item} className="flex items-center gap-1">
+                  <Check className="size-3 text-emerald-600" aria-hidden="true" /> {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex shrink-0 flex-col gap-1.5 lg:w-72">
+            {CHATBOT_PLAN.autoPayActive && !overdue ? (
+              <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                <Check className="size-4" aria-hidden="true" /> Auto-pay is on
+              </p>
+            ) : (
+              <>
+                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} layout="horizontal" />
+                {overdue && plan.payUrl ? (
+                  <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
+                    Or pay by link
+                  </a>
+                ) : null}
+              </>
+            )}
+            {plan.manageUrl ? (
+              <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center rounded-lg border border-border text-xs font-medium hover:bg-muted">
+                Invoices &amp; card
+              </a>
+            ) : null}
+            <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+              <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
+            </p>
           </div>
         </div>
       </section>
@@ -290,74 +363,10 @@ export default async function AdminChatbotPage() {
       {/* ── graphical insights ───────────────────────────────── */}
       <ChatbotInsights rows={stats.rows} />
 
-      {/* ── playground + billing ─────────────────────────────── */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <section id="playground" className="scroll-mt-28">
-          <ChatbotPlayground />
-        </section>
-
-        <div className="flex flex-col gap-4">
-          {/* current plan */}
-          <section className="rounded-xl border border-border bg-background p-5 shadow-xs">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Current plan</p>
-                <p className="mt-0.5 font-semibold">CareBy AI · Monthly</p>
-              </div>
-              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium ring-1", s.tone)}>{s.label}</span>
-            </div>
-            <p className="mt-3 flex items-baseline gap-1.5">
-              <span className="text-2xl font-semibold tracking-tight">{money(price, currency)}</span>
-              <span className="text-sm text-muted-foreground">/ month</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {others.map((c) => `≈ ${money(price * fx.rates[c], c)}`).join(" · ")} · charged in {currency}
-              {fx.live ? "" : " (approx.)"}
-            </p>
-            <p className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-sm">
-              {date
-                ? plan.status === "active"
-                  ? <>Paid through <b>{date}</b></>
-                  : <>Last paid period ended <b>{date}</b>. Pay now to keep the assistant on your site.</>
-                : "Subscribe to keep the assistant running on your site."}
-            </p>
-            <ul className="mt-3 grid gap-1.5 text-sm text-muted-foreground">
-              {INCLUDED.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-              {CHATBOT_PLAN.autoPayActive && !overdue ? (
-                <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                  <Check className="size-4" aria-hidden="true" /> Auto-pay is on
-                </p>
-              ) : (
-                <>
-                  <p className="text-center text-sm font-medium">{overdue ? "Pay now to keep the assistant on" : "Set up auto-pay"}</p>
-                  <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
-                  {overdue && plan.payUrl ? (
-                    <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
-                      Or pay by link
-                    </a>
-                  ) : null}
-                </>
-              )}
-              {plan.manageUrl ? (
-                <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center justify-center rounded-lg border border-border text-sm font-medium hover:bg-muted">
-                  Invoices &amp; card
-                </a>
-              ) : null}
-              <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
-              </p>
-            </div>
-          </section>
-        </div>
-      </div>
+      {/* ── playground ───────────────────────────────────────── */}
+      <section id="playground" className="scroll-mt-28">
+        <ChatbotPlayground />
+      </section>
 
       {/* ── knowledge + inbox ────────────────────────────────── */}
       <ChatbotKnowledgeHub />

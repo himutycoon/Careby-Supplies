@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { CHATBOT_PLAN } from "./plan";
 
 /**
- * The chatbot is a paid add-on (65 CAD/month) billed from the DEVELOPER's
+ * The chatbot is a paid add-on (60 CAD/month + 5 CAD setup) billed from the DEVELOPER's
  * Stripe account — not the store's STRIPE_SECRET_KEY, which takes shoppers'
  * money for the client. Everything here is optional:
  *
@@ -13,7 +13,7 @@ import { CHATBOT_PLAN } from "./plan";
  *   CHATBOT_BILLING_STRIPE_KEY   restricted key (rk_live_...) from the
  *                                developer's Stripe, Subscriptions: Read only
  *   CHATBOT_SUBSCRIPTION_ID      sub_... (Razorpay or Stripe subscription)
- *   CHATBOT_PAYMENT_LINK         Stripe Payment Link for the 65 CAD/month price
+ *   CHATBOT_PAYMENT_LINK         Stripe Payment Link for the 60 CAD/month price
  *   CHATBOT_BILLING_PORTAL_URL   Stripe customer portal login link
  *   CHATBOT_PAID_UNTIL           YYYY-MM-DD, manual fallback (e-transfer etc.)
  *   CHATBOT_ENFORCE_BILLING      "1" pauses the widget once unpaid past grace
@@ -136,6 +136,9 @@ function fromManual(paidUntil: string): ChatbotPlan {
 }
 
 export async function getChatbotPlan(): Promise<ChatbotPlan> {
+  if (!CHATBOT_PLAN.botOn) {
+    return { status: "not_set_up", amountLabel: CHATBOT_PLAN.amountLabel, paidThrough: null, source: "none", ...links() };
+  }
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.plan;
 
   const key = process.env.CHATBOT_BILLING_STRIPE_KEY;
@@ -163,8 +166,9 @@ export async function getChatbotPlan(): Promise<ChatbotPlan> {
   return plan;
 }
 
-/** False only when enforcement is switched on and the plan has lapsed. */
+/** False when the master switch is off, or enforcement is on and the plan has lapsed. */
 export async function chatbotAllowed(): Promise<boolean> {
+  if (!CHATBOT_PLAN.botOn) return false; // master switch in lib/chatbot/plan.ts
   const env = process.env.CHATBOT_ENFORCE_BILLING;
   const enforce = env === "1" || (env !== "0" && CHATBOT_PLAN.enforce);
   if (!enforce) return true;
