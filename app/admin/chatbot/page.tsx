@@ -16,6 +16,7 @@ import { ChatbotRulesTable } from "@/components/admin/chatbot-rules-table";
 import { ChatbotSettingsForm } from "@/components/admin/chatbot-settings-form";
 import { ChatbotKnowledgeHub, Panel } from "@/components/admin/chatbot-knowledge";
 import { ChatbotPlayground } from "@/components/admin/chatbot-playground";
+import { ChatbotInsights, Ring, type QuestionRow } from "@/components/admin/chatbot-insights";
 import { PayPalSubscribe } from "@/components/admin/paypal-subscribe";
 import { aiConfigured } from "@/lib/chatbot/ai";
 import { chatbotAllowed, getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
@@ -83,13 +84,20 @@ async function getStats() {
     const { count: n, error } = await q;
     return error ? null : (n ?? 0);
   };
-  const [asked, answered, waiting, leads] = await Promise.all([
-    count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).gte("created_at", since)),
-    count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).gte("created_at", since).eq("answered", true)),
+  const [log, waiting, leads] = await Promise.all([
+    sb
+      .from("chatbot_questions")
+      .select("question, answered, products_shown, page, created_at")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(2000),
     count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).eq("answered", false).eq("resolved", false)),
     count(sb.from("chat_leads").select("*", { count: "exact", head: true }).gte("created_at", since)),
   ]);
-  return { asked, answered, waiting, leads };
+  const rows = log.error ? null : ((log.data ?? []) as QuestionRow[]);
+  const asked = rows ? rows.length : null;
+  const answered = rows ? rows.filter((r) => r.answered).length : null;
+  return { asked, answered, waiting, leads, rows };
 }
 
 function Stat({
@@ -182,46 +190,44 @@ export default async function AdminChatbotPage() {
         </div>
       </header>
 
-      {/* ── upgrade ──────────────────────────────────────────── */}
-      <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] p-6 text-primary-foreground shadow-sm sm:p-8">
-        <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
-        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
-          <div>
-            <p className="inline-flex items-center gap-1.5 rounded-full bg-hi-vis px-2.5 py-0.5 text-xs font-semibold text-hi-vis-foreground">
-              <Crown className="size-3.5" aria-hidden="true" /> Upgrade available
-            </p>
-            <h2 className="mt-3 font-sans text-2xl font-semibold tracking-tight">{up.name}: turn chats into sales on every channel</h2>
-            <p className="mt-1 max-w-2xl text-sm text-primary-foreground/80">Everything in your current plan, plus:</p>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {PRO_FEATURES.map((f) => (
-                <li key={f.title} className="rounded-lg bg-white/8 p-3 ring-1 ring-white/12">
-                  <p className="flex items-center gap-1.5 text-sm font-semibold">
-                    <Sparkles className="size-3.5 text-hi-vis" aria-hidden="true" /> {f.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-primary-foreground/75">{f.body}</p>
-                </li>
-              ))}
-            </ul>
+      {/* ── upgrade (compact) ────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-[oklch(0.28_0.09_262)] px-4 py-3.5 text-primary-foreground shadow-sm sm:px-5">
+        <div className="pointer-events-none absolute -top-16 right-24 size-40 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
+        <div className="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-hi-vis text-hi-vis-foreground">
+              <Crown className="size-4.5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold">
+                Upgrade to {up.name} <span className="font-normal text-primary-foreground/70">· turn chats into sales on every channel</span>
+              </p>
+              <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-primary-foreground/75">
+                {PRO_FEATURES.map((f) => (
+                  <li key={f.title} title={f.body} className="flex items-center gap-1">
+                    <Sparkles className="size-3 text-hi-vis" aria-hidden="true" /> {f.title}
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <div className="flex flex-col gap-2 rounded-xl bg-background p-5 text-foreground shadow-lg lg:w-72">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{up.name}</p>
-            <p className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-semibold tracking-tight">{money(up.price, currency)}</span>
-              <span className="text-sm text-muted-foreground">/ month</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {money(up.price - price, currency)} more than your current plan · cancel anytime
+          <div className="flex shrink-0 items-center gap-3">
+            <p className="leading-tight">
+              <span className="text-lg font-semibold">{money(up.price, currency)}</span>
+              <span className="text-xs text-primary-foreground/70"> / mo</span>
             </p>
             {up.paypalPlanId ? (
-              <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
+              <div className="w-52 rounded-lg bg-background p-1.5">
+                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
+              </div>
             ) : (
               <a
                 href={`mailto:${up.requestEmail}?subject=${encodeURIComponent(`Upgrade to ${up.name}`)}&body=${encodeURIComponent(
                   `Hi, we'd like to upgrade the CareBy Supplies assistant to ${up.name} (CAD ${up.price}/month). Please send the next steps.`,
                 )}`}
-                className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95"
               >
-                <Crown className="size-4" aria-hidden="true" /> Upgrade to Pro
+                <Crown className="size-4" aria-hidden="true" /> Upgrade
               </a>
             )}
           </div>
@@ -248,7 +254,26 @@ export default async function AdminChatbotPage() {
       ) : null}
 
       {/* ── stats ────────────────────────────────────────────── */}
-      <section aria-label="Last 30 days" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label="Last 30 days" className="grid gap-3 lg:grid-cols-[300px_1fr]">
+        {/* agent health */}
+        <div className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 shadow-xs">
+          <Ring value={answerRate} />
+          <ul className="min-w-0 space-y-1.5 text-xs">
+            {[
+              ["AI engine", ai],
+              ["Live catalogue", ai],
+              ["Knowledge base", true],
+              ["Showing on site", enabled],
+            ].map(([label, ok]) => (
+              <li key={label as string} className="flex items-center gap-2">
+                <span className={cn("size-2 rounded-full", ok ? "bg-emerald-500" : "bg-amber-500")} />
+                <span className="font-medium">{label as string}</span>
+                <span className="text-muted-foreground">{ok ? "Live" : "Off"}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat icon={MessageSquareText} label="AI questions" value={stats.asked} hint="Last 30 days, answered by the AI" />
         <Stat
           icon={CheckCircle2}
@@ -259,7 +284,11 @@ export default async function AdminChatbotPage() {
         />
         <Stat icon={HelpCircle} label="Needs an answer" value={stats.waiting} hint="Open in the inbox" href="#inbox" tone="text-amber-600 bg-amber-500/12" />
         <Stat icon={ReceiptText} label="Quote requests" value={stats.leads} hint="Last 30 days, from the chat" tone="text-orange-600 bg-orange-500/12" />
+        </div>
       </section>
+
+      {/* ── graphical insights ───────────────────────────────── */}
+      <ChatbotInsights rows={stats.rows} />
 
       {/* ── playground + billing ─────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
