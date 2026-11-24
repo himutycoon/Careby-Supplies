@@ -309,7 +309,17 @@ export default async function AdminChatbotPage() {
 
   /* Paid (or payment just approved): the plan in one line. */
   const currentPlan = (
-    <section id="plan" className="scroll-mt-28 rounded-xl border border-border bg-background px-4 py-3 shadow-xs sm:px-5">
+    <section
+      id="plan"
+      className={cn(
+        "scroll-mt-28 rounded-xl border-2 bg-background px-4 py-3 shadow-xs sm:px-5",
+        plan.status === "active"
+          ? "border-emerald-500/70 bg-emerald-500/[0.03]"
+          : plan.status === "past_due"
+            ? "border-amber-500/70"
+            : "border-sky-500/50",
+      )}
+    >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -338,6 +348,10 @@ export default async function AdminChatbotPage() {
                   <>
                     Next payment <b className="text-foreground">{date}</b>
                   </>
+                ) : plan.source === "manual" ? (
+                  <>
+                    Paid with {CHATBOT_PLAN.paidVia} · through <b className="text-foreground">{date}</b>
+                  </>
                 ) : (
                   <>
                     Paid through <b className="text-foreground">{date}</b> · auto-pay is off
@@ -358,6 +372,11 @@ export default async function AdminChatbotPage() {
         </div>
 
         <div className="flex shrink-0 flex-col gap-1.5 lg:w-60">
+          {plan.source === "manual" && plan.status === "active" ? (
+            <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="size-4" aria-hidden="true" /> Paid with {CHATBOT_PLAN.paidVia}
+            </p>
+          ) : null}
           {plan.renewing ? (
             <>
               <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
@@ -405,17 +424,17 @@ export default async function AdminChatbotPage() {
             <p className="text-sm text-muted-foreground">Manage your CareBy AI customer support. Changes go live within a minute.</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href="/"
             target="_blank"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium shadow-xs transition hover:bg-muted"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 sm:flex-none rounded-lg border border-border bg-background px-3 text-sm font-medium shadow-xs transition hover:bg-muted"
           >
             <ExternalLink className="size-4" aria-hidden="true" /> Preview on site
           </Link>
           <a
             href="#settings"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs transition hover:opacity-90"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 sm:flex-none rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs transition hover:opacity-90"
           >
             <Settings2 className="size-4" aria-hidden="true" /> Settings
           </a>

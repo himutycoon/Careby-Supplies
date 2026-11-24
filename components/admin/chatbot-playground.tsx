@@ -49,7 +49,7 @@ export function ChatbotPlayground() {
   }
 
   return (
-    <div className="flex h-[520px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xs">
+    <div className="flex h-[min(520px,75dvh)] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xs">
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="flex items-center gap-2.5">
           <span className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">

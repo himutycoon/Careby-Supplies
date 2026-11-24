@@ -21,7 +21,9 @@ export const CHATBOT_PLAN = {
    * Manual fallback, YYYY-MM-DD: treat the plan as paid through this date
    * (e.g. paid by e-transfer). Leave "" to rely on PayPal.
    */
-  paidUntil: "",
+  paidUntil: "2026-12-25",
+  /** How the manual payment above was made, shown on the plan banner. */
+  paidVia: "PayPal",
 
   /** Plan name shown on Admin > Chatbot. */
   name: "CareBy AI Pro",

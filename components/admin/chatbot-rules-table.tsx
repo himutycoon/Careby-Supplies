@@ -198,7 +198,7 @@ export function ChatbotRulesTable() {
       ) : (
         <ul className="flex flex-col gap-3">
           {shown.map((rule) => (
-            <li key={rule.id} className="flex items-start gap-2.5 rounded-xl border border-border bg-background p-3 sm:p-4">
+            <li key={rule.id} className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3 sm:flex-row sm:items-start sm:gap-2.5 sm:p-4">
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
                   <span>{rule.id}</span>
@@ -210,6 +210,7 @@ export function ChatbotRulesTable() {
                   Keywords: {rule.keywords.join(", ")}
                 </p>
               </div>
+              <div className="flex shrink-0 items-center gap-2 border-t border-border pt-3 sm:border-0 sm:pt-0">
               <Button size="icon-sm" variant="outline" className="press shrink-0" aria-label={`Edit ${rule.id}`} onClick={() => openEdit(rule)}>
                 <Pencil className="size-3.5" />
               </Button>
@@ -222,9 +223,10 @@ export function ChatbotRulesTable() {
               >
                 {rule.enabled ? "Turn off" : "Turn on"}
               </Button>
-              <Button size="icon-sm" variant="destructive" className="press shrink-0" aria-label={`Delete ${rule.id}`} onClick={() => setDeleting(rule)}>
+              <Button size="icon-sm" variant="destructive" className="press ml-auto shrink-0 sm:ml-0" aria-label={`Delete ${rule.id}`} onClick={() => setDeleting(rule)}>
                 <Trash2 className="size-3.5" />
               </Button>
+              </div>
             </li>
           ))}
         </ul>
