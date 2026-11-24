@@ -13,7 +13,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 
 type PayPalButtons = {
   Buttons: (opts: {
-    style?: Record<string, string | number | boolean>;
+    style?: Record<string, string>;
     createSubscription: (data: unknown, actions: { subscription: { create: (o: { plan_id: string }) => Promise<string> } }) => Promise<string>;
     onApprove: (data: { subscriptionID?: string }) => void;
     onError?: (err: unknown) => void;
@@ -45,16 +45,7 @@ function loadSdk(clientId: string): Promise<PayPalButtons> {
   });
 }
 
-export function PayPalSubscribe({
-  clientId,
-  planId,
-  layout = "vertical",
-}: {
-  clientId: string;
-  planId: string;
-  /** "horizontal" puts the buttons side by side, for one-line banners. */
-  layout?: "vertical" | "horizontal";
-}) {
+export function PayPalSubscribe({ clientId, planId }: { clientId: string; planId: string }) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [state, setState] = React.useState<"loading" | "ready" | "error">("loading");
   const [subId, setSubId] = React.useState<string | null>(null);
@@ -67,7 +58,7 @@ export function PayPalSubscribe({
         ref.current.innerHTML = "";
         return paypal
           .Buttons({
-            style: { shape: "rect", color: "blue", layout, label: "subscribe", ...(layout === "horizontal" ? { tagline: false, height: 40 } : {}) },
+            style: { shape: "rect", color: "blue", layout: "vertical", label: "subscribe" },
             createSubscription: (_data, actions) => actions.subscription.create({ plan_id: planId }),
             onApprove: (data) => setSubId(data.subscriptionID ?? "confirmed"),
             onError: (err) => {
@@ -85,7 +76,7 @@ export function PayPalSubscribe({
     return () => {
       cancelled = true;
     };
-  }, [clientId, planId, layout]);
+  }, [clientId, planId]);
 
   if (subId) {
     return (

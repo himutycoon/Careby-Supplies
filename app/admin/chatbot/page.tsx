@@ -287,7 +287,7 @@ export default async function AdminChatbotPage() {
               </p>
             ) : (
               <>
-                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} layout="horizontal" />
+                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
                 {overdue && plan.payUrl ? (
                   <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
                     Or pay by link
