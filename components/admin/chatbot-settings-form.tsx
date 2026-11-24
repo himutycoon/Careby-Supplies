@@ -47,7 +47,7 @@ export function ChatbotSettingsForm() {
   if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4 rounded-xl border border-border bg-background p-4">
+    <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
         <Label htmlFor="cb-greeting">Greeting</Label>
         <Textarea id="cb-greeting" rows={2} value={greeting} onChange={(e) => setGreeting(e.target.value)} />

@@ -39,7 +39,7 @@ export function DashboardSidebar({ items }: { items: AppNavItem[] }) {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                    "relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                     // Premium is gold whether or not you are on it, so
                     // the sidebar and the dashboard tile read as one
                     // feature rather than two.
@@ -48,12 +48,14 @@ export function DashboardSidebar({ items }: { items: AppNavItem[] }) {
                         ? "bg-hi-vis text-hi-vis-foreground"
                         : "bg-hi-vis/12 text-hi-vis-foreground ring-1 ring-hi-vis/40 hover:bg-hi-vis/20 dark:text-hi-vis"
                       : isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        ? // tinted fill + accent bar reads as "you are here"
+                          // without a heavy solid block in a long list
+                          "bg-primary/10 font-semibold text-primary before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-full before:bg-primary dark:text-foreground"
+                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                   )}
                   aria-current={isActive ? "page" : undefined}
                 >
-                  <Icon name={item.icon} className="size-4 shrink-0" />
+                  <Icon name={item.icon} className={cn("size-4 shrink-0", isActive ? "opacity-100" : "opacity-70")} />
                   {item.label}
                 </Link>
               </React.Fragment>

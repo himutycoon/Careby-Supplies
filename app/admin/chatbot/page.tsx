@@ -1,28 +1,37 @@
+import Link from "next/link";
+import {
+  Check,
+  CheckCircle2,
+  Crown,
+  ExternalLink,
+  HelpCircle,
+  Inbox,
+  MessageSquareText,
+  ReceiptText,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { ChatbotRulesTable } from "@/components/admin/chatbot-rules-table";
 import { ChatbotSettingsForm } from "@/components/admin/chatbot-settings-form";
-import { ChatbotKnowledgeHub } from "@/components/admin/chatbot-knowledge";
+import { ChatbotKnowledgeHub, Panel } from "@/components/admin/chatbot-knowledge";
+import { ChatbotPlayground } from "@/components/admin/chatbot-playground";
+import { PayPalSubscribe } from "@/components/admin/paypal-subscribe";
 import { aiConfigured } from "@/lib/chatbot/ai";
-import { getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
-import { Badge } from "@/components/ui/badge";
-import { Check, ShieldCheck, Sparkles } from "lucide-react";
+import { chatbotAllowed, getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
 import { CHATBOT_PLAN } from "@/lib/chatbot/plan";
 import { fxFrom, type Currency } from "@/lib/chatbot/fx";
-import { PayPalSubscribe } from "@/components/admin/paypal-subscribe";
+import { createClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const STATUS: Record<PlanStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
-  active: { label: "Active", variant: "default" },
-  past_due: { label: "Payment due", variant: "destructive" },
-  unpaid: { label: "Unpaid", variant: "destructive" },
-  not_set_up: { label: "Not set up", variant: "secondary" },
+const STATUS: Record<PlanStatus, { label: string; tone: string }> = {
+  active: { label: "Active", tone: "bg-emerald-500/12 text-emerald-700 ring-emerald-600/25 dark:text-emerald-400" },
+  past_due: { label: "Payment due", tone: "bg-amber-500/15 text-amber-700 ring-amber-600/25 dark:text-amber-400" },
+  unpaid: { label: "Unpaid", tone: "bg-destructive/10 text-destructive ring-destructive/25" },
+  not_set_up: { label: "Not set up", tone: "bg-muted text-muted-foreground ring-border" },
 };
-
-function fmt(iso: string | null) {
-  return iso
-    ? new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })
-    : null;
-}
 
 const INCLUDED = [
   "AI answers from your live catalogue",
@@ -31,65 +40,214 @@ const INCLUDED = [
   "Hosting, AI usage, updates & support",
 ];
 
+// Pro plan: marketed here, delivered when the client upgrades.
+const PRO_FEATURES = [
+  { title: "WhatsApp AI agent", body: "The same assistant answers customers on your WhatsApp Business number." },
+  { title: "Lead CRM & follow-ups", body: "Every quote request in one list, with reminders and CSV export." },
+  { title: "Monthly insights report", body: "Top questions, products asked about and missed sales, emailed monthly." },
+  { title: "Live chat takeover", body: "Jump into any website conversation and reply as a person." },
+  { title: "Custom name, avatar & colours", body: "Give the assistant your own persona and brand look." },
+  { title: "Priority support & AI tuning", body: "Same-day fixes and a monthly review of answers." },
+];
+
+const NAV = [
+  ["Overview", "#overview"],
+  ["Playground", "#playground"],
+  ["Knowledge", "#knowledge"],
+  ["Inbox", "#inbox"],
+  ["Quick answers", "#rules"],
+  ["Settings", "#settings"],
+] as const;
+
+function fmt(iso: string | null) {
+  return iso ? new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" }) : null;
+}
+
 function money(amount: number, currency: Currency) {
-  return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-CA", {
+  return new Intl.NumberFormat("en-CA", {
     style: "currency",
     currency,
-    currencyDisplay: currency === "INR" ? "symbol" : "code",
-    maximumFractionDigits: currency === "INR" ? 0 : 2,
+    currencyDisplay: "code",
+    maximumFractionDigits: 2,
   }).format(amount);
+}
+
+/**
+ * Real counts for the stat cards, read as the signed-in admin (RLS).
+ * null means "couldn't read", shown as a dash, never a made-up number.
+ */
+async function getStats() {
+  const sb = await createClient();
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const count = async (q: PromiseLike<{ count: number | null; error: unknown }>) => {
+    const { count: n, error } = await q;
+    return error ? null : (n ?? 0);
+  };
+  const [asked, answered, waiting, leads] = await Promise.all([
+    count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).gte("created_at", since)),
+    count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).gte("created_at", since).eq("answered", true)),
+    count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).eq("answered", false).eq("resolved", false)),
+    count(sb.from("chat_leads").select("*", { count: "exact", head: true }).gte("created_at", since)),
+  ]);
+  return { asked, answered, waiting, leads };
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  href,
+  tone = "text-primary bg-primary/10",
+}: {
+  icon: typeof Inbox;
+  label: string;
+  value: number | null;
+  hint: string;
+  href?: string;
+  tone?: string;
+}) {
+  const body = (
+    <>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <span className={cn("flex size-8 items-center justify-center rounded-lg", tone)}>
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+      </div>
+      <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums">{value ?? "—"}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{value === null ? "Not available yet" : hint}</p>
+    </>
+  );
+  const cls = "rounded-xl border border-border bg-background p-4 shadow-xs transition";
+  return href ? (
+    <a href={href} className={cn(cls, "hover:border-primary/30 hover:shadow-sm")}>
+      {body}
+    </a>
+  ) : (
+    <div className={cls}>{body}</div>
+  );
 }
 
 export default async function AdminChatbotPage() {
   const { amount: price, currency } = CHATBOT_PLAN.price;
-  const [plan, fx] = await Promise.all([getChatbotPlan(), fxFrom(currency)]);
+  const [plan, fx, stats, enabled] = await Promise.all([getChatbotPlan(), fxFrom(currency), getStats(), chatbotAllowed()]);
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
   const overdue = plan.status === "past_due" || plan.status === "unpaid";
-  // Equivalents shown under the price (INR deliberately left out).
+  const ai = aiConfigured();
+  const online = enabled && ai;
   const others = (["CAD", "USD"] as const).filter((c) => c !== currency);
+  const answerRate = stats.asked && stats.answered !== null ? Math.round((stats.answered / stats.asked) * 100) : null;
+  const up = CHATBOT_PLAN.upgrade;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
-      <div>
-        <h1 className="text-3xl">Chatbot</h1>
-        <p className="mt-1 text-muted-foreground">
-          What the website assistant says. Changes go live within a minute, no redeploy.
-        </p>
-      </div>
-
-      <section className="overflow-hidden rounded-2xl border border-border bg-background">
-        <div className="grid gap-6 p-5 sm:p-6 md:grid-cols-[1fr_auto] md:items-center">
-          <div className="min-w-0">
-            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-              <Sparkles className="size-4 text-primary" aria-hidden="true" />
-              CareBy AI Assistant · Monthly plan <Badge variant={s.variant}>{s.label}</Badge>
-            </p>
-
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-3xl font-semibold tracking-tight">{money(price, currency)}</span>
-              <span className="text-sm text-muted-foreground">/ month</span>
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {others.map((c, i) => (
-                <span key={c}>
-                  {i ? " · " : ""}≈ <b className="text-foreground">{money(price * fx.rates[c], c)}</b>
-                </span>
-              ))}
-              <span className="mt-0.5 block text-xs">
-                Charged in {currency} by PayPal{fx.live ? "" : " · conversions approximate"}.
+    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 font-sans sm:px-6 lg:py-8">
+      {/* ── header ───────────────────────────────────────────── */}
+      <header id="overview" className="flex scroll-mt-28 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Sparkles className="size-5" aria-hidden="true" />
+          </span>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-sans text-2xl font-semibold tracking-tight">AI Assistant</h1>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1",
+                  online ? "bg-emerald-500/12 text-emerald-700 ring-emerald-600/25 dark:text-emerald-400" : "bg-amber-500/15 text-amber-700 ring-amber-600/25 dark:text-amber-400",
+                )}
+              >
+                <span className={cn("size-1.5 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-amber-500")} />
+                {!enabled ? "Paused" : ai ? "Online" : "Rules only"}
               </span>
-            </p>
+            </div>
+            <p className="text-sm text-muted-foreground">Manage your CareBy AI customer support. Changes go live within a minute.</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href="/"
+            target="_blank"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border bg-background px-3 text-sm font-medium shadow-xs transition hover:bg-muted"
+          >
+            <ExternalLink className="size-4" aria-hidden="true" /> Preview on site
+          </Link>
+          <a
+            href="#settings"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs transition hover:opacity-90"
+          >
+            <Settings2 className="size-4" aria-hidden="true" /> Settings
+          </a>
+        </div>
+      </header>
 
-            <p className="mt-3 text-sm">
+      {/* section jump bar */}
+      <nav aria-label="Chatbot sections" className="sticky top-18 z-30 -mx-4 overflow-x-auto border-b border-border bg-muted/80 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:bg-background/90">
+        <ul className="flex gap-1 whitespace-nowrap">
+          {NAV.map(([label, href]) => (
+            <li key={href}>
+              <a href={href} className="block rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground">
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      {!ai ? (
+        <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          <b>AI is off:</b> OPENAI_API_KEY isn&apos;t set on the server, so only the quick-answer rules reply. The knowledge base and product
+          search start working as soon as the key is added.
+        </p>
+      ) : null}
+
+      {/* ── stats ────────────────────────────────────────────── */}
+      <section aria-label="Last 30 days" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat icon={MessageSquareText} label="AI questions" value={stats.asked} hint="Last 30 days, answered by the AI" />
+        <Stat
+          icon={CheckCircle2}
+          label="Answered"
+          value={stats.answered}
+          hint={answerRate !== null ? `${answerRate}% answer rate` : "Last 30 days"}
+          tone="text-emerald-600 bg-emerald-500/10"
+        />
+        <Stat icon={HelpCircle} label="Needs an answer" value={stats.waiting} hint="Open in the inbox" href="#inbox" tone="text-amber-600 bg-amber-500/12" />
+        <Stat icon={ReceiptText} label="Quote requests" value={stats.leads} hint="Last 30 days, from the chat" tone="text-orange-600 bg-orange-500/12" />
+      </section>
+
+      {/* ── playground + billing ─────────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <section id="playground" className="scroll-mt-28">
+          <ChatbotPlayground />
+        </section>
+
+        <div className="flex flex-col gap-4">
+          {/* current plan */}
+          <section className="rounded-xl border border-border bg-background p-5 shadow-xs">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Current plan</p>
+                <p className="mt-0.5 font-semibold">CareBy AI · Monthly</p>
+              </div>
+              <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium ring-1", s.tone)}>{s.label}</span>
+            </div>
+            <p className="mt-3 flex items-baseline gap-1.5">
+              <span className="text-2xl font-semibold tracking-tight">{money(price, currency)}</span>
+              <span className="text-sm text-muted-foreground">/ month</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {others.map((c) => `≈ ${money(price * fx.rates[c], c)}`).join(" · ")} · charged in {currency}
+              {fx.live ? "" : " (approx.)"}
+            </p>
+            <p className="mt-3 rounded-lg bg-muted/60 px-3 py-2 text-sm">
               {date
                 ? plan.status === "active"
-                  ? `Paid through ${date}.`
-                  : `The last paid period ended ${date}. Pay now to keep the assistant on your site.`
+                  ? <>Paid through <b>{date}</b></>
+                  : <>Last paid period ended <b>{date}</b>. Pay now to keep the assistant on your site.</>
                 : "Subscribe to keep the assistant running on your site."}
             </p>
-
-            <ul className="mt-3 grid gap-1.5 text-sm text-muted-foreground sm:grid-cols-2">
+            <ul className="mt-3 grid gap-1.5 text-sm text-muted-foreground">
               {INCLUDED.map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <Check className="mt-0.5 size-4 shrink-0 text-emerald-600" aria-hidden="true" />
@@ -97,59 +255,96 @@ export default async function AdminChatbotPage() {
                 </li>
               ))}
             </ul>
-          </div>
 
-          <div className="flex flex-col gap-2 md:w-72">
-            {CHATBOT_PLAN.autoPayActive && !overdue ? (
-              <p className="flex h-11 items-center justify-center gap-2 rounded-lg border border-emerald-600/30 bg-emerald-600/10 px-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                <Check className="size-4" aria-hidden="true" /> Auto-pay is on
-              </p>
-            ) : (
-              <>
-                <p className="text-center text-sm font-semibold">
-                  {overdue ? "Pay now to keep the assistant on" : "Subscribe: auto-pay monthly"}
+            <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+              {CHATBOT_PLAN.autoPayActive && !overdue ? (
+                <p className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-500/10 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  <Check className="size-4" aria-hidden="true" /> Auto-pay is on
                 </p>
-                <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
-                {overdue && plan.payUrl ? (
-                  <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
-                    Or pay by link
-                  </a>
-                ) : null}
-              </>
-            )}
-            {plan.manageUrl ? (
-              <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-medium">
-                Invoices &amp; card
-              </a>
-            ) : null}
-            <p className="flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
-              <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
+              ) : (
+                <>
+                  <p className="text-center text-sm font-medium">{overdue ? "Pay now to keep the assistant on" : "Set up auto-pay"}</p>
+                  <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={CHATBOT_PLAN.paypal.planId} />
+                  {overdue && plan.payUrl ? (
+                    <a href={plan.payUrl} target="_blank" rel="noopener noreferrer" className="text-center text-xs font-medium underline underline-offset-2">
+                      Or pay by link
+                    </a>
+                  ) : null}
+                </>
+              )}
+              {plan.manageUrl ? (
+                <a href={plan.manageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-9 items-center justify-center rounded-lg border border-border text-sm font-medium hover:bg-muted">
+                  Invoices &amp; card
+                </a>
+              ) : null}
+              <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+                <ShieldCheck className="size-3.5" aria-hidden="true" /> Secure payment by PayPal · cancel anytime
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* ── upgrade ──────────────────────────────────────────── */}
+      <section className="relative overflow-hidden rounded-xl border border-primary/20 bg-gradient-to-br from-primary to-[oklch(0.28_0.09_262)] p-6 text-primary-foreground shadow-sm sm:p-8">
+        <div className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-hi-vis/25 blur-3xl" aria-hidden="true" />
+        <div className="relative grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="inline-flex items-center gap-1.5 rounded-full bg-hi-vis px-2.5 py-0.5 text-xs font-semibold text-hi-vis-foreground">
+              <Crown className="size-3.5" aria-hidden="true" /> Upgrade available
             </p>
+            <h2 className="mt-3 font-sans text-2xl font-semibold tracking-tight">{up.name}: turn chats into sales on every channel</h2>
+            <p className="mt-1 max-w-2xl text-sm text-primary-foreground/80">Everything in your current plan, plus:</p>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {PRO_FEATURES.map((f) => (
+                <li key={f.title} className="rounded-lg bg-white/8 p-3 ring-1 ring-white/12">
+                  <p className="flex items-center gap-1.5 text-sm font-semibold">
+                    <Sparkles className="size-3.5 text-hi-vis" aria-hidden="true" /> {f.title}
+                  </p>
+                  <p className="mt-0.5 text-xs text-primary-foreground/75">{f.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex flex-col gap-2 rounded-xl bg-background p-5 text-foreground shadow-lg lg:w-72">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{up.name}</p>
+            <p className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-semibold tracking-tight">{money(up.price, currency)}</span>
+              <span className="text-sm text-muted-foreground">/ month</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {money(up.price - price, currency)} more than your current plan · cancel anytime
+            </p>
+            {up.paypalPlanId ? (
+              <PayPalSubscribe clientId={CHATBOT_PLAN.paypal.clientId} planId={up.paypalPlanId} />
+            ) : (
+              <a
+                href={`mailto:${up.requestEmail}?subject=${encodeURIComponent(`Upgrade to ${up.name}`)}&body=${encodeURIComponent(
+                  `Hi, we'd like to upgrade the CareBy Supplies assistant to ${up.name} (CAD ${up.price}/month). Please send the next steps.`,
+                )}`}
+                className="mt-1 inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-hi-vis px-4 text-sm font-semibold text-hi-vis-foreground transition hover:brightness-95"
+              >
+                <Crown className="size-4" aria-hidden="true" /> Upgrade to Pro
+              </a>
+            )}
           </div>
         </div>
       </section>
 
-      {!aiConfigured() ? (
-        <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          <b>AI is off:</b> OPENAI_API_KEY isn&apos;t set on the server, so only the keyword rules answer. The knowledge
-          base and product search start working as soon as the key is added.
-        </p>
-      ) : null}
-
+      {/* ── knowledge + inbox ────────────────────────────────── */}
       <ChatbotKnowledgeHub />
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xl">Quick-answer rules</h2>
-        <p className="-mt-2 text-sm text-muted-foreground">
-          Instant canned answers for button taps and short questions (&quot;delivery?&quot;, &quot;hours&quot;). Longer questions, product names and SKUs go to the AI, which also reads these answers.
-        </p>
+      <Panel
+        id="rules"
+        title="Quick answers"
+        description="Instant replies for button taps and short questions like “delivery?” or “hours”. Longer questions, products and SKUs go to the AI, which also reads these."
+      >
         <ChatbotRulesTable />
-      </section>
+      </Panel>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xl">Settings</h2>
+      <Panel id="settings" title="Settings" description="Greeting, starting buttons, WhatsApp hand-off and extra instructions for the AI.">
         <ChatbotSettingsForm />
-      </section>
+      </Panel>
     </div>
   );
 }

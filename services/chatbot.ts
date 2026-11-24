@@ -263,13 +263,22 @@ export type PreviewReply = {
   unsure: boolean;
 };
 
-/** Ask the live AI as an admin: same knowledge and catalogue, not logged. */
-export async function previewBot(question: string): Promise<ServiceResult<PreviewReply>> {
+export type PreviewTurn = { role: "user" | "assistant"; content: string };
+
+/**
+ * Ask the live AI as an admin: same knowledge and catalogue, not logged.
+ * Pass the earlier turns so follow-up questions keep their context.
+ */
+export async function previewBot(
+  question: string,
+  history: PreviewTurn[] = [],
+): Promise<ServiceResult<PreviewReply>> {
   try {
+    const messages = [...history.slice(-10), { role: "user" as const, content: question }];
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ preview: true, messages: [{ role: "user", content: question }], page: "/admin/chatbot" }),
+      body: JSON.stringify({ preview: true, messages, page: "/admin/chatbot" }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.status === 503 && data.error === "ai not configured") return fail("OPENAI_API_KEY isn't set, so only the rules can answer.");

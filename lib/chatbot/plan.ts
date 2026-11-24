@@ -41,6 +41,19 @@ export const CHATBOT_PLAN = {
    */
   autoPayActive: false,
 
+  /**
+   * The upgrade offer shown on Admin > Chatbot. Until `paypalPlanId` is set
+   * (a CAD 99 plan created in PayPal), the button sends an upgrade request
+   * by email instead of taking payment. Pro features are sold, not yet
+   * built: deliver them when the client upgrades.
+   */
+  upgrade: {
+    name: "CareBy AI Pro",
+    price: 99,
+    paypalPlanId: "",
+    requestEmail: "codeverasolutions@gmail.com",
+  },
+
   /** Optional fallback pay link (shown as "Pay now" when overdue). */
   payUrl: "",
   /** Razorpay subscription, only used if CHATBOT_RAZORPAY_* keys are set. */
