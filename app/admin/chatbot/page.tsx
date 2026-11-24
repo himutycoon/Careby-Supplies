@@ -16,6 +16,7 @@ import { ChatbotRulesTable } from "@/components/admin/chatbot-rules-table";
 import { ChatbotSettingsForm } from "@/components/admin/chatbot-settings-form";
 import { ChatbotKnowledgeHub, Panel } from "@/components/admin/chatbot-knowledge";
 import { ChatbotPlayground } from "@/components/admin/chatbot-playground";
+import { ChatbotFlow } from "@/components/admin/chatbot-flow";
 import { ChatbotInsights, Ring, type QuestionRow } from "@/components/admin/chatbot-insights";
 import { PayPalSubscribe } from "@/components/admin/paypal-subscribe";
 import { aiConfigured } from "@/lib/chatbot/ai";
@@ -54,6 +55,7 @@ const PREMIUM_FEATURES = [
 
 const NAV = [
   ["Overview", "#overview"],
+  ["Flow", "#flow"],
   ["Playground", "#playground"],
   ["Knowledge", "#knowledge"],
   ["Inbox", "#inbox"],
@@ -469,6 +471,9 @@ export default async function AdminChatbotPage() {
           <b>AI is temporarily off.</b> The assistant is replying with quick answers only. Contact Codevera support at {up.requestEmail} to turn it back on.
         </p>
       ) : null}
+
+      {/* ── conversation flow (n8n-style) ─────────────────────── */}
+      <ChatbotFlow />
 
       {/* ── stats ────────────────────────────────────────────── */}
       <section aria-label="Last 30 days" className="grid gap-3 lg:grid-cols-[300px_1fr]">

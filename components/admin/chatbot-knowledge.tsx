@@ -2,12 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CheckCircle2, ChevronDown, HelpCircle, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, HelpCircle, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListRowSkeleton } from "@/components/shared/skeleton";
 import { useToast } from "@/components/shared/toast";
@@ -19,17 +16,19 @@ import {
   deleteQuestion,
   getChatQuestions,
   getKnowledge,
-  saveKnowledge,
   setKnowledgeEnabled,
   setQuestionResolved,
   type ChatQuestionRow,
   type KnowledgeRow,
 } from "@/services/chatbot";
+import {
+  BLANK_KNOWLEDGE as BLANK,
+  KnowledgeDialog,
+  notifyChatbotChanged,
+  useChatbotChanged,
+  type KnowledgeDraft as Draft,
+} from "@/components/admin/chatbot-editors";
 
-type Draft = Omit<KnowledgeRow, "updatedAt" | "id"> & { id?: string };
-
-const BLANK: Draft = { title: "", category: "General", content: "", keywords: [], enabled: true, sortOrder: 0 };
-const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-CA", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -116,9 +115,8 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
   const { toast } = useToast();
   const { data, loading, error, reload } = useAsyncData(getKnowledge);
   const entries = React.useMemo(() => data ?? [], [data]);
+  useChatbotChanged(reload);
   const [query, setQuery] = React.useState("");
-  const [keywordsText, setKeywordsText] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState<KnowledgeRow | null>(null);
   const [deletePending, setDeletePending] = React.useState(false);
@@ -126,12 +124,6 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
 
   const categories = React.useMemo(() => [...new Set(entries.map((e) => e.category))].sort(), [entries]);
   const active = entries.filter((e) => e.enabled).length;
-
-  // a draft opened from the question inbox
-  React.useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (draft) setKeywordsText(draft.keywords.join(", "));
-  }, [draft]);
 
   const q = query.trim().toLowerCase();
   const shown = entries.filter(
@@ -150,23 +142,11 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
     setDraft({ ...BLANK, category, sortOrder: (entries.at(-1)?.sortOrder ?? 0) + 10 });
   }
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!draft) return;
-    setSaving(true);
-    const r = await saveKnowledge({ ...draft, keywords: splitList(keywordsText) });
-    setSaving(false);
-    if (!r.ok) return toast(r.error, "error");
-    toast(draft.id ? "Knowledge updated. Live within a minute." : "Knowledge added. Live within a minute.");
-    setDraft(null);
-    reload();
-  }
-
   async function toggle(e: KnowledgeRow) {
     setPendingId(e.id);
     const r = await setKnowledgeEnabled(e.id, !e.enabled);
     setPendingId(null);
-    if (r.ok) reload();
+    if (r.ok) notifyChatbotChanged();
     else toast(r.error, "error");
   }
 
@@ -178,7 +158,7 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
     setDeleting(null);
     if (r.ok) {
       toast("Entry deleted");
-      reload();
+      notifyChatbotChanged();
     } else toast(r.error, "error");
   }
 
@@ -294,69 +274,7 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
     >
       {body}
 
-      <Dialog open={draft !== null} onOpenChange={(o) => !o && setDraft(null)}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{draft?.id ? "Edit knowledge" : "New knowledge"}</DialogTitle>
-          </DialogHeader>
-          {draft ? (
-            <form id="kb-form" onSubmit={submit} className="flex flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-[1fr_180px]">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="kb-title">Topic</Label>
-                  <Input id="kb-title" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Delivery fees" required />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="kb-cat">Category</Label>
-                  <Input id="kb-cat" list="kb-cats" value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} placeholder="Delivery" />
-                  <datalist id="kb-cats">
-                    {categories.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="kb-content">What the bot should know</Label>
-                <Textarea
-                  id="kb-content"
-                  rows={8}
-                  value={draft.content}
-                  onChange={(e) => setDraft({ ...draft, content: e.target.value })}
-                  placeholder={"Write plain facts, as you'd explain them to a new staff member. e.g.\nDelivery is free over $500 within the GTA. Under $500 it's $79. Link: /contact"}
-                  required
-                />
-                <p className="text-xs text-muted-foreground">Include page links like /pricing and the bot can link to them. {draft.content.length}/6000</p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="kb-kw">Keywords (optional)</Label>
-                <Input id="kb-kw" value={keywordsText} onChange={(e) => setKeywordsText(e.target.value)} placeholder="delivery fee, shipping cost" />
-                <p className="text-xs text-muted-foreground">Helps the bot find this entry once the knowledge base gets large.</p>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <label className="flex items-center gap-2.5 text-sm">
-                  <input type="checkbox" checked={draft.enabled} onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })} className="size-4 accent-primary" />
-                  <span>Bot uses this entry</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <Label htmlFor="kb-order" className="text-xs text-muted-foreground">
-                    Position
-                  </Label>
-                  <Input id="kb-order" type="number" inputMode="numeric" className="w-24" value={draft.sortOrder} onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })} />
-                </div>
-              </div>
-            </form>
-          ) : null}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDraft(null)} disabled={saving}>
-              Cancel
-            </Button>
-            <Button type="submit" form="kb-form" disabled={saving}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : draft?.id ? "Save changes" : "Add entry"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <KnowledgeDialog draft={draft} categories={categories} onClose={() => setDraft(null)} />
 
       <ConfirmDialog
         open={deleting !== null}

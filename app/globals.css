@@ -558,3 +558,24 @@
 @media (prefers-reduced-motion: reduce) {
   .careby-chat-glow { animation: none; }
 }
+
+/* Admin > Chatbot flow canvas (React Flow) in the site's theme tokens */
+.chatbot-flow .react-flow {
+  --xy-background-color: transparent;
+  --xy-controls-button-background-color: var(--background);
+  --xy-controls-button-background-color-hover: var(--muted);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-minimap-background-color: var(--background);
+  --xy-minimap-mask-background-color: color-mix(in oklch, var(--muted) 75%, transparent);
+  --xy-minimap-node-background-color: var(--muted);
+  --xy-edge-label-background-color: var(--background);
+}
+.chatbot-flow .react-flow__controls,
+.chatbot-flow .react-flow__minimap {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: none;
+}

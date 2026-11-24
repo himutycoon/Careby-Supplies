@@ -1,13 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { ListRowSkeleton } from "@/components/shared/skeleton";
 import { useToast } from "@/components/shared/toast";
@@ -15,29 +13,8 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useAsyncData } from "@/lib/store/hooks";
 import { answer } from "@/lib/chatbot/engine";
 import type { Faq } from "@/lib/chatbot/config";
-import {
-  deleteChatRule,
-  getChatRules,
-  setChatRuleEnabled,
-  upsertChatRule,
-  type ChatRuleRow,
-} from "@/services/chatbot";
-
-const BLANK: ChatRuleRow = {
-  id: "",
-  keywords: [],
-  answer: "",
-  chips: [],
-  linkLabel: "",
-  linkHref: "",
-  startsQuote: false,
-  enabled: true,
-  sortOrder: 0,
-};
-
-const toId = (s: string) =>
-  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
-const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+import { deleteChatRule, getChatRules, setChatRuleEnabled, type ChatRuleRow } from "@/services/chatbot";
+import { BLANK_RULE, RuleDialog, notifyChatbotChanged, useChatbotChanged } from "@/components/admin/chatbot-editors";
 
 function toFaq(r: ChatRuleRow): Faq {
   return {
@@ -55,13 +32,8 @@ export function ChatbotRulesTable() {
   const { data, loading, error, reload } = useAsyncData(getChatRules);
   const rules = React.useMemo(() => data ?? [], [data]);
 
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [form, setForm] = React.useState<ChatRuleRow>(BLANK);
-  // comma-separated text while editing, so typing a comma isn't swallowed
-  const [keywordsText, setKeywordsText] = React.useState("");
-  const [chipsText, setChipsText] = React.useState("");
-  const [isEdit, setIsEdit] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
+  useChatbotChanged(reload);
+  const [editing, setEditing] = React.useState<ChatRuleRow | null>(null);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState<ChatRuleRow | null>(null);
   const [deletePending, setDeletePending] = React.useState(false);
@@ -78,32 +50,11 @@ export function ChatbotRulesTable() {
   });
 
   function openNew() {
-    setForm({ ...BLANK, sortOrder: (rules.at(-1)?.sortOrder ?? 0) + 10 });
-    setKeywordsText("");
-    setChipsText("");
-    setIsEdit(false);
-    setDialogOpen(true);
+    setEditing({ ...BLANK_RULE, sortOrder: (rules.at(-1)?.sortOrder ?? 0) + 10 });
   }
 
   function openEdit(rule: ChatRuleRow) {
-    setForm(rule);
-    setKeywordsText(rule.keywords.join(", "));
-    setChipsText(rule.chips.join(", "));
-    setIsEdit(true);
-    setDialogOpen(true);
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const keywords = splitList(keywordsText);
-    const id = isEdit ? form.id : form.id.trim() || toId(keywords[0] ?? form.answer.slice(0, 30));
-    setSaving(true);
-    const result = await upsertChatRule({ ...form, id, keywords, chips: splitList(chipsText) });
-    setSaving(false);
-    if (!result.ok) return toast(result.error, "error");
-    toast(isEdit ? "Rule updated" : "Rule created");
-    setDialogOpen(false);
-    reload();
+    setEditing(rule);
   }
 
   async function toggle(rule: ChatRuleRow) {
@@ -112,7 +63,7 @@ export function ChatbotRulesTable() {
     setPendingId(null);
     if (result.ok) {
       toast(rule.enabled ? "Rule turned off" : "Rule turned on");
-      reload();
+      notifyChatbotChanged();
     } else toast(result.error, "error");
   }
 
@@ -124,7 +75,7 @@ export function ChatbotRulesTable() {
     setDeleting(null);
     if (result.ok) {
       toast("Rule deleted");
-      reload();
+      notifyChatbotChanged();
     } else toast(result.error, "error");
   }
 
@@ -232,88 +183,7 @@ export function ChatbotRulesTable() {
         </ul>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? `Edit rule: ${form.id}` : "New rule"}</DialogTitle>
-          </DialogHeader>
-
-          <form id="rule-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rule-keywords">When the customer says any of these</Label>
-              <Input
-                id="rule-keywords"
-                value={keywordsText}
-                onChange={(e) => setKeywordsText(e.target.value)}
-                placeholder="delivery, shipping, drop off"
-                required
-              />
-              <p className="text-xs text-muted-foreground">Comma-separated. Multi-word phrases like &quot;drop off&quot; are allowed.</p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rule-answer">The bot replies</Label>
-              <Textarea
-                id="rule-answer"
-                rows={4}
-                value={form.answer}
-                onChange={(e) => setForm((f) => ({ ...f, answer: e.target.value }))}
-                required
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rule-chips">Quick-reply buttons (optional)</Label>
-              <Input
-                id="rule-chips"
-                value={chipsText}
-                onChange={(e) => setChipsText(e.target.value)}
-                placeholder="Get a quote, Talk to expert"
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rule-link-label">Link button text (optional)</Label>
-                <Input id="rule-link-label" value={form.linkLabel} onChange={(e) => setForm((f) => ({ ...f, linkLabel: e.target.value }))} placeholder="Browse products" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="rule-link-href">Link goes to</Label>
-                <Input id="rule-link-href" value={form.linkHref} onChange={(e) => setForm((f) => ({ ...f, linkHref: e.target.value }))} placeholder="/products" />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="rule-order">Position</Label>
-              <Input
-                id="rule-order"
-                type="number"
-                inputMode="numeric"
-                value={form.sortOrder}
-                onChange={(e) => setForm((f) => ({ ...f, sortOrder: Number(e.target.value) }))}
-              />
-            </div>
-
-            <label className="flex items-center gap-2.5 text-sm">
-              <input type="checkbox" checked={form.startsQuote} onChange={(e) => setForm((f) => ({ ...f, startsQuote: e.target.checked }))} className="size-4 accent-primary" />
-              <span>After replying, start the 4-question quote form</span>
-            </label>
-            <label className="flex items-center gap-2.5 text-sm">
-              <input type="checkbox" checked={form.enabled} onChange={(e) => setForm((f) => ({ ...f, enabled: e.target.checked }))} className="size-4 accent-primary" />
-              <span>Rule is on</span>
-            </label>
-          </form>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
-              Cancel
-            </Button>
-            <Button type="submit" form="rule-form" disabled={saving}>
-              {saving ? <Loader2 className="size-4 animate-spin" /> : isEdit ? "Save changes" : "Create rule"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RuleDialog rule={editing} onClose={() => setEditing(null)} />
 
       <ConfirmDialog
         open={deleting !== null}
