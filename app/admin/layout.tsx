@@ -6,6 +6,14 @@ import { DashboardSidebar } from "@/components/app-shell/dashboard-sidebar";
 import { MobileTabBar } from "@/components/app-shell/mobile-tab-bar";
 import { ADMIN_NAV } from "@/data/navigation";
 
+/*
+ * Every admin page renders per request and is never cached. A static admin
+ * page gets `s-maxage=1y`, and the host's CDN/browser cache then served the
+ * client-navigation payload (text/x-component) for a full page load, showing
+ * raw RSC text instead of the page.
+ */
+export const dynamic = "force-dynamic";
+
 export default function AdminLayout({
   children,
 }: {
