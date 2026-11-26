@@ -30,8 +30,8 @@ export function useChatbotChanged(reload: () => void) {
   }, [reload]);
 }
 
-const splitList = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
-const toId = (s: string) =>
+export const splitList = (s: string) => s.split(/[,;|]/).map((x) => x.trim()).filter(Boolean);
+export const toId = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
 
 export const BLANK_RULE: ChatRuleRow = {

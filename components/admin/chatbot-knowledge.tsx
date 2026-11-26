@@ -88,30 +88,25 @@ function Switch({ checked, onChange, disabled, label }: { checked: boolean; onCh
   );
 }
 
-/**
- * Knowledge base + question inbox. One component so a question from the
- * inbox can open the knowledge editor pre-filled.
- */
-export function ChatbotKnowledgeHub() {
+/** Customer questions the AI was asked; "Teach the bot" opens a new knowledge entry. */
+export function ChatbotInbox() {
   const [draft, setDraft] = React.useState<Draft | null>(null);
-
   return (
-    <>
-      <KnowledgeTable draft={draft} setDraft={setDraft} />
-      <Panel
-        id="inbox"
-        title="Customer questions"
-        description="What visitors asked the AI. Where it wasn't sure, add the answer to the knowledge base and mark it done."
-      >
-        <QuestionInbox
-          onTeach={(q) => setDraft({ ...BLANK, title: q.question.slice(0, 80), content: "", keywords: [], sortOrder: 1000 })}
-        />
-      </Panel>
-    </>
+    <Panel
+      id="inbox"
+      title="Customer questions"
+      description="What visitors asked the AI. Where it wasn't sure, add the answer to the knowledge base and mark it done."
+    >
+      <QuestionInbox onTeach={(q) => setDraft({ ...BLANK, title: q.question.slice(0, 80), content: "", keywords: [], sortOrder: 1000 })} />
+      <KnowledgeDialog draft={draft} categories={[]} onClose={() => setDraft(null)} />
+    </Panel>
   );
 }
 
-function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d: Draft | null) => void }) {
+/** The knowledge tab of the Library: entries grouped by category, readable in full. */
+export function KnowledgeLibrary() {
+  const [draft, setDraft] = React.useState<Draft | null>(null);
+  const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { data, loading, error, reload } = useAsyncData(getKnowledge);
   const entries = React.useMemo(() => data ?? [], [data]);
@@ -185,16 +180,28 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
   } else {
     body = (
       <div className="flex flex-col gap-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            placeholder={`Search ${entries.length} entries…`}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-            aria-label="Search knowledge"
-          />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+              placeholder={`Search ${entries.length} entries…`}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9"
+              aria-label="Search knowledge"
+            />
+          </div>
+          <Button className="press w-full sm:w-auto" onClick={() => openNew()}>
+            <Plus className="size-4" /> New entry
+          </Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          {active} of {entries.length} entries on. Products, SKUs and stock come live from{" "}
+          <Link href="/admin/products" className="underline underline-offset-4">
+            Products
+          </Link>
+          , so they don&apos;t need entries here.
+        </p>
 
         {groups.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
@@ -222,22 +229,43 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
                 {isOpen ? (
                   <ul className="divide-y divide-border">
                     {g.items.map((e) => (
-                      <li key={e.id} className={cn("group flex items-start gap-3 px-4 py-3 transition hover:bg-muted/30", !e.enabled && "opacity-60")}>
+                      <li key={e.id} className={cn("flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start", !e.enabled && "opacity-60")}>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">{e.title}</p>
-                          <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">{e.content}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Updated {ago(e.updatedAt)}
-                            {e.keywords.length ? ` · ${e.keywords.length} keywords` : ""}
-                            {!e.enabled ? " · off" : ""}
+                          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+                            {e.title}
+                            {!e.enabled ? <span className="rounded bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">OFF</span> : null}
                           </p>
+                          <p className={cn("mt-1 whitespace-pre-wrap text-sm text-muted-foreground", !expanded[e.id] && "line-clamp-3")}>{e.content}</p>
+                          {e.content.length > 220 || e.content.split("\n").length > 3 ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpanded((x) => ({ ...x, [e.id]: !x[e.id] }))}
+                              className="mt-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                            >
+                              {expanded[e.id] ? "Show less" : "Show more"}
+                            </button>
+                          ) : null}
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                            {e.keywords.length ? (
+                              <>
+                                <span className="font-medium">Found by:</span>
+                                {e.keywords.map((k) => (
+                                  <span key={k} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-700 dark:text-emerald-300">
+                                    {k}
+                                  </span>
+                                ))}
+                                <span aria-hidden="true">·</span>
+                              </>
+                            ) : null}
+                            <span>Updated {ago(e.updatedAt)}</span>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1 border-t border-border pt-2 sm:border-0 sm:pt-0">
                           <Switch checked={e.enabled} disabled={pendingId === e.id} onChange={() => toggle(e)} label={`${e.enabled ? "Turn off" : "Turn on"} ${e.title}`} />
                           <Button size="icon-sm" variant="ghost" aria-label={`Edit ${e.title}`} onClick={() => setDraft(e)}>
                             <Pencil className="size-3.5" />
                           </Button>
-                          <Button size="icon-sm" variant="ghost" className="text-destructive hover:text-destructive" aria-label={`Delete ${e.title}`} onClick={() => setDeleting(e)}>
+                          <Button size="icon-sm" variant="ghost" className="ml-auto text-destructive hover:text-destructive sm:ml-0" aria-label={`Delete ${e.title}`} onClick={() => setDeleting(e)}>
                             <Trash2 className="size-3.5" />
                           </Button>
                         </div>
@@ -254,24 +282,7 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
   }
 
   return (
-    <Panel
-      id="knowledge"
-      title="Knowledge base"
-      description={
-        <>
-          {entries.length ? `${active} of ${entries.length} entries active. ` : ""}Services, pricing, policies and delivery. Products, SKUs and stock come live from{" "}
-          <Link href="/admin/products" className="underline underline-offset-4">
-            Products
-          </Link>
-          .
-        </>
-      }
-      action={
-        <Button size="sm" onClick={() => openNew()}>
-          <Plus className="size-4" /> New entry
-        </Button>
-      }
-    >
+    <div>
       {body}
 
       <KnowledgeDialog draft={draft} categories={categories} onClose={() => setDraft(null)} />
@@ -284,7 +295,7 @@ function KnowledgeTable({ draft, setDraft }: { draft: Draft | null; setDraft: (d
         pending={deletePending}
         onConfirm={confirmDelete}
       />
-    </Panel>
+    </div>
   );
 }
 

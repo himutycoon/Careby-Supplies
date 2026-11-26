@@ -11,6 +11,7 @@ import { ListRowSkeleton } from "@/components/shared/skeleton";
 import { useToast } from "@/components/shared/toast";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useAsyncData } from "@/lib/store/hooks";
+import { cn } from "@/lib/utils";
 import { answer } from "@/lib/chatbot/engine";
 import type { Faq } from "@/lib/chatbot/config";
 import { deleteChatRule, getChatRules, setChatRuleEnabled, type ChatRuleRow } from "@/services/chatbot";
@@ -150,16 +151,45 @@ export function ChatbotRulesTable() {
         <ul className="flex flex-col gap-3">
           {shown.map((rule) => (
             <li key={rule.id} className="flex flex-col gap-3 rounded-xl border border-border bg-background p-3 sm:flex-row sm:items-start sm:gap-2.5 sm:p-4">
-              <div className="min-w-0 flex-1">
+              <div className={cn("grid min-w-0 flex-1 gap-2", !rule.enabled && "opacity-60")}>
                 <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
                   <span>{rule.id}</span>
-                  {rule.startsQuote ? <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">Starts quote</Badge> : null}
                   {!rule.enabled ? <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">Off</Badge> : null}
                 </p>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{rule.answer}</p>
-                <p className="mt-1 truncate text-xs text-muted-foreground">
-                  Keywords: {rule.keywords.join(", ")}
-                </p>
+                <div className="grid gap-1 sm:grid-cols-[150px_1fr] sm:gap-3">
+                  <p className="text-[11px] font-semibold tracking-wide text-amber-700 uppercase dark:text-amber-300">When a message mentions</p>
+                  <div className="flex flex-wrap gap-1">
+                    {rule.keywords.map((k) => (
+                      <span key={k} className="rounded-full bg-amber-500/12 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200">
+                        {k}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid gap-1 sm:grid-cols-[150px_1fr] sm:gap-3">
+                  <p className="text-[11px] font-semibold tracking-wide text-sky-700 uppercase dark:text-sky-300">Bot replies</p>
+                  <p className="text-sm whitespace-pre-wrap">{rule.answer}</p>
+                </div>
+                {rule.chips.length || (rule.linkLabel && rule.linkHref) || rule.startsQuote ? (
+                  <div className="grid gap-1 sm:grid-cols-[150px_1fr] sm:gap-3">
+                    <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">Then shows</p>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                      {rule.chips.map((c) => (
+                        <span key={c} className="rounded-full border border-border px-2 py-0.5">
+                          {c}
+                        </span>
+                      ))}
+                      {rule.linkLabel && rule.linkHref ? (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-primary">
+                          {rule.linkLabel} → {rule.linkHref}
+                        </span>
+                      ) : null}
+                      {rule.startsQuote ? (
+                        <span className="rounded-full bg-orange-500/12 px-2 py-0.5 font-medium text-orange-700 dark:text-orange-300">Starts the quote form</span>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </div>
               <div className="flex shrink-0 items-center gap-2 border-t border-border pt-3 sm:border-0 sm:pt-0">
               <Button size="icon-sm" variant="outline" className="press shrink-0" aria-label={`Edit ${rule.id}`} onClick={() => openEdit(rule)}>

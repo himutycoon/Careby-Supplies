@@ -12,9 +12,9 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { ChatbotRulesTable } from "@/components/admin/chatbot-rules-table";
 import { ChatbotSettingsForm } from "@/components/admin/chatbot-settings-form";
-import { ChatbotKnowledgeHub, Panel } from "@/components/admin/chatbot-knowledge";
+import { ChatbotInbox, Panel } from "@/components/admin/chatbot-knowledge";
+import { ChatbotLibrary } from "@/components/admin/chatbot-library";
 import { ChatbotPlayground } from "@/components/admin/chatbot-playground";
 import { ChatbotFlow } from "@/components/admin/chatbot-flow";
 import { ChatbotInsights, Ring, type QuestionRow } from "@/components/admin/chatbot-insights";
@@ -57,9 +57,10 @@ const NAV = [
   ["Overview", "#overview"],
   ["Flow", "#flow"],
   ["Playground", "#playground"],
-  ["Knowledge", "#knowledge"],
-  ["Inbox", "#inbox"],
   ["Quick answers", "#rules"],
+  ["Knowledge", "#knowledge"],
+  ["Import", "#import"],
+  ["Inbox", "#inbox"],
   ["Settings", "#settings"],
 ] as const;
 
@@ -517,16 +518,10 @@ export default async function AdminChatbotPage() {
         <ChatbotPlayground />
       </section>
 
-      {/* ── knowledge + inbox ────────────────────────────────── */}
-      <ChatbotKnowledgeHub />
+      {/* ── library: quick answers, knowledge, import ───────── */}
+      <ChatbotLibrary />
 
-      <Panel
-        id="rules"
-        title="Quick answers"
-        description="Instant replies for button taps and short questions like “delivery?” or “hours”. Longer questions, products and SKUs go to the AI, which also reads these."
-      >
-        <ChatbotRulesTable />
-      </Panel>
+      <ChatbotInbox />
 
       <Panel id="settings" title="Settings" description="Greeting, starting buttons, WhatsApp hand-off and extra instructions for the AI.">
         <ChatbotSettingsForm />

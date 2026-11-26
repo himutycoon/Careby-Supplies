@@ -151,6 +151,12 @@ function Toggle({ on, disabled, onChange, label }: { on: boolean; disabled?: boo
   );
 }
 
+/** Open a Library tab (the Library listens for these hashes). */
+function openTab(tab: "rules" | "knowledge") {
+  if (window.location.hash === `#${tab}`) window.dispatchEvent(new HashChangeEvent("hashchange"));
+  else window.location.hash = tab;
+}
+
 // ── node types ────────────────────────────────────────────────────
 
 type TriggerData = Common & { greeting: string; chips: string[] };
@@ -194,7 +200,7 @@ function RouterNode({ data }: NodeProps<Node<RouterData>>) {
         hit={data.hit}
         dim={data.dim}
         width={210}
-        onClick={() => document.getElementById("rules")?.scrollIntoView({ behavior: "smooth" })}
+        onClick={() => openTab("rules")}
         subtitle={`Keyword match · ${data.on} of ${data.total} rules on`}
       >
         <div className="flex justify-between border-t border-border px-2.5 py-1.5 text-[10px] font-medium text-muted-foreground">
