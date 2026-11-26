@@ -8,6 +8,8 @@ export type ChatbotConfig = {
   welcomeChips: string[];
   whatsapp: string;
   aiInstructions: string;
+  /** admin synonym groups, one per line: "furnace: furnance, heater" */
+  synonyms: string;
 };
 
 export const DEFAULT_CONFIG: ChatbotConfig = {
@@ -16,6 +18,7 @@ export const DEFAULT_CONFIG: ChatbotConfig = {
   welcomeChips: WELCOME_CHIPS,
   whatsapp: WHATSAPP,
   aiInstructions: "",
+  synonyms: "",
 };
 
 type RuleRow = {
@@ -57,7 +60,8 @@ export async function loadChatbotConfig(): Promise<ChatbotConfig> {
         .select("id, keywords, answer, chips, link_label, link_href, action")
         .eq("enabled", true)
         .order("sort_order"),
-      sb.from("chatbot_settings").select("greeting, welcome_chips, whatsapp, ai_instructions").eq("id", 1).maybeSingle(),
+      // "*" so a column added later (synonyms, schema-32) never breaks the load
+      sb.from("chatbot_settings").select("*").eq("id", 1).maybeSingle(),
     ]);
 
     const s = settings.data;
@@ -67,6 +71,7 @@ export async function loadChatbotConfig(): Promise<ChatbotConfig> {
       welcomeChips: s?.welcome_chips?.length ? s.welcome_chips : WELCOME_CHIPS,
       whatsapp: (s?.whatsapp || WHATSAPP).replace(/\D/g, ""),
       aiInstructions: s?.ai_instructions || "",
+      synonyms: (s as { synonyms?: string } | null)?.synonyms || "",
     };
   } catch (e) {
     console.error("[chatbot] config load failed, using built-in rules:", e);

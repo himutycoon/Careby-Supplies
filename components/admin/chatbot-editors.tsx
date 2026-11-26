@@ -171,10 +171,13 @@ export function KnowledgeDialog({
   draft: initial,
   categories,
   onClose,
+  onSaved,
 }: {
   draft: KnowledgeDraft | null;
   categories: string[];
   onClose: () => void;
+  /** called after a successful save, before closing */
+  onSaved?: () => void | Promise<void>;
 }) {
   const { toast } = useToast();
   const [draft, setDraft] = React.useState<KnowledgeDraft | null>(null);
@@ -196,6 +199,7 @@ export function KnowledgeDialog({
     setSaving(false);
     if (!r.ok) return toast(r.error, "error");
     toast(draft.id ? "Knowledge updated. Live within a minute." : "Knowledge added. Live within a minute.");
+    await onSaved?.();
     onClose();
     notifyChatbotChanged();
   }

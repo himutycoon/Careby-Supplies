@@ -23,6 +23,8 @@ export interface ChatSettings {
   welcomeChips: string[];
   whatsapp: string;
   aiInstructions: string;
+  /** synonym groups, one per line: "furnace: furnance, heater" (schema-32) */
+  synonyms: string;
 }
 
 export async function getChatRules(): Promise<ChatRuleRow[]> {
@@ -211,7 +213,7 @@ export async function deleteLead(id: string): Promise<ServiceResult<null>> {
 export async function getChatSettings(): Promise<ChatSettings> {
   const { data, error } = await createClient()
     .from("chatbot_settings")
-    .select("greeting, welcome_chips, whatsapp, ai_instructions")
+    .select("*")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw new Error(toUserMessage(error, "Couldn't load chatbot settings."));
@@ -220,6 +222,7 @@ export async function getChatSettings(): Promise<ChatSettings> {
     welcomeChips: data?.welcome_chips ?? [],
     whatsapp: data?.whatsapp ?? "",
     aiInstructions: data?.ai_instructions ?? "",
+    synonyms: data?.synonyms ?? "",
   };
 }
 
@@ -228,16 +231,20 @@ export async function saveChatSettings(s: ChatSettings): Promise<ServiceResult<n
   const whatsapp = s.whatsapp.replace(/\D/g, "");
   if (whatsapp && whatsapp.length < 10) return fail("WhatsApp number needs the country code, e.g. 14165551234.");
 
-  const { error } = await createClient()
-    .from("chatbot_settings")
-    .update({
-      greeting: s.greeting.trim(),
-      welcome_chips: list(s.welcomeChips),
-      whatsapp,
-      ai_instructions: s.aiInstructions.trim(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", 1);
+  const row = {
+    greeting: s.greeting.trim(),
+    welcome_chips: list(s.welcomeChips),
+    whatsapp,
+    ai_instructions: s.aiInstructions.trim(),
+    updated_at: new Date().toISOString(),
+  };
+  const table = () => createClient().from("chatbot_settings");
+  let { error } = await table().update({ ...row, synonyms: s.synonyms.trim() }).eq("id", 1);
+  if (error && /synonyms/.test(error.message)) {
+    // schema-32 not run yet: save everything else, and say why synonyms didn't stick.
+    ({ error } = await table().update(row).eq("id", 1));
+    if (!error && s.synonyms.trim()) return fail("Saved, except synonyms: run supabase/schema-32-chatbot-training.sql first.");
+  }
   if (error) return fail(toUserMessage(error, "We couldn't save the settings."));
   return ok(null);
 }
@@ -339,14 +346,18 @@ export interface ChatQuestionRow {
   page: string;
   resolved: boolean;
   createdAt: string;
+  /** customer 👍 (1) / 👎 (-1), null if not rated (schema-32) */
+  feedback: 1 | -1 | null;
+  /** what answered: knowledge id, "rule:<id>", "products", "ai", or "" */
+  source: string;
 }
 
 export async function getChatQuestions(): Promise<ChatQuestionRow[]> {
   const { data, error } = await createClient()
     .from("chatbot_questions")
-    .select("id, question, reply, answered, products_shown, page, resolved, created_at")
+    .select("*")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(300);
   if (error) {
     console.error("[getChatQuestions]", error);
     throw new Error(toUserMessage(error, NEED_29));
@@ -360,6 +371,8 @@ export async function getChatQuestions(): Promise<ChatQuestionRow[]> {
     page: (r.page as string) ?? "",
     resolved: Boolean(r.resolved),
     createdAt: r.created_at as string,
+    feedback: r.feedback === 1 ? 1 : r.feedback === -1 ? -1 : null,
+    source: (r.source as string) ?? "",
   }));
 }
 
@@ -400,10 +413,9 @@ export async function previewBot(
       body: JSON.stringify({ preview: true, messages, page: "/admin/chatbot" }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.status === 503 && data.error === "ai not configured") return fail("OPENAI_API_KEY isn't set, so only the rules can answer.");
-    if (!res.ok || !data.reply) return fail("The AI didn't answer. Try again in a moment.");
+    if (!res.ok || !data.reply) return fail("The assistant didn't answer. Try again in a moment.");
     return ok(data as PreviewReply);
   } catch {
-    return fail("The AI didn't answer. Try again in a moment.");
+    return fail("The assistant didn't answer. Try again in a moment.");
   }
 }

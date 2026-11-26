@@ -96,21 +96,6 @@ function Switch({ checked, onChange, disabled, label }: { checked: boolean; onCh
   );
 }
 
-/** Customer questions the AI was asked; "Teach the bot" opens a new knowledge entry. */
-export function ChatbotInbox() {
-  const [draft, setDraft] = React.useState<Draft | null>(null);
-  return (
-    <Panel
-      id="inbox"
-      title="Customer questions"
-      description="What visitors asked the AI. Where it wasn't sure, add the answer to the knowledge base and mark it done."
-    >
-      <QuestionInbox onTeach={(q) => setDraft({ ...BLANK, title: q.question.slice(0, 80), content: "", keywords: [], sortOrder: 1000 })} />
-      <KnowledgeDialog draft={draft} categories={[]} onClose={() => setDraft(null)} />
-    </Panel>
-  );
-}
-
 /** The knowledge tab of the Library: entries grouped by category, readable in full. */
 export function KnowledgeLibrary() {
   const [draft, setDraft] = React.useState<Draft | null>(null);
@@ -328,12 +313,91 @@ export function KnowledgeLibrary() {
   );
 }
 
-function QuestionInbox({ onTeach }: { onTeach: (q: ChatQuestionRow) => void }) {
+/**
+ * Customer questions: the training loop for the free answer engine.
+ * "Teach the bot" (no answer) and "Fix this answer" (wrong or disliked)
+ * save a verified answer the engine matches first next time, then mark
+ * the question done.
+ */
+export function ChatbotInbox() {
+  const [draft, setDraft] = React.useState<Draft | null>(null);
+  const [teaching, setTeaching] = React.useState<ChatQuestionRow | null>(null);
+  const { toast } = useToast();
+
+  function open(q: ChatQuestionRow, fix: boolean) {
+    setTeaching(q);
+    setDraft({
+      ...BLANK,
+      category: "Answers",
+      title: q.question.replace(/\s+/g, " ").trim().slice(0, 120),
+      content: fix && q.answered ? q.reply : "",
+      keywords: [],
+      sortOrder: 1000,
+    });
+  }
+
+  async function saved() {
+    if (teaching && !teaching.resolved) {
+      const r = await setQuestionResolved(teaching.id, true);
+      if (!r.ok) toast(r.error, "error");
+      notifyChatbotChanged();
+    }
+    setTeaching(null);
+  }
+
+  return (
+    <Panel
+      id="inbox"
+      title="Customer questions"
+      description="Every question the assistant answered or couldn't. Teach it once here and it answers the same question by itself next time."
+    >
+      <QuestionInbox onTeach={open} />
+      <KnowledgeDialog
+        draft={draft}
+        categories={["Answers"]}
+        onSaved={saved}
+        onClose={() => {
+          setDraft(null);
+          setTeaching(null);
+        }}
+      />
+    </Panel>
+  );
+}
+
+const SOURCE_LABEL = (s: string) =>
+  !s ? "" : s === "products" ? "catalogue" : s === "ai" ? "AI" : s.startsWith("rule:") ? `quick answer "${s.slice(5)}"` : s === "error" ? "error" : "knowledge";
+
+/** Words too common to be a "topic" in the gap report. */
+const TOPIC_STOP = new Set(
+  "what when where which with your about from that this have does more info information general hello there please thanks thank help need want could would should know tell like just some much many since yesterday today working work their they them then than were been being into also only very really still cant dont doesnt isnt whats".split(" "),
+);
+
+function topicWords(text: string) {
+  return [...new Set(text.toLowerCase().replace(/[^a-z\s]/g, " ").split(/\s+/).filter((w) => w.length >= 4 && !TOPIC_STOP.has(w)))];
+}
+
+function QuestionInbox({ onTeach }: { onTeach: (q: ChatQuestionRow, fix: boolean) => void }) {
   const { toast } = useToast();
   const { data, loading, error, reload } = useAsyncData(getChatQuestions);
-  const [filter, setFilter] = React.useState<"unsure" | "open" | "all">("unsure");
-  const rows = data ?? [];
-  const shown = rows.filter((q) => (filter === "all" ? true : filter === "open" ? !q.resolved : !q.answered && !q.resolved));
+  useChatbotChanged(reload);
+  const [filter, setFilter] = React.useState<"unsure" | "disliked" | "open" | "all">("unsure");
+  const [topic, setTopic] = React.useState<string | null>(null);
+  const rows = React.useMemo(() => data ?? [], [data]);
+
+  const needsWork = (q: ChatQuestionRow) => !q.resolved && (!q.answered || q.feedback === -1);
+  // Gap report: what open questions keep mentioning.
+  const topics = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const q of rows.filter(needsWork)) for (const w of topicWords(q.question)) counts.set(w, (counts.get(w) ?? 0) + 1);
+    return [...counts.entries()].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [rows]);
+
+  const shown = rows.filter((q) => {
+    const byFilter =
+      filter === "all" ? true : filter === "open" ? !q.resolved : filter === "disliked" ? q.feedback === -1 && !q.resolved : !q.answered && !q.resolved;
+    return byFilter && (!topic || topicWords(q.question).includes(topic));
+  });
 
   async function resolve(q: ChatQuestionRow) {
     const r = await setQuestionResolved(q.id, !q.resolved);
@@ -346,41 +410,79 @@ function QuestionInbox({ onTeach }: { onTeach: (q: ChatQuestionRow) => void }) {
     else toast(r.error, "error");
   }
 
-  if (loading) return <ListRowSkeleton />;
+  if (loading && !data) return <ListRowSkeleton />;
   if (error) return <p className="text-sm text-destructive">{error}</p>;
 
   const unsureCount = rows.filter((q) => !q.answered && !q.resolved).length;
+  const dislikedCount = rows.filter((q) => q.feedback === -1 && !q.resolved).length;
+  const answeredPct = rows.length ? Math.round((rows.filter((q) => q.answered).length / rows.length) * 100) : null;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-1 rounded-lg bg-muted/60 p-1 sm:w-fit">
-        {(
-          [
-            ["unsure", `Needs an answer · ${unsureCount}`],
-            ["open", "Not done"],
-            ["all", `All · ${rows.length}`],
-          ] as const
-        ).map(([k, label]) => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => setFilter(k)}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-xs font-medium transition",
-              filter === k ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-        <button type="button" onClick={reload} className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
-          Refresh
-        </button>
+      {topics.length ? (
+        <div className="flex flex-col gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+          <p className="text-sm font-semibold">Customers keep asking about</p>
+          <div className="flex flex-wrap gap-1.5">
+            {topics.map(([w, n]) => (
+              <button
+                key={w}
+                type="button"
+                onClick={() => setTopic(topic === w ? null : w)}
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-xs font-medium transition",
+                  topic === w ? "border-amber-600 bg-amber-500/20 text-amber-900 dark:text-amber-100" : "border-amber-500/30 bg-background hover:border-amber-500",
+                )}
+              >
+                {w} · {n}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">Questions the assistant couldn&apos;t answer or customers disliked. One knowledge entry per topic usually covers them all.</p>
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-1 overflow-x-auto rounded-lg bg-muted/60 p-1">
+          {(
+            [
+              ["unsure", `Needs an answer · ${unsureCount}`],
+              ["disliked", `Disliked 👎 · ${dislikedCount}`],
+              ["open", "Not done"],
+              ["all", `All · ${rows.length}`],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setFilter(k)}
+              className={cn(
+                "shrink-0 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition",
+                filter === k ? "bg-background text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {answeredPct !== null ? (
+          <p className="text-xs text-muted-foreground">
+            Answered by itself: <b className="text-foreground">{answeredPct}%</b> of the last {rows.length} questions
+          </p>
+        ) : null}
       </div>
+
+      {topic ? (
+        <p className="text-xs text-muted-foreground">
+          Showing questions about <b className="text-foreground">{topic}</b>.{" "}
+          <button type="button" onClick={() => setTopic(null)} className="font-medium text-primary underline-offset-2 hover:underline">
+            Show all
+          </button>
+        </p>
+      ) : null}
 
       {shown.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          {filter === "unsure" ? "Nothing waiting. The bot answered everything it was asked." : "No questions yet."}
+          {filter === "unsure" ? "Nothing waiting. The assistant answered everything it was asked." : filter === "disliked" ? "No disliked answers." : "No questions yet."}
         </p>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border">
@@ -393,19 +495,23 @@ function QuestionInbox({ onTeach }: { onTeach: (q: ChatQuestionRow) => void }) {
                   <HelpCircle className="mt-0.5 size-4 shrink-0 text-amber-600" aria-label="Needs an answer" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">{q.question}</p>
+                  <p className="font-medium">
+                    {q.question}
+                    {q.feedback === -1 ? <span className="ml-1.5" title="Customer disliked this answer">👎</span> : q.feedback === 1 ? <span className="ml-1.5" title="Customer found this helpful">👍</span> : null}
+                  </p>
                   <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-muted-foreground">{q.reply}</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {when(q.createdAt)}
                     {q.page ? ` · on ${q.page}` : ""}
-                    {q.productsShown.length ? ` · showed ${q.productsShown.join(", ")}` : ""}
+                    {q.answered && SOURCE_LABEL(q.source) ? ` · from ${SOURCE_LABEL(q.source)}` : ""}
+                    {q.productsShown.length ? ` · showed ${q.productsShown.slice(0, 3).join(", ")}` : ""}
                     {q.resolved ? " · done" : ""}
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-1.5 pl-6 sm:pl-0">
-                <Button size="sm" variant="outline" onClick={() => onTeach(q)}>
-                  <Plus className="size-3.5" /> Teach the bot
+                <Button size="sm" variant={q.answered ? "outline" : "default"} onClick={() => onTeach(q, q.answered)}>
+                  {q.answered ? <Pencil className="size-3.5" /> : <Plus className="size-3.5" />} {q.answered ? "Fix this answer" : "Teach the bot"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => resolve(q)}>
                   {q.resolved ? "Reopen" : "Mark done"}

@@ -17,6 +17,7 @@ export function ChatbotSettingsForm() {
   const [chips, setChips] = React.useState("");
   const [whatsapp, setWhatsapp] = React.useState("");
   const [ai, setAi] = React.useState("");
+  const [synonyms, setSynonyms] = React.useState("");
   const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
@@ -26,6 +27,7 @@ export function ChatbotSettingsForm() {
     setChips(data.welcomeChips.join(", "));
     setWhatsapp(data.whatsapp);
     setAi(data.aiInstructions);
+    setSynonyms(data.synonyms);
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [data]);
 
@@ -37,6 +39,7 @@ export function ChatbotSettingsForm() {
       welcomeChips: chips.split(","),
       whatsapp,
       aiInstructions: ai,
+      synonyms,
     });
     setSaving(false);
     if (result.ok) toast("Chatbot settings saved. Live within a minute.");
@@ -62,7 +65,20 @@ export function ChatbotSettingsForm() {
         <p className="text-xs text-muted-foreground">Digits only, with country code (1 for Canada).</p>
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="cb-ai">Extra instructions for the AI</Label>
+        <Label htmlFor="cb-syn">Words that mean the same thing</Label>
+        <Textarea
+          id="cb-syn"
+          rows={5}
+          value={synonyms}
+          onChange={(e) => setSynonyms(e.target.value)}
+          placeholder={"One group per line: the main word, a colon, then other words or common misspellings.\nfurnace: furnance, heater, hvac\ndrywall: gyprock, sheetrock, plasterboard\npickup: pick up, collect"}
+        />
+        <p className="text-xs text-muted-foreground">
+          Customers who type any word on the right get the same answers and products as the main word. Typos of words you already use are fixed automatically.
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="cb-ai">Extra instructions for the AI (only used if AI is switched on)</Label>
         <Textarea
           id="cb-ai"
           rows={6}

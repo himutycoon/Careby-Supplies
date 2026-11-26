@@ -14,13 +14,20 @@ function normalize(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function canon(w: string) {
+/** Admin synonyms ("furnance" -> "furnace"), passed in from the chatbot settings. */
+export type ExtraSyn = Record<string, string>;
+
+function canon(w: string, extra?: ExtraSyn) {
+  if (extra?.[w]) return extra[w];
   if (SYN[w]) return SYN[w];
   return w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w;
 }
 
-function tokens(s: string) {
-  return normalize(s).split(" ").filter((w) => w && !STOP.has(w)).map(canon);
+function tokens(s: string, extra?: ExtraSyn) {
+  return normalize(s)
+    .split(" ")
+    .filter((w) => w && !STOP.has(w))
+    .map((w) => canon(w, extra));
 }
 
 function lev(a: string, b: string) {
@@ -59,7 +66,7 @@ function indexFor(rules: Faq[]) {
  * "price of 1/2 drywall" matches the quote rule on "price" but is really a
  * product question. Those go to the AI (which has the catalogue) instead.
  */
-export function saysMoreThan(input: string, faq: Faq): boolean {
+export function saysMoreThan(input: string, faq: Faq, extra?: ExtraSyn): boolean {
   const text = normalize(input);
   let rest = text;
   for (const k of faq.keywords) {
@@ -67,16 +74,16 @@ export function saysMoreThan(input: string, faq: Faq): boolean {
     if (p.includes(" ")) rest = rest.replace(p, " ");
   }
   const words = new Set(faq.keywords.filter((k) => !k.includes(" ")).map((k) => canon(normalize(k))));
-  return tokens(rest).some((t) => !words.has(t) && !GENERIC.has(t));
+  return tokens(rest, extra).some((t) => !words.has(t) && !GENERIC.has(t));
 }
 
 // Filler that doesn't change what's being asked.
 const GENERIC = new Set(["much", "about", "tell", "info", "information", "know", "like", "would", "just", "ok", "okay", "yes", "no", "sure", "hi", "hello", "hey", "thank", "thanks", "pls", "plz", "more", "some", "where", "when", "which", "who", "why", "is", "am", "be", "will", "could", "should"]);
 
-export function answer(input: string, rules: Faq[] = FAQS): Faq | null {
+export function answer(input: string, rules: Faq[] = FAQS, extra?: ExtraSyn): Faq | null {
   const text = normalize(input);
   if (!text) return null;
-  const toks = tokens(input);
+  const toks = tokens(input, extra);
   let best: { score: number; faq: Faq } | null = null;
 
   for (const e of indexFor(rules)) {

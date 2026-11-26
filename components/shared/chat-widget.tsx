@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ArrowUp, Headset, Package, ReceiptText, RotateCcw, Sparkles, Truck, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { answer, saysMoreThan } from "@/lib/chatbot/engine";
+import { parseSynonyms } from "@/lib/chatbot/local-core";
 import { FAQS, GREETING, WELCOME_CHIPS, WHATSAPP, type Faq } from "@/lib/chatbot/config";
 
 type BotConfig = {
@@ -15,6 +16,8 @@ type BotConfig = {
   greeting: string;
   welcomeChips: string[];
   whatsapp: string;
+  /** admin synonym groups, "furnace: furnance, heater" */
+  synonyms?: string;
 };
 
 // Used until /api/chat/config answers, and if it never does.
@@ -47,6 +50,9 @@ type Msg = {
   link?: { label: string; href: string };
   wa?: boolean;
   products?: CardProduct[];
+  /** logged answer id, for the 👍 / 👎 buttons */
+  logId?: string;
+  rated?: "up" | "down";
 };
 
 const STOCK_LABEL: Record<string, string> = {
@@ -150,6 +156,7 @@ export function ChatWidget() {
   const nudged = React.useRef(false);
   const endRef = React.useRef<HTMLDivElement>(null);
   const [cfg, setCfg] = React.useState<BotConfig>(BUILT_IN);
+  const synMap = React.useMemo(() => Object.fromEntries(parseSynonyms(cfg.synonyms ?? "")), [cfg.synonyms]);
   const [hasTabBar, setHasTabBar] = React.useState(false);
   const [seen, setSeen] = React.useState(true);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -331,6 +338,19 @@ export function ChatWidget() {
     }
   }
 
+  // thumbs up / down on one answer: shown once, sent once, never blocks the chat
+  function rate(index: number, v: "up" | "down") {
+    const id = msgsRef.current[index]?.logId;
+    setMsgs((p) => p.map((m, i) => (i === index ? { ...m, rated: v } : m)));
+    if (id) {
+      fetch("/api/chat/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, helpful: v === "up" }),
+      }).catch(() => {});
+    }
+  }
+
   async function askAI(text: string, fallback?: Faq | null) {
     const showRule = (hit: Faq) =>
       hit.action === "quote"
@@ -371,6 +391,7 @@ export function ChatWidget() {
           role: "assistant",
           content: data.reply,
           products: Array.isArray(data.products) ? data.products.slice(0, 4) : undefined,
+          logId: typeof data.logId === "string" ? data.logId : undefined,
           wa: unsure,
           chips: data.startQuote ? undefined : ["Get a quote", "Talk to expert"],
         },
@@ -424,8 +445,8 @@ export function ChatWidget() {
     // rules answer quick questions and button taps instantly; anything that
     // asks more than a rule's keywords (a product, a size, a SKU) goes to
     // the AI, which has the knowledge base and the live catalogue.
-    const hit = answer(text, cfg.rules);
-    const useRule = hit && (fromChip || !cfg.aiEnabled || !saysMoreThan(text, hit));
+    const hit = answer(text, cfg.rules, synMap);
+    const useRule = hit && (fromChip || !cfg.aiEnabled || !saysMoreThan(text, hit, synMap));
     if (hit && useRule) {
       // usage count for Admin > Chatbot; never blocks or breaks the chat
       fetch("/api/chat/hit", {
@@ -697,6 +718,28 @@ export function ChatWidget() {
                   >
                     {m.link.label} →
                   </Link>
+                )}
+                {m.logId && (
+                  <div className="flex w-full items-center gap-1 text-[11px] text-muted-foreground">
+                    {m.rated ? (
+                      <span>{m.rated === "up" ? "Thanks for the feedback!" : "Thanks, we'll improve this answer."}</span>
+                    ) : (
+                      <>
+                        <span>Helpful?</span>
+                        {(["up", "down"] as const).map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            aria-label={v === "up" ? "Yes, helpful" : "No, not helpful"}
+                            onClick={() => rate(i, v)}
+                            className="rounded-md px-1.5 py-0.5 text-sm transition hover:bg-muted"
+                          >
+                            {v === "up" ? "👍" : "👎"}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
                 )}
                 {m.wa && hasWa && (
                   <a

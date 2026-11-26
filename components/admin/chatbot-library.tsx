@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 /*
  * Everything the bot knows, in one place: quick answers (checked first,
- * word for word) and knowledge (read by the AI), plus bulk import.
+ * word for word) and knowledge (searched by the free answer engine), plus bulk import.
  * #rules, #knowledge and #import links open the matching tab.
  */
 
@@ -50,8 +50,8 @@ export function ChatbotLibrary() {
           <Step n={1} tone="amber" title="Quick answers first">
             If a message contains a rule&apos;s keyword, the customer gets that exact reply instantly.
           </Step>
-          <Step n={2} tone="emerald" title="Then the AI reads knowledge">
-            No keyword match? The AI answers in its own words from your knowledge and the live product catalogue.
+          <Step n={2} tone="emerald" title="Then knowledge and products">
+            No keyword match? The engine finds the closest knowledge entry or verified answer, or real products from the catalogue.
           </Step>
           <Step n={3} tone="sky" title="Gaps land in the inbox">
             Questions it wasn&apos;t sure about appear under Customer questions, ready to teach.

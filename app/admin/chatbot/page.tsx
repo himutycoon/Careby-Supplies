@@ -20,7 +20,6 @@ import { ChatbotPlayground } from "@/components/admin/chatbot-playground";
 import { ChatbotFlow } from "@/components/admin/chatbot-flow";
 import { ChatbotInsights, Ring, type QuestionRow } from "@/components/admin/chatbot-insights";
 import { PayPalSubscribe } from "@/components/admin/paypal-subscribe";
-import { aiConfigured } from "@/lib/chatbot/ai";
 import { chatbotAllowed, getChatbotPlan, type PlanStatus } from "@/lib/chatbot/billing";
 import { CHATBOT_PLAN } from "@/lib/chatbot/plan";
 import { fxFrom, type Currency } from "@/lib/chatbot/fx";
@@ -139,8 +138,7 @@ export default async function AdminChatbotPage() {
   const [plan, fx, stats, enabled] = await Promise.all([getChatbotPlan(), fxFrom(currency), getStats(), chatbotAllowed()]);
   const s = STATUS[plan.status];
   const date = fmt(plan.paidThrough);
-  const ai = aiConfigured();
-  const online = enabled && ai;
+  const online = enabled;
   const others = (["CAD", "USD"] as const).filter((c) => c !== currency);
   const answerRate = stats.asked && stats.answered !== null ? Math.round((stats.answered / stats.asked) * 100) : null;
   const up = CHATBOT_PLAN.upgrade;
@@ -413,19 +411,14 @@ export default async function AdminChatbotPage() {
           </a>
         </div>
       ) : null}
-      {!ai ? (
-        <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          <b>AI is temporarily off.</b> The assistant is replying with quick answers only. Contact Codevera support at {up.requestEmail} to turn it back on.
-        </p>
-      ) : null}
 
       <section aria-label="Last 30 days" className="grid gap-3 lg:grid-cols-[300px_1fr]">
         <div className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 shadow-xs">
           <Ring value={answerRate} />
           <ul className="min-w-0 space-y-1.5 text-xs">
             {[
-              ["AI engine", ai],
-              ["Live catalogue", ai],
+              ["Free answer engine", true],
+              ["Live catalogue", true],
               ["Knowledge base", true],
               ["Showing on site", enabled],
             ].map(([label, ok]) => (
@@ -438,7 +431,7 @@ export default async function AdminChatbotPage() {
           </ul>
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat icon={MessageSquareText} label="AI questions" value={stats.asked} hint="Last 30 days, answered by the AI" />
+          <Stat icon={MessageSquareText} label="Questions" value={stats.asked} hint="Last 30 days, typed by customers" />
           <Stat
             icon={CheckCircle2}
             label="Answered"
@@ -490,7 +483,7 @@ export default async function AdminChatbotPage() {
                 )}
               >
                 <span className={cn("size-1.5 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-amber-500")} />
-                {!enabled ? "Paused" : ai ? "Online" : "Rules only"}
+                {enabled ? "Online" : "Paused"}
               </span>
               <a href="#plan" className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 hover:opacity-80", planPill.tone)}>
                 {planPill.text}

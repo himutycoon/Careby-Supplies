@@ -268,16 +268,16 @@ function AgentNode({ data }: NodeProps<Node<AgentData>>) {
       <Shell
         icon={Bot}
         tone="violet"
-        title="AI agent"
+        title="Answer engine"
         hit={data.hit}
         dim={data.dim}
         width={260}
-        subtitle="Answers anything the quick answers don't, using the tools below"
+        subtitle="Free, no AI: finds the best answer you wrote or real products, using the sources below"
       >
         <div className="flex justify-around border-t border-border px-2.5 py-1.5 text-[10px] text-muted-foreground">
           <span>Knowledge · {data.kb}</span>
           <span>Catalogue</span>
-          <span>Instructions</span>
+          <span>Synonyms</span>
         </div>
       </Shell>
       <Handle id="tools" type="target" position={Position.Bottom} className={cn(handle, "!bg-violet-500")} />
@@ -476,7 +476,7 @@ export function ChatbotFlow() {
     n.push({ id: "agent", type: "agent", position: { x: X[2] - 10, y: yAI }, data: { kb: knowledge.filter((k) => k.enabled).length, ...lit(viaAI) } });
     edge(e, "router", "agent", viaAI, { sourceHandle: "miss", label: "no match" });
 
-    tool("ai-reply", X[3], yAI - 70, { icon: MessageSquareText, tone: "sky", title: "AI reply", subtitle: "Answer with product cards and links", kind: "end" }, viaAI);
+    tool("ai-reply", X[3], yAI - 70, { icon: MessageSquareText, tone: "sky", title: "Reply", subtitle: "Your answer, with product cards and links", kind: "end" }, viaAI);
     tool("quote", X[3], yAI + 40, { icon: FileText, tone: "orange", title: "Quote form", subtitle: "4 questions: items, quantity, city, contact", kind: "step", href: "#quotes" }, hitQuote);
     tool("inbox", X[3], yAI + 150, { icon: Inbox, tone: "amber", title: "Question inbox", subtitle: data.unsure ? `${data.unsure} the AI wasn't sure about` : "Every AI question is logged", kind: "end", href: "#inbox" }, viaAI);
     edge(e, "agent", "ai-reply", viaAI);
@@ -524,8 +524,8 @@ export function ChatbotFlow() {
         tool(t.id, x, yTools, {
           icon: ScrollText,
           tone: "violet",
-          title: "Instructions",
-          subtitle: data.settings.aiInstructions ? "Your extra rules for the AI" : "Add extra rules in Settings",
+          title: "Synonyms",
+          subtitle: data.settings.synonyms ? `${data.settings.synonyms.split("\n").filter((l) => l.includes(":")).length} word groups, typos fixed` : "Add in Settings: furnace = furnance…",
           kind: "tool",
           href: "#settings",
         }, viaAI);
