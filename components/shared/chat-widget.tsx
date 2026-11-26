@@ -427,6 +427,13 @@ export function ChatWidget() {
     const hit = answer(text, cfg.rules);
     const useRule = hit && (fromChip || !cfg.aiEnabled || !saysMoreThan(text, hit));
     if (hit && useRule) {
+      // usage count for Admin > Chatbot; never blocks or breaks the chat
+      fetch("/api/chat/hit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ruleId: hit.id }),
+        keepalive: true,
+      }).catch(() => {});
       if (hit.action === "quote") {
         await botSay({ content: hit.answer });
         return startFlow();

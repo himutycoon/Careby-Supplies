@@ -87,8 +87,124 @@ export async function setChatRuleEnabled(id: string, enabled: boolean): Promise<
 }
 
 export async function deleteChatRule(id: string): Promise<ServiceResult<null>> {
-  const { error } = await createClient().from("chatbot_rules").delete().eq("id", id);
+  const sb = createClient();
+  // Keep a copy in Recently deleted (schema-31) so the delete can be undone.
+  const { data: row } = await sb.from("chatbot_rules").select("*").eq("id", id).maybeSingle();
+  if (row) await toTrash("rule", id, row);
+  const { error } = await sb.from("chatbot_rules").delete().eq("id", id);
   if (error) return fail(toUserMessage(error, "We couldn't delete that rule."));
+  return ok(null);
+}
+
+/** Quick-answer uses on the website since a date, by rule id (schema-31). */
+export async function getRuleHits(days = 30): Promise<Record<string, number>> {
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data, error } = await createClient().from("chatbot_rule_hits").select("rule_id").gte("created_at", since).limit(20000);
+  if (error) return {}; // table not created yet: no counts, nothing breaks
+  const out: Record<string, number> = {};
+  for (const r of data ?? []) out[r.rule_id as string] = (out[r.rule_id as string] ?? 0) + 1;
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Recently deleted (schema-31)
+// ---------------------------------------------------------------------------
+
+export interface TrashRow {
+  id: string;
+  kind: "rule" | "knowledge";
+  label: string;
+  data: Record<string, unknown>;
+  deletedAt: string;
+}
+
+async function toTrash(kind: "rule" | "knowledge", label: string, data: Record<string, unknown>) {
+  const { error } = await createClient().from("chatbot_trash").insert({ kind, label, data });
+  // Missing table must not block the delete itself.
+  if (error) console.warn("[chatbot trash] not kept:", error.message);
+}
+
+export async function getTrash(): Promise<TrashRow[]> {
+  const { data, error } = await createClient()
+    .from("chatbot_trash")
+    .select("id, kind, label, data, deleted_at")
+    .order("deleted_at", { ascending: false })
+    .limit(100);
+  if (error) throw new Error(toUserMessage(error, "Couldn't load recently deleted items. Has schema-31 been run?"));
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    kind: r.kind as "rule" | "knowledge",
+    label: r.label as string,
+    data: r.data as Record<string, unknown>,
+    deletedAt: r.deleted_at as string,
+  }));
+}
+
+export async function restoreTrash(item: TrashRow): Promise<ServiceResult<null>> {
+  const sb = createClient();
+  const { id: _old, updated_at: _u, created_at: _c, ...row } = item.data as Record<string, unknown>;
+  void _u;
+  void _c;
+  // Rules keep their id (it is the name); knowledge gets a fresh one.
+  const { error } =
+    item.kind === "rule"
+      ? await sb.from("chatbot_rules").upsert({ ...row, id: _old, updated_at: new Date().toISOString() })
+      : await sb.from("chatbot_knowledge").insert({ ...row, updated_at: new Date().toISOString() });
+  if (error) return fail(toUserMessage(error, "We couldn't restore that."));
+  await sb.from("chatbot_trash").delete().eq("id", item.id);
+  return ok(null);
+}
+
+export async function purgeTrash(id: string): Promise<ServiceResult<null>> {
+  const { error } = await createClient().from("chatbot_trash").delete().eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't remove that."));
+  return ok(null);
+}
+
+// ---------------------------------------------------------------------------
+// Quote requests from the chat (chat_leads; status/note from schema-31)
+// ---------------------------------------------------------------------------
+
+export const LEAD_STATUSES = ["new", "contacted", "won", "lost"] as const;
+export type LeadStatus = (typeof LEAD_STATUSES)[number];
+
+export interface LeadRow {
+  id: string;
+  name: string;
+  contact: string;
+  items: string;
+  city: string;
+  page: string;
+  status: LeadStatus;
+  note: string;
+  createdAt: string;
+}
+
+export async function getLeads(): Promise<LeadRow[]> {
+  const { data, error } = await createClient().from("chat_leads").select("*").order("created_at", { ascending: false }).limit(500);
+  if (error) throw new Error(toUserMessage(error, "Couldn't load quote requests. Has schema-31 been run?"));
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    name: (r.name as string) ?? "",
+    contact: (r.contact as string) ?? "",
+    items: (r.items as string) ?? "",
+    city: (r.city as string) ?? "",
+    page: (r.page as string) ?? "",
+    status: (LEAD_STATUSES as readonly string[]).includes(r.status as string) ? (r.status as LeadStatus) : "new",
+    note: (r.note as string) ?? "",
+    createdAt: r.created_at as string,
+  }));
+}
+
+export async function updateLead(id: string, patch: { status?: LeadStatus; note?: string }): Promise<ServiceResult<null>> {
+  const { error } = await createClient().from("chat_leads").update(patch).eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't update that quote request."));
+  return ok(null);
+}
+
+export async function deleteLead(id: string): Promise<ServiceResult<null>> {
+  const { error } = await createClient().from("chat_leads").delete().eq("id", id);
+  if (error) return fail(toUserMessage(error, "We couldn't delete that quote request."));
   return ok(null);
 }
 
@@ -202,7 +318,10 @@ export async function setKnowledgeEnabled(id: string, enabled: boolean): Promise
 }
 
 export async function deleteKnowledge(id: string): Promise<ServiceResult<null>> {
-  const { error } = await createClient().from("chatbot_knowledge").delete().eq("id", id);
+  const sb = createClient();
+  const { data: row } = await sb.from("chatbot_knowledge").select("*").eq("id", id).maybeSingle();
+  if (row) await toTrash("knowledge", (row.title as string) || "Untitled", row);
+  const { error } = await sb.from("chatbot_knowledge").delete().eq("id", id);
   if (error) return fail(toUserMessage(error, "We couldn't delete that entry."));
   return ok(null);
 }

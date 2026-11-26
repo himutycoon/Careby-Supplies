@@ -14,7 +14,7 @@ import { useAsyncData } from "@/lib/store/hooks";
 import { cn } from "@/lib/utils";
 import { answer } from "@/lib/chatbot/engine";
 import type { Faq } from "@/lib/chatbot/config";
-import { deleteChatRule, getChatRules, setChatRuleEnabled, type ChatRuleRow } from "@/services/chatbot";
+import { deleteChatRule, getChatRules, getRuleHits, setChatRuleEnabled, type ChatRuleRow } from "@/services/chatbot";
 import { BLANK_RULE, RuleDialog, notifyChatbotChanged, useChatbotChanged } from "@/components/admin/chatbot-editors";
 
 function toFaq(r: ChatRuleRow): Faq {
@@ -34,6 +34,7 @@ export function ChatbotRulesTable() {
   const rules = React.useMemo(() => data ?? [], [data]);
 
   useChatbotChanged(reload);
+  const { data: hits } = useAsyncData(getRuleHits);
   const [editing, setEditing] = React.useState<ChatRuleRow | null>(null);
   const [pendingId, setPendingId] = React.useState<string | null>(null);
   const [deleting, setDeleting] = React.useState<ChatRuleRow | null>(null);
@@ -154,6 +155,17 @@ export function ChatbotRulesTable() {
               <div className={cn("grid min-w-0 flex-1 gap-2", !rule.enabled && "opacity-60")}>
                 <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
                   <span>{rule.id}</span>
+                  {hits ? (
+                    <span
+                      title="Times this quick answer replied on the website in the last 30 days"
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        hits[rule.id] ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {hits[rule.id] ? `Used ${hits[rule.id]}× · 30 days` : "Not used in 30 days"}
+                    </span>
+                  ) : null}
                   {!rule.enabled ? <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">Off</Badge> : null}
                 </p>
                 <div className="grid gap-1 sm:grid-cols-[150px_1fr] sm:gap-3">

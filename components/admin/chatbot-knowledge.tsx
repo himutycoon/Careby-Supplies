@@ -32,6 +32,14 @@ import {
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-CA", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
+const TITLE_STOP = new Set(["what", "when", "where", "which", "with", "your", "about", "from", "that", "this", "have", "does", "more", "info", "information", "general"]);
+
+/** Customer questions from the last 30 days, for the "asked about" counts. */
+async function recentQuestions() {
+  const since = Date.now() - 30 * 86400000;
+  return (await getChatQuestions()).filter((q) => new Date(q.createdAt).getTime() >= since);
+}
+
 function ago(iso: string) {
   const d = (Date.now() - new Date(iso).getTime()) / 86400000;
   if (d < 1) return "today";
@@ -109,6 +117,7 @@ export function KnowledgeLibrary() {
   const [expanded, setExpanded] = React.useState<Record<string, boolean>>({});
   const { toast } = useToast();
   const { data, loading, error, reload } = useAsyncData(getKnowledge);
+  const { data: questions } = useAsyncData(recentQuestions);
   const entries = React.useMemo(() => data ?? [], [data]);
   useChatbotChanged(reload);
   const [query, setQuery] = React.useState("");
@@ -118,6 +127,21 @@ export function KnowledgeLibrary() {
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
 
   const categories = React.useMemo(() => [...new Set(entries.map((e) => e.category))].sort(), [entries]);
+  // How often customers asked about each topic (the AI sees the whole
+  // knowledge base, so "used" can't be measured; topic mentions can).
+  const asked = React.useMemo(() => {
+    if (!questions) return null;
+    const recent = questions.map((q) => ` ${q.question.toLowerCase()} `);
+    const out: Record<string, number> = {};
+    for (const e of entries) {
+      const words = [
+        ...e.keywords.map((k) => k.toLowerCase()),
+        ...e.title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !TITLE_STOP.has(w)),
+      ];
+      out[e.id] = words.length ? recent.filter((q) => words.some((w) => q.includes(w))).length : 0;
+    }
+    return out;
+  }, [questions, entries]);
   const active = entries.filter((e) => e.enabled).length;
 
   const q = query.trim().toLowerCase();
@@ -256,6 +280,11 @@ export function KnowledgeLibrary() {
                                 ))}
                                 <span aria-hidden="true">·</span>
                               </>
+                            ) : null}
+                            {asked ? (
+                              <span title="Customer questions in the last 30 days that mention this topic's keywords or title">
+                                Asked about {asked[e.id] ?? 0}× · 30 days ·
+                              </span>
                             ) : null}
                             <span>Updated {ago(e.updatedAt)}</span>
                           </div>

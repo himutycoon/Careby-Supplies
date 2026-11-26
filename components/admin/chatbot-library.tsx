@@ -5,6 +5,7 @@ import { BookOpen, FileUp, Zap } from "lucide-react";
 import { Panel, KnowledgeLibrary } from "@/components/admin/chatbot-knowledge";
 import { ChatbotRulesTable } from "@/components/admin/chatbot-rules-table";
 import { ChatbotImport } from "@/components/admin/chatbot-import";
+import { ChatbotBackup } from "@/components/admin/chatbot-backup";
 import { cn } from "@/lib/utils";
 
 /*
@@ -16,7 +17,7 @@ import { cn } from "@/lib/utils";
 const TABS = [
   { id: "rules", label: "Quick answers", icon: Zap },
   { id: "knowledge", label: "Knowledge", icon: BookOpen },
-  { id: "import", label: "Import from file", icon: FileUp },
+  { id: "import", label: "Import & backup", icon: FileUp },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
@@ -76,7 +77,16 @@ export function ChatbotLibrary() {
         </div>
 
         <div role="tabpanel">
-          {tab === "rules" ? <ChatbotRulesTable /> : tab === "knowledge" ? <KnowledgeLibrary /> : <ChatbotImport />}
+          {tab === "rules" ? (
+            <ChatbotRulesTable />
+          ) : tab === "knowledge" ? (
+            <KnowledgeLibrary />
+          ) : (
+            <div className="flex flex-col gap-6">
+              <ChatbotImport />
+              <ChatbotBackup />
+            </div>
+          )}
         </div>
       </Panel>
     </div>

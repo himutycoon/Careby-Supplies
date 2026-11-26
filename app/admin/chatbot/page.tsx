@@ -8,13 +8,14 @@ import {
   Inbox,
   MessageSquareText,
   ReceiptText,
-  Settings2,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
 import { ChatbotSettingsForm } from "@/components/admin/chatbot-settings-form";
 import { ChatbotInbox, Panel } from "@/components/admin/chatbot-knowledge";
 import { ChatbotLibrary } from "@/components/admin/chatbot-library";
+import { ChatbotQuotes } from "@/components/admin/chatbot-quotes";
+import { ChatbotTabs } from "@/components/admin/chatbot-tabs";
 import { ChatbotPlayground } from "@/components/admin/chatbot-playground";
 import { ChatbotFlow } from "@/components/admin/chatbot-flow";
 import { ChatbotInsights, Ring, type QuestionRow } from "@/components/admin/chatbot-insights";
@@ -53,16 +54,6 @@ const PREMIUM_FEATURES = [
   { title: "Priority support & AI tuning", body: "Same-day fixes and a monthly review of answers." },
 ];
 
-const NAV = [
-  ["Overview", "#overview"],
-  ["Flow", "#flow"],
-  ["Playground", "#playground"],
-  ["Quick answers", "#rules"],
-  ["Knowledge", "#knowledge"],
-  ["Import", "#import"],
-  ["Inbox", "#inbox"],
-  ["Settings", "#settings"],
-] as const;
 
 function fmt(iso: string | null) {
   return iso ? new Date(iso).toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" }) : null;
@@ -88,7 +79,7 @@ async function getStats() {
     const { count: n, error } = await q;
     return error ? null : (n ?? 0);
   };
-  const [log, waiting, leads] = await Promise.all([
+  const [log, waiting, leads, newLeads] = await Promise.all([
     sb
       .from("chatbot_questions")
       .select("question, answered, products_shown, page, created_at")
@@ -97,11 +88,12 @@ async function getStats() {
       .limit(2000),
     count(sb.from("chatbot_questions").select("id", { count: "exact", head: true }).eq("answered", false).eq("resolved", false)),
     count(sb.from("chat_leads").select("*", { count: "exact", head: true }).gte("created_at", since)),
+    count(sb.from("chat_leads").select("*", { count: "exact", head: true }).eq("status", "new")),
   ]);
   const rows = log.error ? null : ((log.data ?? []) as QuestionRow[]);
   const asked = rows ? rows.length : null;
   const answered = rows ? rows.filter((r) => r.answered).length : null;
-  return { asked, answered, waiting, leads, rows };
+  return { asked, answered, waiting, leads, newLeads, rows };
 }
 
 function Stat({
@@ -403,82 +395,31 @@ export default async function AdminChatbotPage() {
     </section>
   );
 
-  return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 font-sans sm:px-6 lg:py-8">
-      {/* ── header ───────────────────────────────────────────── */}
-      <header id="overview" className="flex scroll-mt-28 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className="flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-            <Sparkles className="size-5" aria-hidden="true" />
-          </span>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-sans text-2xl font-semibold tracking-tight">AI Assistant</h1>
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1",
-                  online ? "bg-emerald-500/12 text-emerald-700 ring-emerald-600/25 dark:text-emerald-400" : "bg-amber-500/15 text-amber-700 ring-amber-600/25 dark:text-amber-400",
-                )}
-              >
-                <span className={cn("size-1.5 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-amber-500")} />
-                {!enabled ? "Paused" : ai ? "Online" : "Rules only"}
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground">Manage your CareBy AI customer support. Changes go live within a minute.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/"
-            target="_blank"
-            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 sm:flex-none rounded-lg border border-border bg-background px-3 text-sm font-medium shadow-xs transition hover:bg-muted"
-          >
-            <ExternalLink className="size-4" aria-hidden="true" /> Preview on site
-          </Link>
-          <a
-            href="#settings"
-            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 sm:flex-none rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground shadow-xs transition hover:opacity-90"
-          >
-            <Settings2 className="size-4" aria-hidden="true" /> Settings
+  const planPill = subscribed
+    ? { text: `${tierName} · ${s.label}`, tone: plan.status === "active" ? "bg-emerald-500/12 text-emerald-700 ring-emerald-600/25 dark:text-emerald-400" : s.tone }
+    : plan.status === "pending"
+      ? { text: "Plan activating", tone: s.tone }
+      : { text: "No plan · choose one", tone: "bg-muted text-muted-foreground ring-border" };
+
+  const overview = (
+    <>
+      {!subscribed && plan.status !== "pending" ? (
+        <div className="flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            <b>The assistant is off.</b> It switches on as soon as a plan is paid.
+          </p>
+          <a href="#plan" className="inline-flex h-9 shrink-0 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90">
+            Choose a plan
           </a>
         </div>
-      </header>
-
-      {/* ── plan ─────────────────────────────────────────────── */}
-      {subscribed || plan.status === "pending" ? (
-        <>
-          {!premium && subscribed ? upgradeBanner : null}
-          {currentPlan}
-        </>
-      ) : (
-        choosePlan
-      )}
-
-      {/* section jump bar */}
-      <nav aria-label="Chatbot sections" className="sticky top-18 z-30 -mx-4 overflow-x-auto border-b border-border bg-muted/80 px-4 py-2 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:bg-background/90">
-        <ul className="flex gap-1 whitespace-nowrap">
-          {NAV.map(([label, href]) => (
-            <li key={href}>
-              <a href={href} className="block rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground">
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
+      ) : null}
       {!ai ? (
         <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
           <b>AI is temporarily off.</b> The assistant is replying with quick answers only. Contact Codevera support at {up.requestEmail} to turn it back on.
         </p>
       ) : null}
 
-      {/* ── conversation flow (n8n-style) ─────────────────────── */}
-      <ChatbotFlow />
-
-      {/* ── stats ────────────────────────────────────────────── */}
       <section aria-label="Last 30 days" className="grid gap-3 lg:grid-cols-[300px_1fr]">
-        {/* agent health */}
         <div className="flex items-center gap-4 rounded-xl border border-border bg-background p-4 shadow-xs">
           <Ring value={answerRate} />
           <ul className="min-w-0 space-y-1.5 text-xs">
@@ -497,35 +438,107 @@ export default async function AdminChatbotPage() {
           </ul>
         </div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat icon={MessageSquareText} label="AI questions" value={stats.asked} hint="Last 30 days, answered by the AI" />
-        <Stat
-          icon={CheckCircle2}
-          label="Answered"
-          value={stats.answered}
-          hint={answerRate !== null ? `${answerRate}% answer rate` : "Last 30 days"}
-          tone="text-emerald-600 bg-emerald-500/10"
-        />
-        <Stat icon={HelpCircle} label="Needs an answer" value={stats.waiting} hint="Open in the inbox" href="#inbox" tone="text-amber-600 bg-amber-500/12" />
-        <Stat icon={ReceiptText} label="Quote requests" value={stats.leads} hint="Last 30 days, from the chat" tone="text-orange-600 bg-orange-500/12" />
+          <Stat icon={MessageSquareText} label="AI questions" value={stats.asked} hint="Last 30 days, answered by the AI" />
+          <Stat
+            icon={CheckCircle2}
+            label="Answered"
+            value={stats.answered}
+            hint={answerRate !== null ? `${answerRate}% answer rate` : "Last 30 days"}
+            tone="text-emerald-600 bg-emerald-500/10"
+          />
+          <Stat icon={HelpCircle} label="Needs an answer" value={stats.waiting} hint="Open the inbox" href="#inbox" tone="text-amber-600 bg-amber-500/12" />
+          <Stat
+            icon={ReceiptText}
+            label="Quote requests"
+            value={stats.leads}
+            hint={stats.newLeads ? `${stats.newLeads} new to follow up` : "Last 30 days, from the chat"}
+            href="#quotes"
+            tone="text-orange-600 bg-orange-500/12"
+          />
         </div>
       </section>
 
-      {/* ── graphical insights ───────────────────────────────── */}
       <ChatbotInsights rows={stats.rows} />
+    </>
+  );
 
-      {/* ── playground ───────────────────────────────────────── */}
-      <section id="playground" className="scroll-mt-28">
-        <ChatbotPlayground />
-      </section>
+  const planTab =
+    subscribed || plan.status === "pending" ? (
+      <>
+        {currentPlan}
+        {!premium && subscribed ? upgradeBanner : null}
+      </>
+    ) : (
+      choosePlan
+    );
 
-      {/* ── library: quick answers, knowledge, import ───────── */}
-      <ChatbotLibrary />
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-6 font-sans sm:px-6 lg:py-8">
+      {/* ── header ───────────────────────────────────────────── */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+            <Sparkles className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="font-sans text-xl font-semibold tracking-tight sm:text-2xl">AI Assistant</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1",
+                  online ? "bg-emerald-500/12 text-emerald-700 ring-emerald-600/25 dark:text-emerald-400" : "bg-amber-500/15 text-amber-700 ring-amber-600/25 dark:text-amber-400",
+                )}
+              >
+                <span className={cn("size-1.5 rounded-full", online ? "animate-pulse bg-emerald-500" : "bg-amber-500")} />
+                {!enabled ? "Paused" : ai ? "Online" : "Rules only"}
+              </span>
+              <a href="#plan" className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 hover:opacity-80", planPill.tone)}>
+                {planPill.text}
+                {subscribed && date ? <span className="ml-1 hidden font-normal opacity-80 sm:inline">· to {date}</span> : null}
+              </a>
+            </div>
+          </div>
+        </div>
+        <Link
+          href="/"
+          target="_blank"
+          className="inline-flex h-9 items-center justify-center gap-1.5 self-start rounded-lg border border-border bg-background px-3 text-sm font-medium shadow-xs transition hover:bg-muted sm:self-auto"
+        >
+          <ExternalLink className="size-4" aria-hidden="true" /> Preview on site
+        </Link>
+      </header>
 
-      <ChatbotInbox />
-
-      <Panel id="settings" title="Settings" description="Greeting, starting buttons, WhatsApp hand-off and extra instructions for the AI.">
-        <ChatbotSettingsForm />
-      </Panel>
+      <ChatbotTabs
+        tabs={[
+          { id: "overview", label: "Overview" },
+          { id: "flow", label: "Flow" },
+          { id: "library", label: "Library" },
+          { id: "inbox", label: "Inbox", badge: stats.waiting },
+          { id: "quotes", label: "Quotes", badge: stats.newLeads },
+          { id: "playground", label: "Playground" },
+          { id: "settings", label: "Settings" },
+          { id: "plan", label: "Plan" },
+        ]}
+        aliases={{ rules: "library", knowledge: "library", import: "library" }}
+        panels={{
+          overview,
+          flow: <ChatbotFlow />,
+          library: <ChatbotLibrary />,
+          inbox: <ChatbotInbox />,
+          quotes: (
+            <Panel id="quotes" title="Quote requests" description="Requests from the chat's quote form. Mark each one as you follow up; notes are only visible to admins.">
+              <ChatbotQuotes />
+            </Panel>
+          ),
+          playground: <ChatbotPlayground />,
+          settings: (
+            <Panel id="settings" title="Settings" description="Greeting, starting buttons, WhatsApp hand-off and extra instructions for the AI.">
+              <ChatbotSettingsForm />
+            </Panel>
+          ),
+          plan: planTab,
+        }}
+      />
     </div>
   );
 }

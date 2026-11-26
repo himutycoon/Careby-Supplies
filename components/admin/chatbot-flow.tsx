@@ -151,8 +151,8 @@ function Toggle({ on, disabled, onChange, label }: { on: boolean; disabled?: boo
   );
 }
 
-/** Open a Library tab (the Library listens for these hashes). */
-function openTab(tab: "rules" | "knowledge") {
+/** Open a page tab or Library tab by its hash (#settings, #inbox, #rules…). */
+function openTab(tab: string) {
   if (window.location.hash === `#${tab}`) window.dispatchEvent(new HashChangeEvent("hashchange"));
   else window.location.hash = tab;
 }
@@ -170,7 +170,7 @@ function TriggerNode({ data }: NodeProps<Node<TriggerData>>) {
         hit={data.hit}
         dim={data.dim}
         width={220}
-        onClick={() => document.getElementById("settings")?.scrollIntoView({ behavior: "smooth" })}
+        onClick={() => openTab("settings")}
         subtitle={<span className="line-clamp-2">Website chat · “{data.greeting}”</span>}
       >
         {data.chips.length ? (
@@ -340,7 +340,7 @@ type ToolData = Common & {
 function ToolNode({ data }: NodeProps<Node<ToolData>>) {
   const go = data.href
     ? () => {
-        if (data.href!.startsWith("#")) document.getElementById(data.href!.slice(1))?.scrollIntoView({ behavior: "smooth" });
+        if (data.href!.startsWith("#")) openTab(data.href!.slice(1));
         else window.open(data.href, "_blank");
       }
     : undefined;
@@ -477,7 +477,7 @@ export function ChatbotFlow() {
     edge(e, "router", "agent", viaAI, { sourceHandle: "miss", label: "no match" });
 
     tool("ai-reply", X[3], yAI - 70, { icon: MessageSquareText, tone: "sky", title: "AI reply", subtitle: "Answer with product cards and links", kind: "end" }, viaAI);
-    tool("quote", X[3], yAI + 40, { icon: FileText, tone: "orange", title: "Quote form", subtitle: "4 questions: items, quantity, city, contact", kind: "step", href: "#inbox" }, hitQuote);
+    tool("quote", X[3], yAI + 40, { icon: FileText, tone: "orange", title: "Quote form", subtitle: "4 questions: items, quantity, city, contact", kind: "step", href: "#quotes" }, hitQuote);
     tool("inbox", X[3], yAI + 150, { icon: Inbox, tone: "amber", title: "Question inbox", subtitle: data.unsure ? `${data.unsure} the AI wasn't sure about` : "Every AI question is logged", kind: "end", href: "#inbox" }, viaAI);
     edge(e, "agent", "ai-reply", viaAI);
     edge(e, "agent", "quote", false, { dashed: true });
